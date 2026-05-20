@@ -25,12 +25,12 @@ export default async function NewCoursePage({
   return (
     <div className="p-8 max-w-3xl">
       <div className="mb-8">
-        <Link href="/admin/courses" className="text-sm text-brand-400 hover:text-brand-300 inline-flex items-center gap-1 mb-2">
+        <Link href="/admin/courses" className="text-sm text-brand-600 hover:text-brand-600 inline-flex items-center gap-1 mb-2">
           <ArrowRight className="w-4 h-4" />
           العودة للكورسات
         </Link>
         <h1 className="font-display text-3xl font-bold">كورس جديد</h1>
-        <p className="text-ink-400 mt-1">املأ بيانات الكورس الأساسية. تقدر تضيف الدروس بعد كده.</p>
+        <p className="text-gray-500 mt-1">املأ بيانات الكورس الأساسية. تقدر تضيف الدروس بعد كده.</p>
       </div>
 
       {searchParams.error && (
@@ -40,7 +40,7 @@ export default async function NewCoursePage({
       )}
 
       <form action={createCourse} className="space-y-6">
-        <div className="rounded-2xl bg-ink-800/40 border border-ink-700/50 p-6 space-y-5">
+        <div className="rounded-2xl bg-white border border-gray-200 p-6 space-y-5">
           <div className="space-y-2">
             <Label htmlFor="title_ar">عنوان الكورس *</Label>
             <Input
@@ -64,7 +64,7 @@ export default async function NewCoursePage({
               className="text-left"
               pattern="[a-z0-9-]+"
             />
-            <p className="text-xs text-ink-400">
+            <p className="text-xs text-gray-500">
               حروف إنجليزي صغيرة وأرقام وشرطات فقط. مثلاً: <code>n8n-basics</code>
             </p>
           </div>
@@ -76,7 +76,7 @@ export default async function NewCoursePage({
               name="description_ar"
               rows={4}
               placeholder="وصف الكورس وما هيتعلمه الطالب..."
-              className="flex w-full rounded-lg border border-ink-700 bg-ink-800/50 px-4 py-2 text-sm text-foreground placeholder:text-ink-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              className="flex w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-foreground placeholder:text-gray-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
             />
           </div>
 
@@ -86,7 +86,7 @@ export default async function NewCoursePage({
               <select
                 id="category_id"
                 name="category_id"
-                className="flex h-11 w-full rounded-lg border border-ink-700 bg-ink-800/50 px-4 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                className="flex h-11 w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
               >
                 <option value="">— اختار تصنيف —</option>
                 {categories?.map((c) => (
@@ -101,7 +101,7 @@ export default async function NewCoursePage({
                 id="level"
                 name="level"
                 defaultValue="beginner"
-                className="flex h-11 w-full rounded-lg border border-ink-700 bg-ink-800/50 px-4 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                className="flex h-11 w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
               >
                 <option value="beginner">مبتدئ</option>
                 <option value="intermediate">متوسط</option>
@@ -120,7 +120,7 @@ export default async function NewCoursePage({
               dir="ltr"
               className="text-left"
             />
-            <p className="text-xs text-ink-400">رابط مباشر لصورة الكورس (يفضل 16:9)</p>
+            <p className="text-xs text-gray-500">رابط مباشر لصورة الكورس (يفضل 16:9)</p>
           </div>
 
           <div className="space-y-2">

@@ -11,10 +11,10 @@ const buttonVariants = cva(
         default:
           'bg-brand-500 text-white hover:bg-brand-600 shadow-lg shadow-brand-500/20 hover:shadow-brand-500/40',
         outline:
-          'border border-ink-700 bg-transparent text-foreground hover:bg-ink-800 hover:border-brand-500/50',
-        ghost: 'hover:bg-ink-800 text-foreground',
+          'border border-gray-200 bg-transparent text-foreground hover:bg-gray-100 hover:border-brand-500/50',
+        ghost: 'hover:bg-gray-100 text-foreground',
         link: 'text-brand-500 underline-offset-4 hover:underline',
-        secondary: 'bg-ink-800 text-foreground hover:bg-ink-700',
+        secondary: 'bg-gray-100 text-foreground hover:bg-gray-200',
         destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
       },
       size: {

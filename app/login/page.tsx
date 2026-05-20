@@ -12,11 +12,11 @@ export default function LoginPage({
   searchParams: { error?: string; redirect?: string };
 }) {
   return (
-    <div className="min-h-screen bg-ink flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       {/* Background orb */}
       <div
         aria-hidden
-        className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-brand-500/10 blur-[120px]"
+        className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-brand-500/5 blur-[120px]"
       />
 
       <div className="relative w-full max-w-md">
@@ -29,10 +29,10 @@ export default function LoginPage({
         </Link>
 
         {/* Card */}
-        <div className="bg-ink-800/40 border border-ink-700/50 rounded-2xl p-8 backdrop-blur-sm">
+        <div className="bg-white border border-gray-200 rounded-2xl p-8 backdrop-blur-sm">
           <div className="text-center mb-6">
             <h1 className="font-display text-2xl font-bold mb-2">أهلًا بعودتك</h1>
-            <p className="text-sm text-ink-400">سجّل دخولك للوصول لكل الكورسات</p>
+            <p className="text-sm text-gray-500">سجّل دخولك للوصول لكل الكورسات</p>
           </div>
 
           {searchParams.error && (
@@ -63,7 +63,7 @@ export default function LoginPage({
                 <Label htmlFor="password">كلمة السر</Label>
                 <Link
                   href="/reset-password"
-                  className="text-xs text-brand-400 hover:text-brand-300"
+                  className="text-xs text-brand-600 hover:text-brand-600"
                 >
                   نسيت كلمة السر؟
                 </Link>
@@ -86,19 +86,19 @@ export default function LoginPage({
             </Button>
           </form>
 
-          <div className="mt-6 text-center text-sm text-ink-400">
+          <div className="mt-6 text-center text-sm text-gray-500">
             مش عندك حساب؟{' '}
-            <Link href={ROUTES.signup} className="text-brand-400 hover:text-brand-300 font-medium">
+            <Link href={ROUTES.signup} className="text-brand-600 hover:text-brand-600 font-medium">
               سجّل دلوقتي
             </Link>
           </div>
         </div>
 
-        <p className="text-center text-xs text-ink-500 mt-6">
+        <p className="text-center text-xs text-gray-400 mt-6">
           بتسجيل دخولك، أنت توافق على{' '}
-          <Link href="/terms" className="underline hover:text-ink-300">شروط الاستخدام</Link>{' '}
+          <Link href="/terms" className="underline hover:text-gray-600">شروط الاستخدام</Link>{' '}
           و{' '}
-          <Link href="/privacy" className="underline hover:text-ink-300">سياسة الخصوصية</Link>
+          <Link href="/privacy" className="underline hover:text-gray-600">سياسة الخصوصية</Link>
         </p>
       </div>
     </div>

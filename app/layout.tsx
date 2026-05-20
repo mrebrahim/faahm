@@ -60,7 +60,7 @@ export default function RootLayout({
     <html
       lang="ar"
       dir="rtl"
-      className={`${cairo.variable} ${tajawal.variable} dark`}
+      className={`${cairo.variable} ${tajawal.variable} `}
       suppressHydrationWarning
     >
       <body className="font-sans min-h-screen bg-background text-foreground">

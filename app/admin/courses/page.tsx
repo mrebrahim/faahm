@@ -27,7 +27,7 @@ export default async function AdminCoursesPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="font-display text-3xl font-bold">الكورسات</h1>
-          <p className="text-ink-400 mt-1">{courses?.length || 0} كورس</p>
+          <p className="text-gray-500 mt-1">{courses?.length || 0} كورس</p>
         </div>
         <Button asChild>
           <Link href="/admin/courses/new">
@@ -38,10 +38,10 @@ export default async function AdminCoursesPage() {
       </div>
 
       {courses && courses.length > 0 ? (
-        <div className="rounded-2xl bg-ink-800/40 border border-ink-700/50 overflow-hidden">
+        <div className="rounded-2xl bg-white border border-gray-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-ink-900/50 text-xs uppercase text-ink-400">
+              <thead className="bg-gray-50 text-xs uppercase text-gray-500">
                 <tr>
                   <th className="text-right p-4">الكورس</th>
                   <th className="text-right p-4">التصنيف</th>
@@ -52,39 +52,39 @@ export default async function AdminCoursesPage() {
                   <th className="text-right p-4">إجراءات</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-ink-700/50">
+              <tbody className="divide-y divide-gray-200">
                 {courses.map((course: any) => (
-                  <tr key={course.id} className="hover:bg-ink-800/30">
+                  <tr key={course.id} className="hover:bg-gray-50">
                     <td className="p-4">
                       <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 rounded-lg bg-ink-700 flex-shrink-0 overflow-hidden">
+                        <div className="w-12 h-12 rounded-lg bg-gray-200 flex-shrink-0 overflow-hidden">
                           {course.thumbnail_url ? (
                             // eslint-disable-next-line @next/next/no-img-element
                             <img src={course.thumbnail_url} alt="" className="w-full h-full object-cover" />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
-                              <BookOpen className="w-5 h-5 text-ink-500" />
+                              <BookOpen className="w-5 h-5 text-gray-400" />
                             </div>
                           )}
                         </div>
                         <div>
                           <div className="font-medium">{course.title_ar}</div>
-                          <div className="text-xs text-ink-400">{course.slug}</div>
+                          <div className="text-xs text-gray-500">{course.slug}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="p-4 text-ink-300">{course.category?.name_ar || '—'}</td>
-                    <td className="p-4 text-ink-300">{course.instructor?.full_name_ar || '—'}</td>
-                    <td className="p-4 text-ink-300">{course.total_lessons || 0}</td>
-                    <td className="p-4 text-ink-300">{formatDuration(course.total_duration_sec || 0)}</td>
+                    <td className="p-4 text-gray-600">{course.category?.name_ar || '—'}</td>
+                    <td className="p-4 text-gray-600">{course.instructor?.full_name_ar || '—'}</td>
+                    <td className="p-4 text-gray-600">{course.total_lessons || 0}</td>
+                    <td className="p-4 text-gray-600">{formatDuration(course.total_duration_sec || 0)}</td>
                     <td className="p-4">
                       {course.is_published ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-brand-500/20 text-brand-400 text-xs">
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-brand-500/20 text-brand-600 text-xs">
                           <Eye className="w-3 h-3" />
                           منشور
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-ink-700/50 text-ink-400 text-xs">
+                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-gray-100 text-gray-500 text-xs">
                           <EyeOff className="w-3 h-3" />
                           مسودة
                         </span>
@@ -105,10 +105,10 @@ export default async function AdminCoursesPage() {
           </div>
         </div>
       ) : (
-        <div className="rounded-2xl bg-ink-800/40 border border-ink-700/50 p-16 text-center">
-          <BookOpen className="w-16 h-16 mx-auto mb-4 text-ink-500" />
+        <div className="rounded-2xl bg-white border border-gray-200 p-16 text-center">
+          <BookOpen className="w-16 h-16 mx-auto mb-4 text-gray-400" />
           <h3 className="font-display text-xl font-bold mb-2">لسه ما فيش كورسات</h3>
-          <p className="text-ink-400 mb-6">ابدأ بإضافة أول كورس على المنصة</p>
+          <p className="text-gray-500 mb-6">ابدأ بإضافة أول كورس على المنصة</p>
           <Button asChild>
             <Link href="/admin/courses/new">
               <Plus className="w-4 h-4" />

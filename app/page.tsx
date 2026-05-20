@@ -53,15 +53,15 @@ export default async function HomePage() {
     .limit(6);
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-ink">
+    <main className="relative min-h-screen overflow-hidden bg-white">
       {/* Decorative background orb */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[900px] h-[900px] rounded-full bg-brand-500/10 blur-[120px]"
+        className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[900px] h-[900px] rounded-full bg-brand-500/5 blur-[120px]"
       />
       <div
         aria-hidden
-        className="pointer-events-none absolute top-[40%] -right-40 w-[500px] h-[500px] rounded-full bg-brand-500/5 blur-[100px]"
+        className="pointer-events-none absolute top-[40%] -right-40 w-[500px] h-[500px] rounded-full bg-brand-500/[0.03] blur-[100px]"
       />
 
       <Header />
@@ -72,7 +72,7 @@ export default async function HomePage() {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 mb-8 rounded-full border border-brand-500/30 bg-brand-500/10 backdrop-blur-sm">
             <Sparkles className="w-4 h-4 text-brand-500" />
-            <span className="text-sm font-medium text-brand-100">
+            <span className="text-sm font-medium text-brand-700">
               منصة فاهم — تعلّم من خبراء عرب
             </span>
           </div>
@@ -85,7 +85,7 @@ export default async function HomePage() {
           </h1>
 
           {/* Subheading */}
-          <p className="max-w-2xl mx-auto text-lg md:text-xl text-ink-300 mb-10 leading-relaxed">
+          <p className="max-w-2xl mx-auto text-lg md:text-xl text-gray-600 mb-10 leading-relaxed">
             مئات الكورسات في التسويق، الأتمتة، الذكاء الاصطناعي، والبرمجة —
             باشتراك واحد وبأسعار في متناول الجميع.
           </p>
@@ -107,7 +107,7 @@ export default async function HomePage() {
           </div>
 
           {/* Trust strip */}
-          <div className="mt-16 flex flex-wrap items-center justify-center gap-8 md:gap-16 text-ink-400">
+          <div className="mt-16 flex flex-wrap items-center justify-center gap-8 md:gap-16 text-gray-500">
             <StatBlock icon={Users} value="1,000+" label="متعلم نشط" />
             <StatBlock icon={BookOpen} value="100+" label="كورس عربي" />
             <StatBlock icon={Award} value="500+" label="شهادة صدرت" />
@@ -117,7 +117,7 @@ export default async function HomePage() {
       </section>
 
       {/* ========== CATEGORIES ========== */}
-      <section className="relative px-4 py-20 border-t border-ink-800/50">
+      <section className="relative px-4 py-20 border-t border-gray-200">
         <div className="container mx-auto max-w-6xl">
           <SectionHeader
             label="التصنيفات"
@@ -132,15 +132,15 @@ export default async function HomePage() {
                 <Link
                   key={category.id}
                   href={`${ROUTES.courses}?category=${category.slug}`}
-                  className="group relative p-6 rounded-2xl bg-ink-800/40 border border-ink-700/50 hover:border-brand-500/50 hover:bg-ink-800/80 transition-all duration-300"
+                  className="group relative p-6 rounded-2xl bg-white border border-gray-200 hover:border-brand-500/50 hover:bg-white transition-all duration-300"
                 >
                   <div className="w-12 h-12 mb-4 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center group-hover:bg-brand-500/20 transition-colors">
                     <Icon className="w-6 h-6 text-brand-500" />
                   </div>
-                  <h3 className="font-semibold text-lg mb-1 group-hover:text-brand-400 transition-colors">
+                  <h3 className="font-semibold text-lg mb-1 group-hover:text-brand-600 transition-colors">
                     {category.name_ar}
                   </h3>
-                  <div className="flex items-center text-sm text-ink-400 group-hover:text-brand-500 transition-colors">
+                  <div className="flex items-center text-sm text-gray-500 group-hover:text-brand-500 transition-colors">
                     <span>اعرف أكتر</span>
                     <ArrowLeft className="w-4 h-4 mr-1 group-hover:-translate-x-1 transition-transform" />
                   </div>
@@ -153,7 +153,7 @@ export default async function HomePage() {
 
       {/* ========== FEATURED COURSES ========== */}
       {courses && courses.length > 0 && (
-        <section className="relative px-4 py-20 border-t border-ink-800/50">
+        <section className="relative px-4 py-20 border-t border-gray-200">
           <div className="container mx-auto max-w-6xl">
             <SectionHeader
               label="الأكثر مشاهدة"
@@ -171,7 +171,7 @@ export default async function HomePage() {
       )}
 
       {/* ========== PRICING ========== */}
-      <section className="relative px-4 py-20 border-t border-ink-800/50">
+      <section className="relative px-4 py-20 border-t border-gray-200">
         <div className="container mx-auto max-w-5xl">
           <SectionHeader
             label="الأسعار"
@@ -187,12 +187,12 @@ export default async function HomePage() {
       </section>
 
       {/* ========== FINAL CTA ========== */}
-      <section className="relative px-4 py-24 border-t border-ink-800/50">
+      <section className="relative px-4 py-24 border-t border-gray-200">
         <div className="container mx-auto max-w-4xl text-center">
           <h2 className="font-display text-4xl md:text-5xl font-extrabold mb-6">
             جاهز تبدأ <span className="text-gradient-brand">رحلتك التعليمية</span>؟
           </h2>
-          <p className="text-ink-300 text-lg mb-8 max-w-2xl mx-auto">
+          <p className="text-gray-600 text-lg mb-8 max-w-2xl mx-auto">
             انضم لآلاف المتعلمين العرب اللي اختاروا فاهم لتطوير مهاراتهم
           </p>
           <Button asChild size="lg">
@@ -228,7 +228,7 @@ async function Header() {
   }
 
   return (
-    <header className="sticky top-0 z-50 border-b border-ink-800/50 bg-ink/80 backdrop-blur-xl">
+    <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur-xl">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link href={ROUTES.home} className="flex items-center gap-2 group">
           <div className="w-9 h-9 rounded-xl bg-brand-500 flex items-center justify-center font-display font-extrabold text-white text-lg shadow-lg shadow-brand-500/30">
@@ -237,7 +237,7 @@ async function Header() {
           <span className="font-display font-extrabold text-xl">{APP_NAME}</span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-ink-300">
+        <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600">
           <Link href={ROUTES.courses} className="hover:text-foreground transition-colors">
             الكورسات
           </Link>
@@ -313,11 +313,11 @@ function SectionHeader({
 }) {
   return (
     <div className="text-center max-w-2xl mx-auto">
-      <div className="inline-block px-3 py-1 mb-4 text-xs font-semibold tracking-wider uppercase text-brand-400 bg-brand-500/10 rounded-full">
+      <div className="inline-block px-3 py-1 mb-4 text-xs font-semibold tracking-wider uppercase text-brand-600 bg-brand-500/10 rounded-full">
         {label}
       </div>
       <h2 className="font-display text-3xl md:text-4xl font-extrabold mb-3">{title}</h2>
-      <p className="text-ink-400">{subtitle}</p>
+      <p className="text-gray-500">{subtitle}</p>
     </div>
   );
 }
@@ -326,9 +326,9 @@ function CourseCard({ course }: { course: any }) {
   return (
     <Link
       href={ROUTES.course(course.slug)}
-      className="group relative overflow-hidden rounded-2xl bg-ink-800/40 border border-ink-700/50 hover:border-brand-500/50 transition-all duration-300"
+      className="group relative overflow-hidden rounded-2xl bg-white border border-gray-200 hover:border-brand-500/50 transition-all duration-300"
     >
-      <div className="aspect-video bg-ink-900 relative overflow-hidden">
+      <div className="aspect-video bg-gray-100 relative overflow-hidden">
         {course.thumbnail_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -337,16 +337,16 @@ function CourseCard({ course }: { course: any }) {
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-500/20 to-ink-900">
+          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-500/20 to-gray-100">
             <BookOpen className="w-12 h-12 text-brand-500/40" />
           </div>
         )}
       </div>
       <div className="p-5">
-        <h3 className="font-bold text-lg mb-2 line-clamp-2 group-hover:text-brand-400 transition-colors">
+        <h3 className="font-bold text-lg mb-2 line-clamp-2 group-hover:text-brand-600 transition-colors">
           {course.title_ar}
         </h3>
-        <div className="flex items-center gap-4 text-sm text-ink-400">
+        <div className="flex items-center gap-4 text-sm text-gray-500">
           <span className="flex items-center gap-1">
             <BookOpen className="w-4 h-4" />
             {course.total_lessons} درس
@@ -368,8 +368,8 @@ function PricingCard({
     <div
       className={`relative p-8 rounded-2xl border transition-all ${
         featured
-          ? 'bg-gradient-to-br from-brand-500/10 to-ink-800/40 border-brand-500/50 shadow-2xl shadow-brand-500/10'
-          : 'bg-ink-800/40 border-ink-700/50'
+          ? 'bg-gradient-to-br from-brand-500/10 to-white border-brand-500/50 shadow-2xl shadow-brand-500/10'
+          : 'bg-white border-gray-200'
       }`}
     >
       {featured && 'badge' in plan && plan.badge && (
@@ -382,14 +382,14 @@ function PricingCard({
 
       <div className="flex items-baseline gap-1 mb-6">
         <span className="text-5xl font-extrabold font-display">${plan.price}</span>
-        <span className="text-ink-400">/ {plan.interval === 'month' ? 'شهر' : 'سنة'}</span>
+        <span className="text-gray-500">/ {plan.interval === 'month' ? 'شهر' : 'سنة'}</span>
       </div>
 
       <ul className="space-y-3 mb-8">
         {plan.features.map((feature, idx) => (
           <li key={idx} className="flex items-start gap-3 text-sm">
             <CheckCircle2 className="w-5 h-5 text-brand-500 mt-0.5 flex-shrink-0" />
-            <span className="text-ink-200">{feature}</span>
+            <span className="text-gray-700">{feature}</span>
           </li>
         ))}
       </ul>
@@ -410,7 +410,7 @@ function PricingCard({
 
 function Footer() {
   return (
-    <footer className="relative border-t border-ink-800/50 bg-ink-900">
+    <footer className="relative border-t border-gray-200 bg-gray-100">
       <div className="container mx-auto px-4 py-12">
         <div className="grid md:grid-cols-4 gap-8">
           <div>
@@ -420,40 +420,40 @@ function Footer() {
               </div>
               <span className="font-display font-extrabold text-lg">{APP_NAME}</span>
             </div>
-            <p className="text-sm text-ink-400">
+            <p className="text-sm text-gray-500">
               منصة تعليمية بالاشتراك للمحتوى العربي
             </p>
           </div>
 
           <div>
             <h4 className="font-bold mb-3 text-sm">المنصة</h4>
-            <ul className="space-y-2 text-sm text-ink-400">
-              <li><Link href={ROUTES.courses} className="hover:text-brand-400">الكورسات</Link></li>
-              <li><Link href={ROUTES.pricing} className="hover:text-brand-400">الأسعار</Link></li>
-              <li><Link href="/instructors" className="hover:text-brand-400">المدرّبين</Link></li>
+            <ul className="space-y-2 text-sm text-gray-500">
+              <li><Link href={ROUTES.courses} className="hover:text-brand-600">الكورسات</Link></li>
+              <li><Link href={ROUTES.pricing} className="hover:text-brand-600">الأسعار</Link></li>
+              <li><Link href="/instructors" className="hover:text-brand-600">المدرّبين</Link></li>
             </ul>
           </div>
 
           <div>
             <h4 className="font-bold mb-3 text-sm">الدعم</h4>
-            <ul className="space-y-2 text-sm text-ink-400">
-              <li><Link href="/help" className="hover:text-brand-400">مركز المساعدة</Link></li>
-              <li><Link href="/contact" className="hover:text-brand-400">تواصل معنا</Link></li>
-              <li><Link href="/faq" className="hover:text-brand-400">أسئلة شائعة</Link></li>
+            <ul className="space-y-2 text-sm text-gray-500">
+              <li><Link href="/help" className="hover:text-brand-600">مركز المساعدة</Link></li>
+              <li><Link href="/contact" className="hover:text-brand-600">تواصل معنا</Link></li>
+              <li><Link href="/faq" className="hover:text-brand-600">أسئلة شائعة</Link></li>
             </ul>
           </div>
 
           <div>
             <h4 className="font-bold mb-3 text-sm">قانوني</h4>
-            <ul className="space-y-2 text-sm text-ink-400">
-              <li><Link href="/terms" className="hover:text-brand-400">شروط الاستخدام</Link></li>
-              <li><Link href="/privacy" className="hover:text-brand-400">سياسة الخصوصية</Link></li>
-              <li><Link href="/refund" className="hover:text-brand-400">سياسة الاسترداد</Link></li>
+            <ul className="space-y-2 text-sm text-gray-500">
+              <li><Link href="/terms" className="hover:text-brand-600">شروط الاستخدام</Link></li>
+              <li><Link href="/privacy" className="hover:text-brand-600">سياسة الخصوصية</Link></li>
+              <li><Link href="/refund" className="hover:text-brand-600">سياسة الاسترداد</Link></li>
             </ul>
           </div>
         </div>
 
-        <div className="mt-12 pt-6 border-t border-ink-800 text-center text-sm text-ink-500">
+        <div className="mt-12 pt-6 border-t border-gray-200 text-center text-sm text-gray-400">
           © {new Date().getFullYear()} {APP_NAME} — جميع الحقوق محفوظة
         </div>
       </div>

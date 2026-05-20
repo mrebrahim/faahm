@@ -32,18 +32,18 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   }
 
   return (
-    <div className="min-h-screen bg-ink flex">
+    <div className="min-h-screen bg-white flex">
       {/* Sidebar */}
-      <aside className="w-64 border-l border-ink-800 bg-ink-900/50 flex-shrink-0 flex flex-col">
+      <aside className="w-64 border-l border-gray-200 bg-gray-50 flex-shrink-0 flex flex-col">
         {/* Logo */}
-        <div className="h-16 flex items-center px-6 border-b border-ink-800">
+        <div className="h-16 flex items-center px-6 border-b border-gray-200">
           <Link href="/admin" className="flex items-center gap-2">
             <div className="w-9 h-9 rounded-xl bg-brand-500 flex items-center justify-center font-display font-extrabold text-white">
               ف
             </div>
             <div>
               <div className="font-display font-extrabold leading-none">{APP_NAME}</div>
-              <div className="text-xs text-brand-400 mt-0.5">لوحة الإدارة</div>
+              <div className="text-xs text-brand-600 mt-0.5">لوحة الإدارة</div>
             </div>
           </Link>
         </div>
@@ -69,14 +69,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </nav>
 
         {/* Footer */}
-        <div className="p-4 border-t border-ink-800 space-y-2">
-          <div className="px-3 py-2 text-xs text-ink-400">
+        <div className="p-4 border-t border-gray-200 space-y-2">
+          <div className="px-3 py-2 text-xs text-gray-500">
             <div>{profile?.full_name}</div>
-            <div className="text-brand-400">مدير</div>
+            <div className="text-brand-600">مدير</div>
           </div>
           <Link
             href="/"
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-ink-300 hover:bg-ink-800 hover:text-foreground transition-colors"
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100 hover:text-foreground transition-colors"
           >
             <Home className="w-4 h-4" />
             رجوع للموقع
@@ -84,7 +84,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <form action="/auth/signout" method="POST">
             <button
               type="submit"
-              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-ink-300 hover:bg-ink-800 hover:text-foreground transition-colors"
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-gray-100 hover:text-foreground transition-colors"
             >
               <LogOut className="w-4 h-4" />
               خروج
@@ -102,7 +102,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 function NavSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="pb-4">
-      <div className="px-3 mb-2 text-xs font-semibold text-ink-500 uppercase tracking-wider">
+      <div className="px-3 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">
         {title}
       </div>
       <div className="space-y-1">{children}</div>
@@ -122,7 +122,7 @@ function NavLink({
   return (
     <Link
       href={href}
-      className="flex items-center gap-3 px-3 py-2 rounded-lg text-ink-300 hover:bg-ink-800 hover:text-foreground transition-colors"
+      className="flex items-center gap-3 px-3 py-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-foreground transition-colors"
     >
       <Icon className="w-4 h-4" />
       {children}

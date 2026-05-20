@@ -3,13 +3,12 @@
 @tailwind utilities;
 
 /* ============================================================================
-   CSS Variables — متطابقة مع الـ Tailwind config
+   CSS Variables - Light Theme (Default)
    ============================================================================ */
 @layer base {
   :root {
-    /* Light mode (default) */
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
+    --background: 0 0% 100%;              /* Pure white */
+    --foreground: 240 10% 3.9%;           /* Almost black text */
 
     --card: 0 0% 100%;
     --card-foreground: 240 10% 3.9%;
@@ -17,7 +16,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
 
-    --primary: 142 71% 45%;           /* #22C55E - الأخضر بتاع فاهم */
+    --primary: 142 71% 45%;               /* #22C55E - فاهم green */
     --primary-foreground: 0 0% 100%;
 
     --secondary: 240 4.8% 95.9%;
@@ -38,37 +37,6 @@
 
     --radius: 0.75rem;
   }
-
-  .dark {
-    /* Dark mode - الأساسي لـ فاهم */
-    --background: 240 10% 3.9%;       /* #0A0A0A */
-    --foreground: 0 0% 98%;
-
-    --card: 240 5.9% 15%;             /* #27272A */
-    --card-foreground: 0 0% 98%;
-
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-
-    --primary: 142 71% 45%;           /* الأخضر يفضل ثابت */
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-
-    --accent: 142 71% 45%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 142 71% 45%;
-  }
 }
 
 /* ============================================================================
@@ -80,7 +48,6 @@
   }
 
   html {
-    /* RTL is set on <html> in layout.tsx */
     direction: rtl;
   }
 
@@ -89,17 +56,14 @@
     font-feature-settings: 'rlig' 1, 'calt' 1, 'ss01' 1;
   }
 
-  /* Better Arabic typography */
   h1, h2, h3, h4, h5, h6 {
     @apply font-display tracking-tight;
   }
 
-  /* Smooth scrolling */
   html {
     scroll-behavior: smooth;
   }
 
-  /* Custom selection color */
   ::selection {
     @apply bg-brand-500/30 text-foreground;
   }
@@ -110,7 +74,7 @@
    ============================================================================ */
 @layer utilities {
   .glass {
-    @apply bg-ink-800/80 backdrop-blur-md border border-ink-700;
+    @apply bg-white/80 backdrop-blur-md border border-gray-200;
   }
 
   .text-gradient-brand {
@@ -127,21 +91,21 @@
 }
 
 /* ============================================================================
-   Custom Scrollbar (Dark Mode)
+   Custom Scrollbar
    ============================================================================ */
-.dark ::-webkit-scrollbar {
+::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
-.dark ::-webkit-scrollbar-track {
-  @apply bg-ink-900;
+::-webkit-scrollbar-track {
+  @apply bg-gray-100;
 }
 
-.dark ::-webkit-scrollbar-thumb {
-  @apply bg-ink-700 rounded-full;
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded-full;
 }
 
-.dark ::-webkit-scrollbar-thumb:hover {
-  @apply bg-ink-600;
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400;
 }

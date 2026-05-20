@@ -9,9 +9,9 @@ export default async function PricingPage() {
   const { data: { user } } = await supabase.auth.getUser();
 
   return (
-    <div className="min-h-screen bg-ink">
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-ink-800/50 bg-ink/80 backdrop-blur-xl">
+      <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur-xl">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link href={ROUTES.home} className="flex items-center gap-2">
             <div className="w-9 h-9 rounded-xl bg-brand-500 flex items-center justify-center font-display font-extrabold text-white text-lg">
@@ -43,12 +43,12 @@ export default async function PricingPage() {
         <div className="text-center max-w-2xl mx-auto mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 mb-6 rounded-full border border-brand-500/30 bg-brand-500/10">
             <Sparkles className="w-4 h-4 text-brand-500" />
-            <span className="text-sm font-medium text-brand-100">اشتراك واحد، كل الكورسات</span>
+            <span className="text-sm font-medium text-brand-700">اشتراك واحد، كل الكورسات</span>
           </div>
           <h1 className="font-display text-4xl md:text-6xl font-extrabold mb-4">
             خطة <span className="text-gradient-brand">واضحة</span>، سعر بسيط
           </h1>
-          <p className="text-ink-300 text-lg">
+          <p className="text-gray-600 text-lg">
             اختار اللي يناسبك. ممكن تلغي في أي وقت من غير أسئلة.
           </p>
         </div>
@@ -62,7 +62,7 @@ export default async function PricingPage() {
         {/* FAQ Hint */}
         <div className="mt-16 text-center">
           <h3 className="font-display text-2xl font-bold mb-2">عندك سؤال؟</h3>
-          <p className="text-ink-400 mb-4">تواصل معانا على واتساب أو الإيميل</p>
+          <p className="text-gray-500 mb-4">تواصل معانا على واتساب أو الإيميل</p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <Button variant="outline" asChild>
               <Link href="/contact">اتواصل معانا</Link>
@@ -90,8 +90,8 @@ function PlanCard({
     <div
       className={`relative p-8 rounded-2xl border transition-all ${
         featured
-          ? 'bg-gradient-to-br from-brand-500/10 to-ink-800/40 border-brand-500/50 shadow-2xl shadow-brand-500/10'
-          : 'bg-ink-800/40 border-ink-700/50'
+          ? 'bg-gradient-to-br from-brand-500/10 to-white border-brand-500/50 shadow-2xl shadow-brand-500/10'
+          : 'bg-white border-gray-200'
       }`}
     >
       {featured && 'badge' in plan && plan.badge && (
@@ -104,11 +104,11 @@ function PlanCard({
 
       <div className="flex items-baseline gap-1 mb-2">
         <span className="text-5xl font-extrabold font-display">${plan.price}</span>
-        <span className="text-ink-400">/ {plan.interval === 'month' ? 'شهر' : 'سنة'}</span>
+        <span className="text-gray-500">/ {plan.interval === 'month' ? 'شهر' : 'سنة'}</span>
       </div>
 
       {plan.interval === 'year' && (
-        <p className="text-sm text-brand-400 mb-6">
+        <p className="text-sm text-brand-600 mb-6">
           (يعني $3.33/شهر بدل $5)
         </p>
       )}
@@ -118,7 +118,7 @@ function PlanCard({
         {plan.features.map((feature, idx) => (
           <li key={idx} className="flex items-start gap-3 text-sm">
             <CheckCircle2 className="w-5 h-5 text-brand-500 mt-0.5 flex-shrink-0" />
-            <span className="text-ink-200">{feature}</span>
+            <span className="text-gray-700">{feature}</span>
           </li>
         ))}
       </ul>

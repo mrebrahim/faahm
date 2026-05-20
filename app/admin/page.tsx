@@ -57,7 +57,7 @@ export default async function AdminDashboardPage() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="font-display text-3xl font-bold">الرئيسية</h1>
-          <p className="text-ink-400 mt-1">نظرة عامة على المنصة</p>
+          <p className="text-gray-500 mt-1">نظرة عامة على المنصة</p>
         </div>
         <Button asChild>
           <Link href="/admin/courses/new">
@@ -102,57 +102,57 @@ export default async function AdminDashboardPage() {
       {/* Two columns */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Signups */}
-        <div className="rounded-2xl bg-ink-800/40 border border-ink-700/50">
-          <div className="p-6 border-b border-ink-700/50 flex items-center justify-between">
+        <div className="rounded-2xl bg-white border border-gray-200">
+          <div className="p-6 border-b border-gray-200 flex items-center justify-between">
             <h3 className="font-bold">آخر التسجيلات</h3>
-            <Link href="/admin/students" className="text-sm text-brand-400 hover:text-brand-300 flex items-center gap-1">
+            <Link href="/admin/students" className="text-sm text-brand-600 hover:text-brand-600 flex items-center gap-1">
               عرض الكل
               <ArrowLeft className="w-4 h-4" />
             </Link>
           </div>
-          <div className="divide-y divide-ink-700/50">
+          <div className="divide-y divide-gray-200">
             {recentSignups && recentSignups.length > 0 ? (
               recentSignups.map((u) => (
                 <div key={u.id} className="p-4 flex items-center justify-between text-sm">
                   <div>
                     <div className="font-medium">{u.full_name || 'بدون اسم'}</div>
-                    <div className="text-xs text-ink-400 mt-0.5">
+                    <div className="text-xs text-gray-500 mt-0.5">
                       {new Date(u.created_at).toLocaleDateString('ar-EG')}
                     </div>
                   </div>
                 </div>
               ))
             ) : (
-              <div className="p-12 text-center text-sm text-ink-400">لسه ما حدش سجّل</div>
+              <div className="p-12 text-center text-sm text-gray-500">لسه ما حدش سجّل</div>
             )}
           </div>
         </div>
 
         {/* Recent Payments */}
-        <div className="rounded-2xl bg-ink-800/40 border border-ink-700/50">
-          <div className="p-6 border-b border-ink-700/50 flex items-center justify-between">
+        <div className="rounded-2xl bg-white border border-gray-200">
+          <div className="p-6 border-b border-gray-200 flex items-center justify-between">
             <h3 className="font-bold">آخر المدفوعات</h3>
-            <Link href="/admin/payments" className="text-sm text-brand-400 hover:text-brand-300 flex items-center gap-1">
+            <Link href="/admin/payments" className="text-sm text-brand-600 hover:text-brand-600 flex items-center gap-1">
               عرض الكل
               <ArrowLeft className="w-4 h-4" />
             </Link>
           </div>
-          <div className="divide-y divide-ink-700/50">
+          <div className="divide-y divide-gray-200">
             {recentPayments && recentPayments.length > 0 ? (
               recentPayments.map((p) => (
                 <div key={p.id} className="p-4 flex items-center justify-between text-sm">
                   <div>
-                    <div className="font-bold text-brand-400">
+                    <div className="font-bold text-brand-600">
                       ${((p.amount_cents || 0) / 100).toFixed(2)}
                     </div>
-                    <div className="text-xs text-ink-400 mt-0.5">
+                    <div className="text-xs text-gray-500 mt-0.5">
                       {new Date(p.created_at).toLocaleDateString('ar-EG')}
                     </div>
                   </div>
                   <div className="text-xs">
                     <span className={`px-2 py-1 rounded-full ${
                       p.status === 'paid'
-                        ? 'bg-brand-500/20 text-brand-400'
+                        ? 'bg-brand-500/20 text-brand-600'
                         : 'bg-yellow-500/20 text-yellow-400'
                     }`}>
                       {p.status === 'paid' ? 'مدفوع' : 'معلّق'}
@@ -161,7 +161,7 @@ export default async function AdminDashboardPage() {
                 </div>
               ))
             ) : (
-              <div className="p-12 text-center text-sm text-ink-400">لسه ما فيش مدفوعات</div>
+              <div className="p-12 text-center text-sm text-gray-500">لسه ما فيش مدفوعات</div>
             )}
           </div>
         </div>
@@ -188,19 +188,19 @@ function StatCard({
   const card = (
     <div className={`p-6 rounded-2xl border transition-all ${
       highlight
-        ? 'bg-gradient-to-br from-brand-500/10 to-ink-800/40 border-brand-500/30 hover:border-brand-500/50'
-        : 'bg-ink-800/40 border-ink-700/50 hover:border-ink-600'
+        ? 'bg-gradient-to-br from-brand-500/10 to-white border-brand-500/30 hover:border-brand-500/50'
+        : 'bg-white border-gray-200 hover:border-gray-300'
     }`}>
       <div className="flex items-start justify-between mb-3">
         <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-          highlight ? 'bg-brand-500/20' : 'bg-ink-700/50'
+          highlight ? 'bg-brand-500/20' : 'bg-gray-100'
         }`}>
-          <Icon className={`w-5 h-5 ${highlight ? 'text-brand-400' : 'text-ink-300'}`} />
+          <Icon className={`w-5 h-5 ${highlight ? 'text-brand-600' : 'text-gray-600'}`} />
         </div>
       </div>
       <div className="text-3xl font-extrabold mb-1 font-display">{value}</div>
       <div className="text-sm font-medium">{label}</div>
-      <div className="text-xs text-ink-400 mt-1">{trend}</div>
+      <div className="text-xs text-gray-500 mt-1">{trend}</div>
     </div>
   );
 
