@@ -92,8 +92,9 @@ export default async function DashboardPage() {
               </Link>
             </Button>
             <form action="/auth/signout" method="POST">
-              <Button type="submit" variant="ghost" size="sm">
+              <Button type="submit" variant="ghost" size="sm" title="تسجيل الخروج">
                 <LogOut className="w-4 h-4" />
+                <span className="hidden md:inline">خروج</span>
               </Button>
             </form>
           </div>

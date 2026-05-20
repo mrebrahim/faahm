@@ -213,7 +213,20 @@ export default async function HomePage() {
 // SUB-COMPONENTS
 // ====================================================================
 
-function Header() {
+async function Header() {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  let isAdmin = false;
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+    isAdmin = profile?.role === 'admin';
+  }
+
   return (
     <header className="sticky top-0 z-50 border-b border-ink-800/50 bg-ink/80 backdrop-blur-xl">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
@@ -237,12 +250,32 @@ function Header() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <Button asChild variant="ghost" size="sm">
-            <Link href={ROUTES.login}>دخول</Link>
-          </Button>
-          <Button asChild size="sm">
-            <Link href={ROUTES.signup}>تسجيل</Link>
-          </Button>
+          {user ? (
+            <>
+              {isAdmin && (
+                <Button asChild variant="ghost" size="sm">
+                  <Link href={ROUTES.admin}>لوحة الإدارة</Link>
+                </Button>
+              )}
+              <Button asChild variant="ghost" size="sm">
+                <Link href={ROUTES.dashboard}>لوحتي</Link>
+              </Button>
+              <form action="/auth/signout" method="POST">
+                <Button type="submit" variant="outline" size="sm">
+                  خروج
+                </Button>
+              </form>
+            </>
+          ) : (
+            <>
+              <Button asChild variant="ghost" size="sm">
+                <Link href={ROUTES.login}>دخول</Link>
+              </Button>
+              <Button asChild size="sm">
+                <Link href={ROUTES.signup}>تسجيل</Link>
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </header>
