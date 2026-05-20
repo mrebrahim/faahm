@@ -73,21 +73,22 @@ export default async function HomePage() {
           <div className="inline-flex items-center gap-2 px-4 py-1.5 mb-8 rounded-full border border-brand-500/30 bg-brand-500/10 backdrop-blur-sm">
             <Sparkles className="w-4 h-4 text-brand-500" />
             <span className="text-sm font-medium text-brand-700">
-              منصة فاهم — تعلّم من خبراء عرب
+              🚀 الأولى من نوعها في العالم العربي
             </span>
           </div>
 
           {/* Heading */}
-          <h1 className="font-display text-5xl md:text-7xl lg:text-8xl font-extrabold tracking-tight mb-6 leading-[1.1]">
-            <span className="text-foreground">اتعلم بقى</span>
+          <h1 className="font-display text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6 leading-[1.15]">
+            <span className="text-foreground">أول منصة عربية</span>
             <br />
-            <span className="text-gradient-brand">بطريقة فاهمة</span>
+            <span className="text-foreground">لكورسات </span>
+            <span className="text-gradient-brand">الذكاء الاصطناعي</span>
           </h1>
 
           {/* Subheading */}
           <p className="max-w-2xl mx-auto text-lg md:text-xl text-gray-600 mb-10 leading-relaxed">
-            مئات الكورسات في التسويق، الأتمتة، الذكاء الاصطناعي، والبرمجة —
-            باشتراك واحد وبأسعار في متناول الجميع.
+            اتعلم من خبراء عرب أحدث تقنيات الذكاء الاصطناعي، الأتمتة، التسويق الرقمي،
+            وصناعة المحتوى — باشتراك واحد بسيط.
           </p>
 
           {/* CTAs */}
@@ -109,7 +110,7 @@ export default async function HomePage() {
           {/* Trust strip */}
           <div className="mt-16 flex flex-wrap items-center justify-center gap-8 md:gap-16 text-gray-500">
             <StatBlock icon={Users} value="1,000+" label="متعلم نشط" />
-            <StatBlock icon={BookOpen} value="100+" label="كورس عربي" />
+            <StatBlock icon={BookOpen} value="100+" label="كورس بالـ AI" />
             <StatBlock icon={Award} value="500+" label="شهادة صدرت" />
             <StatBlock icon={Clock} value="24/7" label="دعم متواصل" />
           </div>
@@ -190,10 +191,10 @@ export default async function HomePage() {
       <section className="relative px-4 py-24 border-t border-gray-200">
         <div className="container mx-auto max-w-4xl text-center">
           <h2 className="font-display text-4xl md:text-5xl font-extrabold mb-6">
-            جاهز تبدأ <span className="text-gradient-brand">رحلتك التعليمية</span>؟
+            جاهز تتعلّم <span className="text-gradient-brand">الذكاء الاصطناعي</span> بالعربي؟
           </h2>
           <p className="text-gray-600 text-lg mb-8 max-w-2xl mx-auto">
-            انضم لآلاف المتعلمين العرب اللي اختاروا فاهم لتطوير مهاراتهم
+            انضم لآلاف المتعلمين العرب اللي اختاروا فاهم — أول منصة عربية للكورسات بالـ AI.
           </p>
           <Button asChild size="lg">
             <Link href={ROUTES.signup}>
@@ -421,7 +422,7 @@ function Footer() {
               <span className="font-display font-extrabold text-lg">{APP_NAME}</span>
             </div>
             <p className="text-sm text-gray-500">
-              منصة تعليمية بالاشتراك للمحتوى العربي
+              أول منصة عربية لكورسات الذكاء الاصطناعي
             </p>
           </div>
 

@@ -3,7 +3,7 @@
  */
 
 export const APP_NAME = 'فاهم!';
-export const APP_TAGLINE = 'منصة تعليمية للمحتوى العربي';
+export const APP_TAGLINE = 'أول منصة عربية لكورسات الذكاء الاصطناعي';
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://faahm.com';
 
 // Pricing
