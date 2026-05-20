@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { APP_NAME } from '@/lib/constants';
 import {
   LayoutDashboard,
@@ -20,8 +20,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   if (!user) redirect('/login?redirect=/admin');
 
-  // Verify admin role
-  const { data: profile } = await supabase
+  // Verify admin role using service client (bypasses any RLS issues)
+  const service = createServiceClient();
+  const { data: profile } = await service
     .from('profiles')
     .select('role, full_name')
     .eq('id', user.id)

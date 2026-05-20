@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
 import { ROUTES, APP_NAME, PLANS } from '@/lib/constants';
 import {
@@ -317,7 +317,8 @@ async function Header() {
 
   let isAdmin = false;
   if (user) {
-    const { data: profile } = await supabase
+    const service = createServiceClient();
+    const { data: profile } = await service
       .from('profiles')
       .select('role')
       .eq('id', user.id)

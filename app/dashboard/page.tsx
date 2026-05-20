@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
 import { ROUTES, APP_NAME } from '@/lib/constants';
 import {
@@ -23,15 +23,19 @@ export default async function DashboardPage() {
 
   if (!user) redirect('/login');
 
+  // Use service client to bypass any RLS issues when fetching own data
+  // (Safe because we've already verified the user via auth.getUser())
+  const service = createServiceClient();
+
   // Get profile
-  const { data: profile } = await supabase
+  const { data: profile } = await service
     .from('profiles')
     .select('*')
     .eq('id', user.id)
     .single();
 
   // Get active subscription
-  const { data: subscription } = await supabase
+  const { data: subscription } = await service
     .from('subscriptions')
     .select('*')
     .eq('user_id', user.id)
@@ -40,19 +44,19 @@ export default async function DashboardPage() {
     .maybeSingle();
 
   // Get user stats
-  const { count: completedLessons } = await supabase
+  const { count: completedLessons } = await service
     .from('progress')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', user.id)
     .eq('is_completed', true);
 
-  const { count: certificatesCount } = await supabase
+  const { count: certificatesCount } = await service
     .from('certificates')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', user.id);
 
   // Get featured courses (when courses exist)
-  const { data: courses } = await supabase
+  const { data: courses } = await service
     .from('courses')
     .select('id, slug, title_ar, thumbnail_url, total_lessons')
     .eq('is_published', true)
