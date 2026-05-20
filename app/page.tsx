@@ -82,13 +82,13 @@ export default async function HomePage() {
             <span className="text-foreground">أول منصة عربية</span>
             <br />
             <span className="text-foreground">لكورسات </span>
-            <span className="text-gradient-brand">الذكاء الاصطناعي</span>
+            <span className="text-gradient-brand">بالذكاء الاصطناعي</span>
           </h1>
 
           {/* Subheading */}
           <p className="max-w-2xl mx-auto text-lg md:text-xl text-gray-600 mb-10 leading-relaxed">
-            اتعلم من خبراء عرب أحدث تقنيات الذكاء الاصطناعي، الأتمتة، التسويق الرقمي،
-            وصناعة المحتوى — باشتراك واحد بسيط.
+            كورسات مصمّمة ومُقدَّمة بالذكاء الاصطناعي في الأتمتة، التسويق الرقمي،
+            صناعة المحتوى، والبرمجة — من خبراء عرب وباشتراك واحد بسيط.
           </p>
 
           {/* CTAs */}
@@ -194,7 +194,7 @@ export default async function HomePage() {
             جاهز تتعلّم <span className="text-gradient-brand">الذكاء الاصطناعي</span> بالعربي؟
           </h2>
           <p className="text-gray-600 text-lg mb-8 max-w-2xl mx-auto">
-            انضم لآلاف المتعلمين العرب اللي اختاروا فاهم — أول منصة عربية للكورسات بالـ AI.
+            انضم لآلاف المتعلمين العرب اللي اختاروا فاهم — أول منصة عربية للكورسات بالذكاء الاصطناعي.
           </p>
           <Button asChild size="lg">
             <Link href={ROUTES.signup}>
@@ -205,8 +205,105 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* ========== COMING SOON: ذكاء لايف ========== */}
+      <section className="relative px-4 py-20 border-t border-gray-200 bg-gradient-to-br from-gray-50 via-white to-brand-50/30 overflow-hidden">
+        {/* Background decorative elements */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] rounded-full bg-brand-500/[0.04] blur-[120px]"
+        />
+
+        <div className="container mx-auto max-w-4xl text-center relative">
+          {/* Coming Soon Badge */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 mb-6 rounded-full border-2 border-dashed border-brand-500/40 bg-white">
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-500 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-brand-500"></span>
+            </span>
+            <span className="text-sm font-bold text-brand-700 tracking-wide">
+              قريبًا
+            </span>
+          </div>
+
+          {/* Main heading */}
+          <h2 className="font-display text-5xl md:text-7xl font-extrabold mb-4 leading-tight">
+            <span className="text-gradient-brand">ذكاء لايف</span>
+          </h2>
+
+          {/* Tagline */}
+          <p className="text-xl md:text-2xl font-semibold text-foreground mb-3">
+            جلسات تعليمية تفاعلية مباشرة بالذكاء الاصطناعي
+          </p>
+
+          {/* Description */}
+          <p className="max-w-2xl mx-auto text-gray-600 text-base md:text-lg mb-8 leading-relaxed">
+            تعلّم لحظيًا مع مدرّب AI ذكي يجاوبك، يصحّحلك، ويفصّل المحتوى على
+            احتياجك — تجربة تعليمية شخصية بالكامل، أول مرة في العالم العربي.
+          </p>
+
+          {/* Features preview */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto mt-10">
+            <FeatureCard
+              icon={Sparkles}
+              title="مدرّب AI شخصي"
+              desc="يفهم مستواك ويعلّمك بالطريقة اللي تناسبك"
+            />
+            <FeatureCard
+              icon={Play}
+              title="جلسات لايف"
+              desc="تفاعل مباشر، تطبيق عملي، نتايج فورية"
+            />
+            <FeatureCard
+              icon={Award}
+              title="شهادات معتمدة"
+              desc="بعد إتمام كل مسار تعليمي"
+            />
+          </div>
+
+          {/* Notify me CTA */}
+          <div className="mt-12 p-6 rounded-2xl bg-white border-2 border-brand-500/20 max-w-2xl mx-auto">
+            <p className="text-sm text-gray-600 mb-3">
+              🔔 سجّل اهتمامك واكون أوّل من يجرّب ذكاء لايف
+            </p>
+            <form className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="email"
+                placeholder="بريدك الإلكتروني"
+                required
+                dir="ltr"
+                className="flex-1 h-11 px-4 rounded-lg border border-gray-300 bg-white text-sm text-left focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+              />
+              <Button type="submit">
+                سجّل اهتمامي
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+            </form>
+          </div>
+        </div>
+      </section>
+
       <Footer />
     </main>
+  );
+}
+
+function FeatureCard({
+  icon: Icon,
+  title,
+  desc,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  desc: string;
+}) {
+  return (
+    <div className="p-5 rounded-xl bg-white border border-gray-200 hover:border-brand-500/40 transition-colors">
+      <div className="w-10 h-10 mx-auto mb-3 rounded-lg bg-brand-500/10 flex items-center justify-center">
+        <Icon className="w-5 h-5 text-brand-500" />
+      </div>
+      <h3 className="font-bold mb-1 text-sm">{title}</h3>
+      <p className="text-xs text-gray-500 leading-relaxed">{desc}</p>
+    </div>
   );
 }
 
@@ -422,7 +519,7 @@ function Footer() {
               <span className="font-display font-extrabold text-lg">{APP_NAME}</span>
             </div>
             <p className="text-sm text-gray-500">
-              أول منصة عربية لكورسات الذكاء الاصطناعي
+              أول منصة عربية لكورسات بالذكاء الاصطناعي
             </p>
           </div>
 
