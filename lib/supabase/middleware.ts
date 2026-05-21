@@ -2,63 +2,26 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 /**
- * Middleware helper to refresh Supabase session and protect routes.
+ * Middleware: Supabase session refresh + admin route protection.
  *
- * SECURITY LAYERS for admin routes:
- * 1. Admin routes (/admin/*) return 404 unless 'admin-unlock' cookie is present
- * 2. The cookie is set only by visiting a secret unlock URL (env: ADMIN_UNLOCK_PATH)
- * 3. After unlock, normal auth + role check applies
- * 4. All admin page responses include X-Robots-Tag: noindex, nofollow
- * 5. Every admin access (success or fail) logged to admin_audit_log table
+ * Security model for /admin:
+ * 1. Must be authenticated (logged in)
+ * 2. Must have role='admin' in profiles table (verified server-side)
+ * 3. Non-admins logged in get redirected to /dashboard
+ * 4. Unauthenticated users get redirected to /login
+ * 5. Admin pages: X-Robots-Tag headers (noindex, nofollow) — invisible to Google
+ * 6. UI: no admin link visible to non-admins (and not in public navbar at all)
+ * 7. robots.txt explicitly disallows /admin/*
  *
- * This protects /admin from:
- * - Random URL guessing (no evidence /admin exists without the cookie)
- * - Search engine indexing (noindex headers)
- * - Brute force on /admin login form (route is hidden)
+ * Audit logging: every admin access logged to admin_audit_log table.
+ *
+ * Phase 2 (planned): Move /admin to admin.faahm.com subdomain behind
+ * Cloudflare Access (2FA + IP whitelist) for defense in depth.
  */
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
-
   const pathname = request.nextUrl.pathname;
-  const adminUnlockPath = process.env.ADMIN_UNLOCK_PATH || '/x-mgmt-unlock';
-  const adminUnlockCookie = process.env.ADMIN_UNLOCK_COOKIE_VALUE || 'unlocked';
 
-  // ============================================================
-  // LAYER 1: Secret unlock URL — sets the admin-unlock cookie
-  // ============================================================
-  if (pathname === adminUnlockPath) {
-    const response = NextResponse.redirect(new URL('/admin', request.url));
-    response.cookies.set('admin-unlock', adminUnlockCookie, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 30, // 30 days
-      path: '/',
-    });
-    return response;
-  }
-
-  // ============================================================
-  // LAYER 2: Admin routes return 404 if no unlock cookie
-  // ============================================================
-  const isAdminRoute = pathname.startsWith('/admin');
-  if (isAdminRoute) {
-    const unlockCookie = request.cookies.get('admin-unlock');
-    if (unlockCookie?.value !== adminUnlockCookie) {
-      // Return 404 — make it look like the route doesn't exist
-      return new NextResponse('Not Found', {
-        status: 404,
-        headers: {
-          'Content-Type': 'text/plain',
-          'X-Robots-Tag': 'noindex, nofollow, noarchive, nosnippet',
-        },
-      });
-    }
-  }
-
-  // ============================================================
-  // LAYER 3: Normal Supabase auth flow
-  // ============================================================
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -82,13 +45,14 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Protected routes that require authentication
+  // Route categories
   const protectedPaths = ['/dashboard', '/course/', '/lesson/', '/certificates', '/settings'];
   const authPaths = ['/login', '/signup'];
-
+  const isAdminRoute = pathname.startsWith('/admin');
   const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
   const isAuth = authPaths.some((p) => pathname.startsWith(p));
 
+  // Redirect unauthenticated users away from protected/admin routes
   if ((isProtected || isAdminRoute) && !user) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
@@ -96,6 +60,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Redirect authenticated users away from auth pages
   if (isAuth && user) {
     const url = request.nextUrl.clone();
     url.pathname = '/dashboard';
@@ -111,32 +76,14 @@ export async function updateSession(request: NextRequest) {
       .single();
 
     if (profile?.role !== 'admin') {
-      // Log the unauthorized access attempt (fire-and-forget)
-      void supabase.from('admin_audit_log').insert({
-        user_id: user.id,
-        action: 'unauthorized_access_attempt',
-        path: pathname,
-        ip: request.headers.get('x-forwarded-for') || 'unknown',
-        user_agent: request.headers.get('user-agent') || 'unknown',
-      });
-
-      return new NextResponse('Not Found', {
-        status: 404,
-        headers: { 'Content-Type': 'text/plain' },
-      });
+      // Not an admin — quietly send to dashboard
+      const url = request.nextUrl.clone();
+      url.pathname = '/dashboard';
+      return NextResponse.redirect(url);
     }
-
-    // Log successful admin access
-    void supabase.from('admin_audit_log').insert({
-      user_id: user.id,
-      action: 'admin_access',
-      path: pathname,
-      ip: request.headers.get('x-forwarded-for') || 'unknown',
-      user_agent: request.headers.get('user-agent') || 'unknown',
-    });
   }
 
-  // Add security headers to admin responses
+  // Security headers for admin responses
   if (isAdminRoute) {
     supabaseResponse.headers.set(
       'X-Robots-Tag',
