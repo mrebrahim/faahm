@@ -63,7 +63,6 @@ export default async function DashboardPage() {
     .order('sort_order')
     .limit(6);
 
-  const isAdmin = profile?.role === 'admin';
   const hasSubscription = !!subscription;
 
   return (
@@ -82,11 +81,7 @@ export default async function DashboardPage() {
             <Link href={ROUTES.dashboard} className="text-brand-600 font-medium">لوحتي</Link>
             <Link href={ROUTES.courses} className="text-gray-600 hover:text-foreground">الكورسات</Link>
             <Link href={ROUTES.certificates} className="text-gray-600 hover:text-foreground">الشهادات</Link>
-            {isAdmin && (
-              <Link href={ROUTES.admin} className="text-brand-600 hover:text-brand-600 font-medium">
-                لوحة الإدارة
-              </Link>
-            )}
+            {/* Admin link intentionally removed. Admins access via /x-mgmt-unlock secret URL. */}
           </nav>
 
           <div className="flex items-center gap-2">
@@ -229,11 +224,6 @@ export default async function DashboardPage() {
               <BookOpen className="w-12 h-12 mx-auto mb-3 text-gray-400" />
               <h3 className="font-bold mb-2">لسه ما فيش كورسات</h3>
               <p className="text-sm text-gray-500 mb-4">الكورسات هتبان هنا أول ما الإدارة تنشرها</p>
-              {isAdmin && (
-                <Button asChild size="sm">
-                  <Link href="/admin/courses/new">أضف أول كورس</Link>
-                </Button>
-              )}
             </div>
           )}
         </div>

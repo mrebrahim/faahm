@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
 import { ROUTES, APP_NAME, PLANS } from '@/lib/constants';
 import {
@@ -315,17 +315,6 @@ async function Header() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  let isAdmin = false;
-  if (user) {
-    const service = createServiceClient();
-    const { data: profile } = await service
-      .from('profiles')
-      .select('role')
-      .eq('id', user.id)
-      .single();
-    isAdmin = profile?.role === 'admin';
-  }
-
   return (
     <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur-xl">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
@@ -351,11 +340,8 @@ async function Header() {
         <div className="flex items-center gap-2">
           {user ? (
             <>
-              {isAdmin && (
-                <Button asChild variant="ghost" size="sm">
-                  <Link href={ROUTES.admin}>لوحة الإدارة</Link>
-                </Button>
-              )}
+              {/* Admin link intentionally removed from public UI.
+                  Admins access via /x-mgmt-unlock secret URL. */}
               <Button asChild variant="ghost" size="sm">
                 <Link href={ROUTES.dashboard}>لوحتي</Link>
               </Button>
