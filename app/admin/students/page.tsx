@@ -15,6 +15,7 @@ import {
   ChevronRight,
   ArrowLeft,
   TrendingUp,
+  GraduationCap,
 } from 'lucide-react';
 
 export const metadata = {
@@ -308,10 +309,18 @@ export default async function StudentsListPage({
                     <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
                       {s.last_sign_in_at ? formatRelative(s.last_sign_in_at) : '—'}
                     </td>
-                    <td className="px-4 py-3 text-end">
+                    <td className="px-4 py-3 text-end whitespace-nowrap">
+                      <Link
+                        href={`/admin/students/${s.id}?tab=enrollments`}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-brand-700 bg-brand-500/10 hover:bg-brand-500/20 transition-colors me-2"
+                        title="تسجيل الطالب في كورس"
+                      >
+                        <GraduationCap className="w-3.5 h-3.5" />
+                        تسجيل
+                      </Link>
                       <Link
                         href={`/admin/students/${s.id}`}
-                        className="text-brand-600 hover:text-brand-700 text-xs"
+                        className="text-brand-600 hover:text-brand-700 text-xs inline-flex items-center"
                       >
                         تفاصيل
                         <ArrowLeft className="inline w-3 h-3 ms-1" />
