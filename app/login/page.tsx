@@ -9,7 +9,7 @@ import { ArrowLeft } from 'lucide-react';
 export default function LoginPage({
   searchParams,
 }: {
-  searchParams: { error?: string; redirect?: string };
+  searchParams: { error?: string; redirect?: string; reset?: string };
 }) {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -35,6 +35,12 @@ export default function LoginPage({
             <p className="text-sm text-gray-500">سجّل دخولك للوصول لكل الكورسات</p>
           </div>
 
+          {searchParams.reset && (
+            <div className="mb-4 p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm text-center">
+              تم حفظ كلمة السر الجديدة. سجّل دخولك دلوقتي.
+            </div>
+          )}
+
           {searchParams.error && (
             <div className="mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm text-center">
               {searchParams.error}
@@ -44,17 +50,24 @@ export default function LoginPage({
           <form action={login} className="space-y-4">
             <input type="hidden" name="redirect" value={searchParams.redirect || '/dashboard'} />
 
-            {/* Honeypot fields. Hidden from humans + screen readers, but bots
-                blindly fill every <input>. Any value here = automated abuse. */}
+            {/* Honeypot fields. Hidden from humans + screen readers and given
+                names password managers won't auto-fill (Chrome/1Password match
+                on `username`/`email`/`login`, never on `fax_number`/`address_line_2`). */}
             <div aria-hidden="true" className="absolute -left-[10000px] top-auto w-px h-px overflow-hidden">
-              <label>
-                Website
-                <input type="text" name="website" tabIndex={-1} autoComplete="off" />
-              </label>
-              <label>
-                Username
-                <input type="text" name="username" tabIndex={-1} autoComplete="off" />
-              </label>
+              <input
+                type="text"
+                name="fax_number"
+                tabIndex={-1}
+                autoComplete="off"
+                defaultValue=""
+              />
+              <input
+                type="text"
+                name="address_line_2"
+                tabIndex={-1}
+                autoComplete="off"
+                defaultValue=""
+              />
             </div>
 
             <div className="space-y-2">
