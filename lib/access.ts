@@ -37,3 +37,42 @@ export async function hasActiveSubscription(userId: string | null | undefined): 
   const sub = await getActiveSubscription(userId);
   return !!sub;
 }
+
+/**
+ * Per-course access grant. Admins can hand-pick a student and "enroll" them in
+ * a single course; that grant overrides the normal subscription paywall for
+ * that course only. Optional expires_at — null means permanent.
+ */
+export async function hasCourseEnrollment(
+  userId: string | null | undefined,
+  courseId: string | null | undefined
+): Promise<boolean> {
+  if (!userId || !courseId) return false;
+  const supabase = createServiceClient();
+  const { data } = await supabase
+    .from('enrollments')
+    .select('id, expires_at')
+    .eq('user_id', userId)
+    .eq('course_id', courseId)
+    .maybeSingle();
+  if (!data) return false;
+  if (data.expires_at && new Date(data.expires_at) <= new Date()) return false;
+  return true;
+}
+
+/**
+ * Resolves whether a user can play a lesson. Subscription wins because it
+ * covers everything; otherwise we fall through to course-level enrollment
+ * and finally the lesson's own free-preview flag (checked at call site).
+ */
+export async function canAccessCourse(
+  userId: string | null | undefined,
+  courseId: string | null | undefined
+): Promise<{ subscribed: boolean; enrolled: boolean }> {
+  if (!userId || !courseId) return { subscribed: false, enrolled: false };
+  const subscribed = await hasActiveSubscription(userId);
+  if (subscribed) return { subscribed: true, enrolled: false };
+  const enrolled = await hasCourseEnrollment(userId, courseId);
+  return { subscribed: false, enrolled };
+}
+

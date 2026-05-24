@@ -11,6 +11,8 @@ import {
   sendPasswordReset,
   revokeStudentSessions,
   saveStudentNotes,
+  enrollStudent,
+  unenrollStudent,
 } from './actions';
 import {
   ArrowRight,
@@ -29,6 +31,9 @@ import {
   Award,
   User as UserIcon,
   StickyNote,
+  GraduationCap,
+  Plus,
+  X,
 } from 'lucide-react';
 
 export const metadata = {
@@ -38,6 +43,7 @@ export const metadata = {
 
 const TABS = [
   { id: 'overview', label: 'نظرة عامة', icon: UserIcon },
+  { id: 'enrollments', label: 'التسجيلات', icon: GraduationCap },
   { id: 'subscriptions', label: 'الاشتراكات', icon: CreditCard },
   { id: 'payments', label: 'المدفوعات', icon: CreditCard },
   { id: 'progress', label: 'التقدم', icon: BookOpen },
@@ -231,6 +237,14 @@ export default async function StudentDetailPage({
 
       {/* Tab content */}
       {tab === 'overview' && <OverviewTab student={student} />}
+      {tab === 'enrollments' && (
+        <EnrollmentsTab
+          userId={student.id}
+          hasActiveSubscription={
+            student.subscription_status === 'active' || student.subscription_status === 'trialing'
+          }
+        />
+      )}
       {tab === 'subscriptions' && <SubscriptionsTab userId={student.id} />}
       {tab === 'payments' && <PaymentsTab userId={student.id} />}
       {tab === 'progress' && <ProgressTab userId={student.id} />}
@@ -510,6 +524,155 @@ async function ProgressTab({ userId }: { userId: string }) {
   );
 }
 
+async function EnrollmentsTab({
+  userId,
+  hasActiveSubscription,
+}: {
+  userId: string;
+  hasActiveSubscription: boolean;
+}) {
+  const service = createServiceClient();
+
+  // Existing enrollments for this student + the full catalog of published
+  // courses, so admin can both review what they have and grant new ones.
+  const [{ data: enrollments }, { data: allCourses }] = await Promise.all([
+    service
+      .from('enrollments')
+      .select(
+        'id, course_id, granted_at, expires_at, source, notes, course:courses(id, slug, title_ar, thumbnail_url, is_published)'
+      )
+      .eq('user_id', userId)
+      .order('granted_at', { ascending: false }),
+    service
+      .from('courses')
+      .select('id, slug, title_ar, thumbnail_url, is_published')
+      .eq('is_published', true)
+      .order('sort_order'),
+  ]);
+
+  const enrolledIds = new Set((enrollments || []).map((e: any) => e.course_id));
+  const availableCourses = (allCourses || []).filter((c: any) => !enrolledIds.has(c.id));
+
+  return (
+    <div className="space-y-6">
+      {hasActiveSubscription && (
+        <div className="p-4 rounded-lg bg-blue-50 border border-blue-200 text-blue-900 text-sm">
+          <strong>ملاحظة:</strong> هذا الطالب لديه اشتراك نشط — لديه وصول لكل
+          الكورسات تلقائيًا. التسجيلات اليدوية هنا تظل سارية حتى لو انتهى
+          الاشتراك.
+        </div>
+      )}
+
+      {/* Existing enrollments */}
+      <section>
+        <h3 className="font-bold mb-3 flex items-center gap-2">
+          <GraduationCap className="w-5 h-5 text-brand-500" />
+          الكورسات المُسجَّل بها يدويًا
+        </h3>
+        {enrollments && enrollments.length > 0 ? (
+          <div className="space-y-2">
+            {enrollments.map((e: any) => {
+              const c = Array.isArray(e.course) ? e.course[0] : e.course;
+              return (
+                <div
+                  key={e.id}
+                  className="flex items-center gap-3 p-3 rounded-xl bg-white border border-gray-200"
+                >
+                  <CourseThumb url={c?.thumbnail_url} title={c?.title_ar || ''} />
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium truncate">
+                      {c?.title_ar || '(كورس محذوف)'}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-0.5">
+                      منذ {new Date(e.granted_at).toLocaleDateString('ar-EG')}
+                      {e.expires_at && ` · ينتهي ${new Date(e.expires_at).toLocaleDateString('ar-EG')}`}
+                      {e.source && e.source !== 'manual' && ` · ${e.source}`}
+                    </div>
+                    {e.notes && (
+                      <div className="text-xs text-gray-400 mt-0.5">{e.notes}</div>
+                    )}
+                  </div>
+                  <form action={unenrollStudent}>
+                    <input type="hidden" name="id" value={userId} />
+                    <input type="hidden" name="course_id" value={e.course_id} />
+                    <Button
+                      type="submit"
+                      variant="outline"
+                      size="sm"
+                      className="text-red-600 border-red-200 hover:bg-red-50"
+                    >
+                      <X className="w-4 h-4" />
+                      إلغاء التسجيل
+                    </Button>
+                  </form>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="p-6 rounded-xl bg-white border border-dashed border-gray-200 text-center text-sm text-gray-500">
+            لا توجد تسجيلات يدوية. استخدم القائمة أدناه لمنح وصول لكورس معين.
+          </div>
+        )}
+      </section>
+
+      {/* Available courses */}
+      <section>
+        <h3 className="font-bold mb-3">إضافة الطالب لكورس جديد</h3>
+        {availableCourses.length > 0 ? (
+          <div className="space-y-2">
+            {availableCourses.map((c: any) => (
+              <div
+                key={c.id}
+                className="flex items-center gap-3 p-3 rounded-xl bg-white border border-gray-200"
+              >
+                <CourseThumb url={c.thumbnail_url} title={c.title_ar} />
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium truncate">{c.title_ar}</div>
+                  <div className="text-xs text-gray-400">/course/{c.slug}</div>
+                </div>
+                <form action={enrollStudent} className="flex items-center gap-2">
+                  <input type="hidden" name="id" value={userId} />
+                  <input type="hidden" name="course_id" value={c.id} />
+                  <input
+                    type="text"
+                    name="notes"
+                    placeholder="ملاحظة (اختياري)"
+                    className="h-9 px-3 rounded-lg border border-gray-200 bg-white text-sm w-44 hidden md:block"
+                  />
+                  <Button type="submit" size="sm">
+                    <Plus className="w-4 h-4" />
+                    تسجيل
+                  </Button>
+                </form>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-6 rounded-xl bg-white border border-dashed border-gray-200 text-center text-sm text-gray-500">
+            الطالب مسجّل بالفعل في كل الكورسات المنشورة. أضف كورس جديد من قسم
+            "الكورسات".
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function CourseThumb({ url, title }: { url?: string | null; title: string }) {
+  if (url) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={url} alt="" className="w-14 h-10 rounded-md object-cover flex-shrink-0" />
+    );
+  }
+  return (
+    <div className="w-14 h-10 rounded-md bg-brand-500/10 flex items-center justify-center flex-shrink-0">
+      <BookOpen className="w-4 h-4 text-brand-500" />
+    </div>
+  );
+}
+
 async function AuditTab({ userId }: { userId: string }) {
   const service = createServiceClient();
   const { data: rows } = await service
@@ -716,6 +879,8 @@ function SuccessBanner({ code }: { code: string }) {
     role_changed: 'تم تغيير الدور بنجاح.',
     reset_sent: 'تم إرسال إيميل إعادة تعيين كلمة السر.',
     sessions_revoked: 'تم إنهاء كل جلسات الطالب.',
+    enrolled: 'تم تسجيل الطالب في الكورس.',
+    unenrolled: 'تم إلغاء تسجيل الطالب من الكورس.',
   };
   const msg = messages[code] || 'تم.';
   return (
