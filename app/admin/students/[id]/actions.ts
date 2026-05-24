@@ -184,6 +184,70 @@ export async function revokeStudentSessions(formData: FormData) {
   redirect(`/admin/students/${targetId}?success=sessions_revoked`);
 }
 
+export async function enrollStudent(formData: FormData) {
+  const ctx = await requireAdmin();
+  const studentId = String(formData.get('id') || '');
+  const courseId = String(formData.get('course_id') || '');
+  const note = String(formData.get('notes') || '').trim() || null;
+  if (!studentId || !courseId) return;
+
+  await loggedAction(
+    ctx,
+    {
+      action: 'student.enrolled',
+      resourceType: 'profile',
+      resourceId: studentId,
+      metadata: { course_id: courseId, notes: note },
+    },
+    async () => {
+      const service = createServiceClient();
+      // upsert so re-enrolling someone is idempotent and refreshes granted_by.
+      await service.from('enrollments').upsert(
+        {
+          user_id: studentId,
+          course_id: courseId,
+          granted_by: ctx.userId,
+          granted_at: new Date().toISOString(),
+          source: 'manual',
+          notes: note,
+        },
+        { onConflict: 'user_id,course_id' }
+      );
+    }
+  );
+
+  revalidatePath(`/admin/students/${studentId}`);
+  redirect(`/admin/students/${studentId}?tab=enrollments&success=enrolled`);
+}
+
+export async function unenrollStudent(formData: FormData) {
+  const ctx = await requireAdmin();
+  const studentId = String(formData.get('id') || '');
+  const courseId = String(formData.get('course_id') || '');
+  if (!studentId || !courseId) return;
+
+  await loggedAction(
+    ctx,
+    {
+      action: 'student.unenrolled',
+      resourceType: 'profile',
+      resourceId: studentId,
+      metadata: { course_id: courseId },
+    },
+    async () => {
+      const service = createServiceClient();
+      await service
+        .from('enrollments')
+        .delete()
+        .eq('user_id', studentId)
+        .eq('course_id', courseId);
+    }
+  );
+
+  revalidatePath(`/admin/students/${studentId}`);
+  redirect(`/admin/students/${studentId}?tab=enrollments&success=unenrolled`);
+}
+
 export async function saveStudentNotes(formData: FormData) {
   const ctx = await requireAdmin();
   const targetId = String(formData.get('id') || '');

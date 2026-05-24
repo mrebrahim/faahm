@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ROUTES, APP_NAME } from '@/lib/constants';
 import { formatDuration } from '@/lib/utils';
 import { resolveVideoEmbed } from '@/lib/video';
-import { hasActiveSubscription } from '@/lib/access';
+import { canAccessCourse } from '@/lib/access';
 import { markLessonComplete } from './actions';
 import { LessonPlayer } from './player';
 import {
@@ -48,8 +48,10 @@ export default async function LessonPage({ params }: { params: { id: string } })
   const course = Array.isArray(lesson.course) ? lesson.course[0] : lesson.course;
   if (!course || !course.is_published) notFound();
 
-  const subscribed = await hasActiveSubscription(user.id);
-  const canAccess = subscribed || lesson.is_free_preview;
+  // Three paths to access: an active subscription, a per-course enrollment
+  // grant from an admin, or the lesson being marked as a free preview.
+  const { subscribed, enrolled } = await canAccessCourse(user.id, lesson.course_id);
+  const canAccess = subscribed || enrolled || lesson.is_free_preview;
 
   // Resolve the actual embed URL from provider + id. We let the per-lesson
   // library_id override the project default so we can later split content
@@ -267,7 +269,9 @@ export default async function LessonPage({ params }: { params: { id: string } })
                     {chapter.lessons?.map((l: any, lIdx: number) => {
                       const isCurrent = l.id === lesson.id;
                       const isDone = completed.has(l.id);
-                      const isLocked = !subscribed && !l.is_free_preview;
+                      // Locked = no subscription, no per-course enrollment for THIS course,
+                      // and the lesson itself isn't a free preview.
+                      const isLocked = !subscribed && !enrolled && !l.is_free_preview;
                       return (
                         <li key={l.id}>
                           <Link

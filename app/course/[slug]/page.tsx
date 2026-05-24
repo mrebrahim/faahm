@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ROUTES, APP_NAME } from '@/lib/constants';
 import { formatDuration } from '@/lib/utils';
 import { resolveVideoEmbed } from '@/lib/video';
-import { hasActiveSubscription } from '@/lib/access';
+import { canAccessCourse } from '@/lib/access';
 import {
   ArrowLeft,
   BookOpen,
@@ -70,7 +70,11 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
 
   if (!course) notFound();
 
-  const subscribed = await hasActiveSubscription(user?.id);
+  const access = await canAccessCourse(user?.id, course.id);
+  // For the rest of this page we treat enrollment the same as subscription —
+  // both grant full access to *this* course.
+  const subscribed = access.subscribed || access.enrolled;
+  const enrolledOnly = !access.subscribed && access.enrolled;
 
   // Sort chapters + lessons
   const chapters = (course.chapters || [])
@@ -433,10 +437,13 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
           {subscribed && (
             <div className="p-6 rounded-2xl bg-white border border-gray-200">
               <div className="flex items-center gap-2 mb-3 text-sm text-brand-600 font-medium">
-                <CheckCircle2 className="w-5 h-5" /> اشتراكك مفعّل
+                <CheckCircle2 className="w-5 h-5" />
+                {enrolledOnly ? 'تم تسجيلك في هذا الكورس' : 'اشتراكك مفعّل'}
               </div>
               <p className="text-sm text-gray-600 mb-4">
-                لك وصول كامل لكل دروس الكورس ده.
+                {enrolledOnly
+                  ? 'الإدارة منحتك وصولًا لهذا الكورس. استمتع!'
+                  : 'لك وصول كامل لكل دروس الكورس ده.'}
               </p>
               {firstLesson && (
                 <Button asChild className="w-full" size="lg">
