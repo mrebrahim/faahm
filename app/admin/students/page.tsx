@@ -16,6 +16,7 @@ import {
   ArrowLeft,
   TrendingUp,
   GraduationCap,
+  Mail,
 } from 'lucide-react';
 
 export const metadata = {
@@ -145,13 +146,22 @@ export default async function StudentsListPage({
             كل من سجّل في فاهم — بحث، فلترة، وإدارة الحسابات.
           </p>
         </div>
-        <a
-          href={`/api/admin/students/export?${buildQueryString(searchParams)}`}
-          className="inline-flex items-center gap-2 px-4 h-10 rounded-lg border border-gray-200 bg-white text-sm font-medium hover:bg-gray-50"
-        >
-          <Download className="w-4 h-4" />
-          تصدير CSV
-        </a>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Link
+            href="/admin/students/invite"
+            className="inline-flex items-center gap-2 px-4 h-10 rounded-lg bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 shadow-lg shadow-brand-500/20"
+          >
+            <Mail className="w-4 h-4" />
+            دعوة طالب
+          </Link>
+          <a
+            href={`/api/admin/students/export?${buildQueryString(searchParams)}`}
+            className="inline-flex items-center gap-2 px-4 h-10 rounded-lg border border-gray-200 bg-white text-sm font-medium hover:bg-gray-50"
+          >
+            <Download className="w-4 h-4" />
+            تصدير CSV
+          </a>
+        </div>
       </div>
 
       {/* Stats bar */}
