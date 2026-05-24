@@ -61,7 +61,7 @@ export default async function CourseEditPage({
     .from('chapters')
     .select(`
       id, title_ar, sort_order,
-      lessons (id, title_ar, vimeo_video_id, duration_sec, sort_order, is_free_preview)
+      lessons (id, title_ar, video_provider, video_id, video_library_id, duration_sec, sort_order, is_free_preview)
     `)
     .eq('course_id', params.id)
     .order('sort_order');
@@ -198,16 +198,30 @@ export default async function CourseEditPage({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="trailer_vimeo_id">Vimeo ID للفيديو التشويقي</Label>
-            <Input
-              id="trailer_vimeo_id"
-              name="trailer_vimeo_id"
-              defaultValue={course.trailer_vimeo_id || ''}
-              placeholder="912345678"
-              dir="ltr"
-              className="text-left"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="trailer_video_provider">مزوّد الفيديو التشويقي</Label>
+              <select
+                id="trailer_video_provider"
+                name="trailer_video_provider"
+                defaultValue={(course as any).trailer_video_provider || 'bunny'}
+                className="w-full h-11 px-3 rounded-lg border border-gray-200 bg-white text-sm"
+              >
+                <option value="bunny">Bunny Stream</option>
+                <option value="vimeo">Vimeo</option>
+              </select>
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="trailer_video_id">GUID / Vimeo ID / رابط الفيديو التشويقي</Label>
+              <Input
+                id="trailer_video_id"
+                name="trailer_video_id"
+                defaultValue={(course as any).trailer_video_id || ''}
+                placeholder="GUID أو رابط كامل (اختياري)"
+                dir="ltr"
+                className="text-left"
+              />
+            </div>
           </div>
 
           <Button type="submit">
@@ -324,7 +338,9 @@ function ChapterBlock({
                     {lessonIdx + 1}. {lesson.title_ar}
                   </div>
                   <div className="text-xs text-gray-500 flex items-center gap-3 mt-0.5">
-                    <span dir="ltr" className="font-mono">Vimeo: {lesson.vimeo_video_id}</span>
+                    <span dir="ltr" className="font-mono uppercase">
+                      {(lesson.video_provider || 'bunny')}: {lesson.video_id || '—'}
+                    </span>
                     {lesson.duration_sec > 0 && <span>{formatDuration(lesson.duration_sec)}</span>}
                   </div>
                 </div>
@@ -370,15 +386,18 @@ function ChapterBlock({
         <input type="hidden" name="course_id" value={courseId} />
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <Input name="title_ar" placeholder="عنوان الدرس" required />
+          <select
+            name="video_provider"
+            defaultValue="bunny"
+            className="h-11 px-3 rounded-lg border border-gray-200 bg-white text-sm"
+          >
+            <option value="bunny">Bunny Stream</option>
+            <option value="vimeo">Vimeo</option>
+          </select>
           <Input
-            name="title_ar"
-            placeholder="عنوان الدرس"
-            required
-            className="md:col-span-2"
-          />
-          <Input
-            name="vimeo_video_id"
-            placeholder="Vimeo ID (مثل 912345678)"
+            name="video_id"
+            placeholder="GUID / Vimeo ID / رابط الفيديو الكامل"
             required
             dir="ltr"
             className="text-left"

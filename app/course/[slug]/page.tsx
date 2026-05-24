@@ -3,7 +3,8 @@ import { notFound } from 'next/navigation';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
 import { ROUTES, APP_NAME } from '@/lib/constants';
-import { formatDuration, getVimeoEmbedUrl } from '@/lib/utils';
+import { formatDuration } from '@/lib/utils';
+import { resolveVideoEmbed } from '@/lib/video';
 import { hasActiveSubscription } from '@/lib/access';
 import {
   ArrowLeft,
@@ -54,7 +55,8 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
     .select(
       `
         id, slug, title_ar, description_ar, short_description_ar, thumbnail_url,
-        trailer_vimeo_id, level, total_lessons, total_duration_sec, language,
+        trailer_video_provider, trailer_video_id, trailer_video_library_id,
+        level, total_lessons, total_duration_sec, language,
         category:categories(slug, name_ar),
         instructor:instructors(slug, full_name_ar, bio_ar, title_ar, avatar_url),
         chapters(id, title_ar, sort_order,
@@ -104,6 +106,15 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
 
   const instructor = Array.isArray(course.instructor) ? course.instructor[0] : course.instructor;
   const category = Array.isArray(course.category) ? course.category[0] : course.category;
+
+  // Resolve trailer embed (optional — falls through to thumbnail or placeholder).
+  const trailerEmbed = (course as any).trailer_video_id
+    ? resolveVideoEmbed(
+        (course as any).trailer_video_provider,
+        (course as any).trailer_video_id,
+        (course as any).trailer_video_library_id
+      )
+    : null;
 
   // Primary CTA destination
   let ctaHref: string;
@@ -233,14 +244,17 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
           {/* Right: trailer / thumb */}
           <div className="lg:col-span-2 lg:sticky lg:top-24">
             <div className="aspect-video rounded-2xl overflow-hidden border border-gray-200 bg-gray-100">
-              {course.trailer_vimeo_id ? (
+              {trailerEmbed?.kind === 'iframe' ? (
                 <iframe
-                  src={getVimeoEmbedUrl(course.trailer_vimeo_id)}
+                  src={trailerEmbed.src}
                   className="w-full h-full"
-                  allow="autoplay; fullscreen; picture-in-picture"
+                  allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
                   allowFullScreen
                   title={`عرض ${course.title_ar}`}
                 />
+              ) : trailerEmbed?.kind === 'native' ? (
+                // eslint-disable-next-line jsx-a11y/media-has-caption
+                <video src={trailerEmbed.src} controls playsInline className="w-full h-full" />
               ) : course.thumbnail_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img

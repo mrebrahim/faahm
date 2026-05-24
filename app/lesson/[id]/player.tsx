@@ -2,23 +2,30 @@
 
 import { useEffect, useRef } from 'react';
 import { updateWatchProgress } from './actions';
+import type { ResolvedEmbed } from '@/lib/video';
 
 /**
- * Vimeo player wrapper that:
- *  - embeds the video via iframe
- *  - listens to Vimeo postMessage 'timeupdate' events
- *  - heartbeats current position to the server every ~15s
+ * Provider-agnostic lesson player.
  *
- * Why postMessage and not @vimeo/player? Keeps the bundle tiny — Vimeo's
- * own JS API is ~25KB. The wire protocol is stable and documented.
+ * - Renders an <iframe> for embedded providers (Vimeo, Bunny Stream, YouTube).
+ * - Renders a <video> tag for self-hosted MP4/HLS URLs.
+ * - For Vimeo specifically, hooks postMessage 'timeupdate' events and
+ *   heartbeats progress to the server every ~15s. Other providers fall
+ *   back to the manual "mark as complete" button on the lesson page;
+ *   we don't track watch position automatically for them yet.
+ *
+ * Why postMessage instead of the Vimeo Player SDK? Keeps the bundle tiny
+ * (Vimeo's player.js is ~25KB). The wire protocol is stable and documented.
  */
 export function LessonPlayer({
   lessonId,
-  embedUrl,
+  embed,
+  provider,
   title,
 }: {
   lessonId: string;
-  embedUrl: string;
+  embed: ResolvedEmbed;
+  provider: string;
   title: string;
 }) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -26,6 +33,7 @@ export function LessonPlayer({
   const latestSeconds = useRef<number>(0);
 
   useEffect(() => {
+    if (provider !== 'vimeo') return;
     const iframe = iframeRef.current;
     if (!iframe) return;
 
@@ -60,7 +68,7 @@ export function LessonPlayer({
         if (!Number.isFinite(seconds)) return;
         latestSeconds.current = seconds;
 
-        // Heartbeat at most every 15s, and skip if user hasn't actually progressed.
+        // Heartbeat at most every 15s.
         const now = Date.now();
         if (now - lastSent.current >= 15_000) {
           lastSent.current = now;
@@ -84,16 +92,31 @@ export function LessonPlayer({
       window.removeEventListener('pagehide', flush);
       flush();
     };
-  }, [lessonId]);
+  }, [lessonId, provider]);
+
+  if (embed.kind === 'native') {
+    return (
+      <div className="aspect-video w-full bg-black rounded-2xl overflow-hidden border border-gray-200">
+        {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+        <video
+          src={embed.src}
+          controls
+          playsInline
+          preload="metadata"
+          className="w-full h-full"
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="aspect-video w-full bg-black rounded-2xl overflow-hidden border border-gray-200">
       <iframe
         ref={iframeRef}
-        src={embedUrl}
+        src={embed.src}
         title={title}
         className="w-full h-full"
-        allow="autoplay; fullscreen; picture-in-picture"
+        allow="autoplay; fullscreen; picture-in-picture; encrypted-media; accelerometer; gyroscope"
         allowFullScreen
       />
     </div>
