@@ -69,16 +69,35 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Admin role check
+  // Admin role check. Use the service-role client so the read isn't subject
+  // to RLS edge cases (we already verified the user via auth.getUser() above,
+  // so the JWT is authentic — looking up THEIR role with service role is safe).
+  // Anon-client RLS reads on profiles were silently failing for some users
+  // and caused valid admins to bounce to /dashboard (commit 16d357d fixed
+  // pages but the middleware was missed).
   if (isAdminRoute && user) {
-    const { data: profile } = await supabase
+    const adminClient = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return [];
+          },
+          setAll() {
+            // no-op for service client
+          },
+        },
+      }
+    );
+    const { data: profile } = await adminClient
       .from('profiles')
-      .select('role')
+      .select('role, is_blocked')
       .eq('id', user.id)
       .single();
 
-    if (profile?.role !== 'admin') {
-      // Not an admin — quietly send to dashboard
+    const adminRoles = new Set(['admin', 'super_admin', 'content_admin', 'billing_admin']);
+    if (profile?.is_blocked || !profile?.role || !adminRoles.has(profile.role)) {
       const url = request.nextUrl.clone();
       url.pathname = '/dashboard';
       return NextResponse.redirect(url);
