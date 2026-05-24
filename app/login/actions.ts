@@ -10,15 +10,18 @@ export async function login(formData: FormData) {
 
   // Honeypot fields: real users never see/fill these. Any value means a
   // bot is auto-filling the form — drop the request and log it.
-  const honeypotWebsite = (formData.get('website') as string | null) || '';
-  const honeypotUsername = (formData.get('username') as string | null) || '';
-  if (honeypotWebsite || honeypotUsername) {
+  // Field names must NOT match common autofill heuristics (no `username`,
+  // `email`, `name`, etc.) or password managers will fill them on real
+  // users and false-trigger this guard.
+  const honeypotFax = (formData.get('fax_number') as string | null) || '';
+  const honeypotAddr = (formData.get('address_line_2') as string | null) || '';
+  if (honeypotFax || honeypotAddr) {
     void auditLog(
       { userId: null, userEmail: null, userRole: null },
       {
         action: 'auth.bot_detected',
         result: 'failure',
-        metadata: { fields: { website: !!honeypotWebsite, username: !!honeypotUsername } },
+        metadata: { fields: { fax_number: !!honeypotFax, address_line_2: !!honeypotAddr } },
       }
     );
     // Pretend we accepted the form so bots don't learn anything.
