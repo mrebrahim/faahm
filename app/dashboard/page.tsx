@@ -12,6 +12,7 @@ import {
   Settings,
   CreditCard,
   ArrowLeft,
+  Shield,
 } from 'lucide-react';
 
 export default async function DashboardPage() {
@@ -64,6 +65,7 @@ export default async function DashboardPage() {
     .limit(6);
 
   const hasSubscription = !!subscription;
+  const isAdmin = profile?.role === 'admin';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -81,10 +83,20 @@ export default async function DashboardPage() {
             <Link href={ROUTES.dashboard} className="text-brand-600 font-medium">لوحتي</Link>
             <Link href={ROUTES.courses} className="text-gray-600 hover:text-foreground">الكورسات</Link>
             <Link href={ROUTES.certificates} className="text-gray-600 hover:text-foreground">الشهادات</Link>
-            {/* Admin link intentionally removed. Admins access via /x-mgmt-unlock secret URL. */}
           </nav>
 
           <div className="flex items-center gap-2">
+            {/* Admin shortcut: only rendered when the logged-in user is an
+                admin. Non-admins receive the same HTML without this link, so
+                /admin existence is never leaked publicly. */}
+            {isAdmin && (
+              <Button asChild variant="outline" size="sm" className="hidden md:inline-flex">
+                <Link href={ROUTES.admin}>
+                  <Shield className="w-4 h-4" />
+                  لوحة الإدارة
+                </Link>
+              </Button>
+            )}
             <Button asChild variant="ghost" size="sm">
               <Link href={ROUTES.settings}>
                 <Settings className="w-4 h-4" />

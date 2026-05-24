@@ -315,6 +315,21 @@ async function Header() {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  // Resolve role for logged-in users so admins see a discreet shortcut.
+  // Non-admins (and guests) get exactly the same HTML they had before, so
+  // the existence of /admin is never leaked publicly.
+  let isAdmin = false;
+  if (user) {
+    const { createServiceClient } = await import('@/lib/supabase/server');
+    const service = createServiceClient();
+    const { data: profile } = await service
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+    isAdmin = profile?.role === 'admin';
+  }
+
   return (
     <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur-xl">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
@@ -340,8 +355,11 @@ async function Header() {
         <div className="flex items-center gap-2">
           {user ? (
             <>
-              {/* Admin link intentionally removed from public UI.
-                  Admins access via /x-mgmt-unlock secret URL. */}
+              {isAdmin && (
+                <Button asChild variant="outline" size="sm" className="hidden md:inline-flex">
+                  <Link href={ROUTES.admin}>لوحة الإدارة</Link>
+                </Button>
+              )}
               <Button asChild variant="ghost" size="sm">
                 <Link href={ROUTES.dashboard}>لوحتي</Link>
               </Button>
