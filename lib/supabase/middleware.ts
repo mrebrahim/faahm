@@ -46,7 +46,9 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // Route categories
-  const protectedPaths = ['/dashboard', '/course/', '/lesson/', '/certificates', '/settings'];
+  // /course/[slug] is public (shows CTA to non-subscribers per PRD §6.3).
+  // /lesson/[id] requires auth + active sub or free-preview flag (enforced in page).
+  const protectedPaths = ['/dashboard', '/lesson/', '/certificates', '/settings', '/billing'];
   const authPaths = ['/login', '/signup'];
   const isAdminRoute = pathname.startsWith('/admin');
   const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
