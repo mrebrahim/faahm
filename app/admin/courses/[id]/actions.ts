@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/admin-guard';
 import { loggedAction, formDataForLog } from '@/lib/admin-audit';
+import { parseVideoInput, type VideoProvider } from '@/lib/video';
 
 // ============================================================================
 // COURSE
@@ -23,13 +24,36 @@ export async function updateCourse(formData: FormData) {
     },
     async () => {
       const service = createServiceClient();
+
+      // Trailer fields: only persist when admin entered something. Parse the
+      // raw input through the provider so a pasted URL is normalised into
+      // (provider, video_id, library_id).
+      const trailerProvider = (formData.get('trailer_video_provider') as VideoProvider) || 'bunny';
+      const trailerRaw = (formData.get('trailer_video_id') as string) || '';
+      let trailerFields: Record<string, unknown> = {
+        trailer_video_provider: trailerProvider,
+        trailer_video_id: null,
+        trailer_video_library_id: null,
+      };
+      if (trailerRaw.trim()) {
+        const parsed = parseVideoInput(trailerProvider, trailerRaw);
+        if (!parsed) {
+          throw new Error('رابط الفيديو التشويقي مش صحيح للمزوّد المختار');
+        }
+        trailerFields = {
+          trailer_video_provider: trailerProvider,
+          trailer_video_id: parsed.video_id,
+          trailer_video_library_id: parsed.video_library_id,
+        };
+      }
+
       const updates = {
         title_ar: formData.get('title_ar') as string,
         description_ar: (formData.get('description_ar') as string) || null,
         category_id: (formData.get('category_id') as string) || null,
         level: formData.get('level') as string,
         thumbnail_url: (formData.get('thumbnail_url') as string) || null,
-        trailer_vimeo_id: (formData.get('trailer_vimeo_id') as string) || null,
+        ...trailerFields,
       };
 
       const { error } = await service.from('courses').update(updates).eq('id', id);
@@ -166,13 +190,23 @@ export async function createLesson(formData: FormData) {
   const chapter_id = formData.get('chapter_id') as string;
   const course_id = formData.get('course_id') as string;
   const title_ar = formData.get('title_ar') as string;
-  const vimeo_video_id = formData.get('vimeo_video_id') as string;
+  const provider = ((formData.get('video_provider') as string) || 'bunny') as VideoProvider;
+  const raw = (formData.get('video_id') as string) || '';
   const duration_sec = parseInt((formData.get('duration_sec') as string) || '0', 10);
   const is_free_preview = formData.get('is_free_preview') === 'on';
 
-  if (!title_ar || !vimeo_video_id) {
+  if (!title_ar || !raw.trim()) {
     redirect(
-      `/admin/courses/${course_id}?error=${encodeURIComponent('العنوان و Vimeo ID مطلوبين')}`
+      `/admin/courses/${course_id}?error=${encodeURIComponent('العنوان ومعرّف الفيديو مطلوبين')}`
+    );
+  }
+
+  const parsed = parseVideoInput(provider, raw);
+  if (!parsed) {
+    redirect(
+      `/admin/courses/${course_id}?error=${encodeURIComponent(
+        'رابط/معرّف الفيديو مش صحيح للمزوّد المختار'
+      )}`
     );
   }
 
@@ -181,7 +215,13 @@ export async function createLesson(formData: FormData) {
     {
       action: 'lesson.create',
       resourceType: 'lesson',
-      metadata: { course_id, chapter_id, title_ar, is_free_preview },
+      metadata: {
+        course_id,
+        chapter_id,
+        title_ar,
+        provider,
+        is_free_preview,
+      },
     },
     async () => {
       const service = createServiceClient();
@@ -194,7 +234,9 @@ export async function createLesson(formData: FormData) {
         chapter_id,
         course_id,
         title_ar,
-        vimeo_video_id: vimeo_video_id.trim(),
+        video_provider: provider,
+        video_id: parsed!.video_id,
+        video_library_id: parsed!.video_library_id,
         duration_sec,
         is_free_preview,
         sort_order: count || 0,
@@ -213,7 +255,7 @@ export async function deleteLesson(formData: FormData) {
   const service = createServiceClient();
   const { data: existing } = await service
     .from('lessons')
-    .select('title_ar, vimeo_video_id')
+    .select('title_ar, video_provider, video_id')
     .eq('id', id)
     .maybeSingle();
 

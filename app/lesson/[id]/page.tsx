@@ -3,7 +3,8 @@ import { notFound, redirect } from 'next/navigation';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
 import { ROUTES, APP_NAME } from '@/lib/constants';
-import { formatDuration, getVimeoEmbedUrl } from '@/lib/utils';
+import { formatDuration } from '@/lib/utils';
+import { resolveVideoEmbed } from '@/lib/video';
 import { hasActiveSubscription } from '@/lib/access';
 import { markLessonComplete } from './actions';
 import { LessonPlayer } from './player';
@@ -34,8 +35,8 @@ export default async function LessonPage({ params }: { params: { id: string } })
     .from('lessons')
     .select(
       `
-        id, title_ar, description_ar, vimeo_video_id, duration_sec, is_free_preview,
-        course_id, chapter_id, sort_order,
+        id, title_ar, description_ar, video_provider, video_id, video_library_id,
+        duration_sec, is_free_preview, course_id, chapter_id, sort_order,
         attachments:lesson_attachments(id, file_name_ar, file_url, file_type, file_size_kb),
         course:courses(id, slug, title_ar, is_published)
       `
@@ -49,6 +50,15 @@ export default async function LessonPage({ params }: { params: { id: string } })
 
   const subscribed = await hasActiveSubscription(user.id);
   const canAccess = subscribed || lesson.is_free_preview;
+
+  // Resolve the actual embed URL from provider + id. We let the per-lesson
+  // library_id override the project default so we can later split content
+  // across multiple Bunny libraries (e.g. staging vs production).
+  const embed = resolveVideoEmbed(
+    (lesson as any).video_provider,
+    (lesson as any).video_id,
+    (lesson as any).video_library_id
+  );
 
   // Course outline for sidebar (always fetched so we can show locked items too).
   const { data: chaptersRaw } = await service
@@ -120,11 +130,16 @@ export default async function LessonPage({ params }: { params: { id: string } })
         {/* Player + content */}
         <div className="lg:col-span-7 space-y-6 min-w-0">
           {canAccess ? (
-            <LessonPlayer
-              lessonId={lesson.id}
-              embedUrl={getVimeoEmbedUrl(lesson.vimeo_video_id)}
-              title={lesson.title_ar}
-            />
+            embed ? (
+              <LessonPlayer
+                lessonId={lesson.id}
+                embed={embed}
+                provider={(lesson as any).video_provider || 'bunny'}
+                title={lesson.title_ar}
+              />
+            ) : (
+              <UnplayableBlock />
+            )
           ) : (
             <PaywallBlock />
           )}
@@ -291,6 +306,19 @@ export default async function LessonPage({ params }: { params: { id: string } })
           </div>
         </aside>
       </main>
+    </div>
+  );
+}
+
+function UnplayableBlock() {
+  return (
+    <div className="aspect-video w-full rounded-2xl border border-gray-200 bg-gray-100 flex items-center justify-center p-8 text-center">
+      <div>
+        <div className="font-bold mb-1">الفيديو مش متاح حاليًا</div>
+        <p className="text-sm text-gray-500">
+          الإدارة محتاجة تضيف رابط الفيديو لهذا الدرس. حاول تاني بعد شوية.
+        </p>
+      </div>
     </div>
   );
 }

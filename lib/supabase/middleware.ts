@@ -130,8 +130,12 @@ export async function updateSession(request: NextRequest) {
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data: https:",
         "font-src 'self' data:",
-        // Supabase auth + REST endpoints; nothing else.
+        "media-src 'self' https: blob:",
+        // Supabase auth + REST endpoints; Bunny/Vimeo iframes connect to
+        // their own origins from inside the frame, not via our document,
+        // so frame-src is what matters for embeds.
         "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+        "frame-src https://iframe.mediadelivery.net https://player.vimeo.com https://www.youtube-nocookie.com",
         "frame-ancestors 'none'",
         "form-action 'self'",
         "base-uri 'self'",

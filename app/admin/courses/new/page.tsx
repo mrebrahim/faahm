@@ -123,16 +123,30 @@ export default async function NewCoursePage({
             <p className="text-xs text-gray-500">رابط مباشر لصورة الكورس (يفضل 16:9)</p>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="trailer_vimeo_id">Vimeo ID للفيديو التشويقي (اختياري)</Label>
-            <Input
-              id="trailer_vimeo_id"
-              name="trailer_vimeo_id"
-              type="text"
-              placeholder="912345678"
-              dir="ltr"
-              className="text-left"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:col-span-2">
+            <div className="space-y-2">
+              <Label htmlFor="trailer_video_provider">مزوّد الفيديو التشويقي</Label>
+              <select
+                id="trailer_video_provider"
+                name="trailer_video_provider"
+                defaultValue="bunny"
+                className="w-full h-11 px-3 rounded-lg border border-gray-200 bg-white text-sm"
+              >
+                <option value="bunny">Bunny Stream</option>
+                <option value="vimeo">Vimeo</option>
+              </select>
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="trailer_video_id">GUID / Vimeo ID / رابط الفيديو التشويقي (اختياري)</Label>
+              <Input
+                id="trailer_video_id"
+                name="trailer_video_id"
+                type="text"
+                placeholder="GUID أو رابط كامل"
+                dir="ltr"
+                className="text-left"
+              />
+            </div>
           </div>
         </div>
 
