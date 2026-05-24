@@ -185,6 +185,23 @@ export default async function DashboardPage() {
           </div>
         )}
 
+        {/* Security */}
+        <div className="mb-8 p-6 rounded-2xl bg-white border border-gray-200">
+          <h3 className="font-bold mb-3">الأمان</h3>
+          <div className="flex items-center justify-between flex-wrap gap-3 text-sm">
+            <p className="text-gray-600 max-w-xl">
+              لو خشيت إن حد دخل على حسابك من جهاز تاني، اضغط الزر ده عشان نسجّل
+              خروجك من كل الأجهزة فورًا.
+            </p>
+            <form action="/auth/signout?scope=global" method="POST">
+              <Button type="submit" variant="outline" size="sm">
+                <LogOut className="w-4 h-4" />
+                تسجيل الخروج من كل الأجهزة
+              </Button>
+            </form>
+          </div>
+        </div>
+
         {/* Featured Courses */}
         <div>
           <div className="flex items-center justify-between mb-4">
