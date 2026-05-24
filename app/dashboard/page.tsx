@@ -157,11 +157,14 @@ export default async function DashboardPage() {
         {/* Subscription Details */}
         {hasSubscription && subscription && (
           <div className="mb-8 p-6 rounded-2xl bg-white border border-gray-200">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
               <h3 className="font-bold text-lg flex items-center gap-2">
                 <CreditCard className="w-5 h-5 text-brand-500" />
                 تفاصيل الاشتراك
               </h3>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/api/billing/portal">إدارة الاشتراك</Link>
+              </Button>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
               <div>
@@ -181,6 +184,23 @@ export default async function DashboardPage() {
             </div>
           </div>
         )}
+
+        {/* Security */}
+        <div className="mb-8 p-6 rounded-2xl bg-white border border-gray-200">
+          <h3 className="font-bold mb-3">الأمان</h3>
+          <div className="flex items-center justify-between flex-wrap gap-3 text-sm">
+            <p className="text-gray-600 max-w-xl">
+              لو خشيت إن حد دخل على حسابك من جهاز تاني، اضغط الزر ده عشان نسجّل
+              خروجك من كل الأجهزة فورًا.
+            </p>
+            <form action="/auth/signout?scope=global" method="POST">
+              <Button type="submit" variant="outline" size="sm">
+                <LogOut className="w-4 h-4" />
+                تسجيل الخروج من كل الأجهزة
+              </Button>
+            </form>
+          </div>
+        </div>
 
         {/* Featured Courses */}
         <div>

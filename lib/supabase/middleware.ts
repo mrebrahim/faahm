@@ -46,7 +46,9 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // Route categories
-  const protectedPaths = ['/dashboard', '/course/', '/lesson/', '/certificates', '/settings'];
+  // /course/[slug] is public (shows CTA to non-subscribers per PRD §6.3).
+  // /lesson/[id] requires auth + active sub or free-preview flag (enforced in page).
+  const protectedPaths = ['/dashboard', '/lesson/', '/certificates', '/settings', '/billing'];
   const authPaths = ['/login', '/signup'];
   const isAdminRoute = pathname.startsWith('/admin');
   const isProtected = protectedPaths.some((p) => pathname.startsWith(p));
@@ -83,7 +85,11 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  // Security headers for admin responses
+  // Baseline security headers for every response.
+  applyBaselineSecurityHeaders(supabaseResponse);
+
+  // Stricter posture for the admin panel: no indexing, no embedding, no
+  // caching, tight CSP, and a forbidding Permissions-Policy.
   if (isAdminRoute) {
     supabaseResponse.headers.set(
       'X-Robots-Tag',
@@ -91,7 +97,47 @@ export async function updateSession(request: NextRequest) {
     );
     supabaseResponse.headers.set('X-Frame-Options', 'DENY');
     supabaseResponse.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+    supabaseResponse.headers.set('Pragma', 'no-cache');
+    supabaseResponse.headers.set(
+      'Permissions-Policy',
+      'camera=(), microphone=(), geolocation=(), interest-cohort=(), payment=(), usb=()'
+    );
+    supabaseResponse.headers.set(
+      'Content-Security-Policy',
+      [
+        "default-src 'self'",
+        // Next.js inlines small scripts; Tailwind/styled-jsx inlines styles.
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+        "style-src 'self' 'unsafe-inline'",
+        "img-src 'self' data: https:",
+        "font-src 'self' data:",
+        // Supabase auth + REST endpoints; nothing else.
+        "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+        "frame-ancestors 'none'",
+        "form-action 'self'",
+        "base-uri 'self'",
+        "object-src 'none'",
+      ].join('; ')
+    );
   }
 
   return supabaseResponse;
+}
+
+function applyBaselineSecurityHeaders(response: NextResponse) {
+  // HSTS — instruct browsers to never connect over HTTP again. Safe to
+  // emit even on the preview vercel.app domain; only enforced when served
+  // over HTTPS, which we always are.
+  response.headers.set(
+    'Strict-Transport-Security',
+    'max-age=63072000; includeSubDomains; preload'
+  );
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set('X-DNS-Prefetch-Control', 'on');
+  // X-Frame-Options is overridden to DENY for admin above; the rest of the
+  // site stays embeddable in same-origin contexts (Vimeo preview etc.).
+  if (!response.headers.has('X-Frame-Options')) {
+    response.headers.set('X-Frame-Options', 'SAMEORIGIN');
+  }
 }

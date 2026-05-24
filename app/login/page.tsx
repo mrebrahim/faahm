@@ -44,6 +44,19 @@ export default function LoginPage({
           <form action={login} className="space-y-4">
             <input type="hidden" name="redirect" value={searchParams.redirect || '/dashboard'} />
 
+            {/* Honeypot fields. Hidden from humans + screen readers, but bots
+                blindly fill every <input>. Any value here = automated abuse. */}
+            <div aria-hidden="true" className="absolute -left-[10000px] top-auto w-px h-px overflow-hidden">
+              <label>
+                Website
+                <input type="text" name="website" tabIndex={-1} autoComplete="off" />
+              </label>
+              <label>
+                Username
+                <input type="text" name="username" tabIndex={-1} autoComplete="off" />
+              </label>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="email">البريد الإلكتروني</Label>
               <Input

@@ -1,6 +1,7 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
-import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { headers } from 'next/headers';
+import { requireAdmin } from '@/lib/admin-guard';
+import { auditLog } from '@/lib/admin-audit';
 import { APP_NAME } from '@/lib/constants';
 import {
   LayoutDashboard,
@@ -12,25 +13,21 @@ import {
   Settings,
   Home,
   LogOut,
+  Shield,
 } from 'lucide-react';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  const supabase = createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  // Centralised admin gate: role check + structured audit log on denial.
+  const ctx = await requireAdmin();
 
-  if (!user) redirect('/login?redirect=/admin');
+  // Log every admin page view so we can spot reconnaissance later.
+  const path = headers().get('x-invoke-path') || headers().get('referer') || '/admin';
+  void auditLog(ctx, {
+    action: 'admin.page_view',
+    path,
+  });
 
-  // Verify admin role using service client (bypasses any RLS issues)
-  const service = createServiceClient();
-  const { data: profile } = await service
-    .from('profiles')
-    .select('role, full_name')
-    .eq('id', user.id)
-    .single();
-
-  if (profile?.role !== 'admin') {
-    redirect('/dashboard');
-  }
+  const profile = { full_name: ctx.userEmail, role: ctx.userRole };
 
   return (
     <div className="min-h-screen bg-white flex">
@@ -65,6 +62,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </NavSection>
 
           <NavSection title="النظام">
+            <NavLink href="/admin/audit-log" icon={Shield}>سجل المراجعة</NavLink>
             <NavLink href="/admin/settings" icon={Settings}>الإعدادات</NavLink>
           </NavSection>
         </nav>
