@@ -1,9 +1,10 @@
 import { ImageResponse } from 'next/og';
 import { createServiceClient } from '@/lib/supabase/server';
 
-export const runtime = 'edge';
 // Cache the rendered PNG for an hour — student name + course title don't
 // change after issuance, and Cache-Control headers below also tell the CDN.
+// We don't pin runtime to 'edge' so the route runs in the standard Node
+// process on self-hosted (Hetzner) — next/og works on Node since Next 14.
 export const revalidate = 3600;
 
 const SIZE = { width: 1200, height: 630 };

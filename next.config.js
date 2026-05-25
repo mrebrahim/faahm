@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Self-hosted production build: emits .next/standalone with only the
+  // runtime files we actually need, so deploying to a Hetzner box is
+  // `node .next/standalone/server.js` plus the static-files copy step.
+  // No-op in dev.
+  output: 'standalone',
   // Image optimization
   images: {
     remotePatterns: [
