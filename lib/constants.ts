@@ -56,6 +56,7 @@ export const ROUTES = {
   admin: '/admin',
   course: (slug: string) => `/course/${slug}`,
   lesson: (id: string) => `/lesson/${id}`,
+  quiz: (id: string) => `/quiz/${id}`,
 } as const;
 
 // Support

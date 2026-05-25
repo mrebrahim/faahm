@@ -51,6 +51,7 @@ export async function updateSession(request: NextRequest) {
   const protectedPaths = [
     '/dashboard',
     '/lesson/',
+    '/quiz/',
     '/certificates',
     '/settings',
     '/billing',
