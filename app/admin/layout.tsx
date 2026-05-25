@@ -14,6 +14,8 @@ import {
   Home,
   LogOut,
   Shield,
+  Ticket,
+  TrendingUp,
 } from 'lucide-react';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -57,8 +59,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </NavSection>
 
           <NavSection title="المالية">
+            <NavLink href="/admin/revenue" icon={TrendingUp}>لوحة الإيرادات</NavLink>
             <NavLink href="/admin/payments" icon={CreditCard}>المدفوعات</NavLink>
             <NavLink href="/admin/subscriptions" icon={CreditCard}>الاشتراكات</NavLink>
+            <NavLink href="/admin/coupons" icon={Ticket}>الكوبونات</NavLink>
           </NavSection>
 
           <NavSection title="النظام">
