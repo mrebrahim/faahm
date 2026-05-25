@@ -30,6 +30,7 @@ import {
   deleteLesson,
   togglePreviewLesson,
 } from './actions';
+import { deleteQuiz } from './quizzes/actions';
 import { ChapterAdder } from './chapter-adder';
 
 export const metadata = {
@@ -67,6 +68,27 @@ export default async function CourseEditPage({
     `)
     .eq('course_id', params.id)
     .order('sort_order');
+
+  // Quizzes attach to lessons (or float at the course level when
+  // lesson_id is null). Fetch them all at once and bucket per lesson
+  // so each lesson row can render its quizzes inline.
+  const { data: quizzes } = await supabase
+    .from('quizzes')
+    .select('id, lesson_id, title_ar, is_required, passing_score, time_limit_minutes')
+    .eq('course_id', params.id)
+    .order('created_at');
+
+  const quizzesByLesson = new Map<string, any[]>();
+  const courseLevelQuizzes: any[] = [];
+  for (const q of quizzes || []) {
+    if (q.lesson_id) {
+      const arr = quizzesByLesson.get(q.lesson_id) || [];
+      arr.push(q);
+      quizzesByLesson.set(q.lesson_id, arr);
+    } else {
+      courseLevelQuizzes.push(q);
+    }
+  }
 
   // Sort lessons within each chapter
   const sortedChapters = chapters?.map((ch: any) => ({
@@ -337,8 +359,22 @@ export default async function CourseEditPage({
                 chapter={chapter}
                 index={idx}
                 courseId={course.id}
+                quizzesByLesson={quizzesByLesson}
               />
             ))}
+            {courseLevelQuizzes.length > 0 && (
+              <div className="rounded-2xl bg-white border border-gray-200 p-4">
+                <div className="flex items-center gap-2 mb-3 text-sm font-bold text-gray-700">
+                  <HelpCircle className="w-4 h-4 text-brand-500" />
+                  كويزات عامة (مش مربوطة بدرس)
+                </div>
+                <div className="space-y-2">
+                  {courseLevelQuizzes.map((q) => (
+                    <QuizRow key={q.id} quiz={q} courseId={course.id} />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </section>
@@ -369,10 +405,12 @@ function ChapterBlock({
   chapter,
   index,
   courseId,
+  quizzesByLesson,
 }: {
   chapter: any;
   index: number;
   courseId: string;
+  quizzesByLesson: Map<string, any[]>;
 }) {
   return (
     <div className="rounded-2xl bg-white border border-gray-200 overflow-hidden">
@@ -400,61 +438,75 @@ function ChapterBlock({
       {/* Lessons */}
       {chapter.lessons && chapter.lessons.length > 0 && (
         <div className="divide-y divide-gray-200">
-          {chapter.lessons.map((lesson: any, lessonIdx: number) => (
-            <div key={lesson.id} className="flex items-center justify-between p-3 hover:bg-gray-50">
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                <Video className="w-4 h-4 text-brand-500 flex-shrink-0" />
-                <div className="min-w-0 flex-1">
-                  <div className="font-medium text-sm truncate">
-                    {lessonIdx + 1}. {lesson.title_ar}
+          {chapter.lessons.map((lesson: any, lessonIdx: number) => {
+            const lessonQuizzes = quizzesByLesson.get(lesson.id) || [];
+            return (
+              <div key={lesson.id}>
+                <div className="flex items-center justify-between p-3 hover:bg-gray-50">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <Video className="w-4 h-4 text-brand-500 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-sm truncate">
+                        {lessonIdx + 1}. {lesson.title_ar}
+                      </div>
+                      <div className="text-xs text-gray-500 flex items-center gap-3 mt-0.5">
+                        <span dir="ltr" className="font-mono uppercase">
+                          {(lesson.video_provider || 'bunny')}: {lesson.video_id || '—'}
+                        </span>
+                        {lesson.duration_sec > 0 && <span>{formatDuration(lesson.duration_sec)}</span>}
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-xs text-gray-500 flex items-center gap-3 mt-0.5">
-                    <span dir="ltr" className="font-mono uppercase">
-                      {(lesson.video_provider || 'bunny')}: {lesson.video_id || '—'}
-                    </span>
-                    {lesson.duration_sec > 0 && <span>{formatDuration(lesson.duration_sec)}</span>}
+
+                  <div className="flex items-center gap-1">
+                    {/* Edit (opens detail editor with attachments + quiz link) */}
+                    <Button asChild variant="ghost" size="sm" title="تعديل تفصيلي + مرفقات">
+                      <Link href={`/admin/courses/${courseId}/lessons/${lesson.id}`}>
+                        <Pencil className="w-4 h-4 text-gray-500" />
+                      </Link>
+                    </Button>
+
+                    {/* Toggle preview */}
+                    <form action={togglePreviewLesson}>
+                      <input type="hidden" name="id" value={lesson.id} />
+                      <input type="hidden" name="course_id" value={courseId} />
+                      <input type="hidden" name="is_free_preview" value={lesson.is_free_preview.toString()} />
+                      <Button
+                        type="submit"
+                        variant="ghost"
+                        size="sm"
+                        title={lesson.is_free_preview ? 'معاينة مجانية' : 'يتطلب اشتراك'}
+                      >
+                        {lesson.is_free_preview ? (
+                          <Unlock className="w-4 h-4 text-brand-500" />
+                        ) : (
+                          <Lock className="w-4 h-4" />
+                        )}
+                      </Button>
+                    </form>
+
+                    {/* Delete */}
+                    <form action={deleteLesson}>
+                      <input type="hidden" name="id" value={lesson.id} />
+                      <input type="hidden" name="course_id" value={courseId} />
+                      <Button type="submit" variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </form>
                   </div>
                 </div>
+
+                {/* Quizzes attached to this lesson */}
+                {lessonQuizzes.length > 0 && (
+                  <div className="pl-9 pr-3 pb-3 space-y-2 bg-gray-50/40">
+                    {lessonQuizzes.map((q) => (
+                      <QuizRow key={q.id} quiz={q} courseId={courseId} />
+                    ))}
+                  </div>
+                )}
               </div>
-
-              <div className="flex items-center gap-1">
-                {/* Edit (opens detail editor with attachments + quiz link) */}
-                <Button asChild variant="ghost" size="sm" title="تعديل تفصيلي + مرفقات">
-                  <Link href={`/admin/courses/${courseId}/lessons/${lesson.id}`}>
-                    <Pencil className="w-4 h-4 text-gray-500" />
-                  </Link>
-                </Button>
-
-                {/* Toggle preview */}
-                <form action={togglePreviewLesson}>
-                  <input type="hidden" name="id" value={lesson.id} />
-                  <input type="hidden" name="course_id" value={courseId} />
-                  <input type="hidden" name="is_free_preview" value={lesson.is_free_preview.toString()} />
-                  <Button
-                    type="submit"
-                    variant="ghost"
-                    size="sm"
-                    title={lesson.is_free_preview ? 'معاينة مجانية' : 'يتطلب اشتراك'}
-                  >
-                    {lesson.is_free_preview ? (
-                      <Unlock className="w-4 h-4 text-brand-500" />
-                    ) : (
-                      <Lock className="w-4 h-4" />
-                    )}
-                  </Button>
-                </form>
-
-                {/* Delete */}
-                <form action={deleteLesson}>
-                  <input type="hidden" name="id" value={lesson.id} />
-                  <input type="hidden" name="course_id" value={courseId} />
-                  <Button type="submit" variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10">
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </form>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -467,6 +519,51 @@ function ChapterBlock({
           title_ar: l.title_ar,
         }))}
       />
+    </div>
+  );
+}
+
+// ============================================================================
+function QuizRow({ quiz, courseId }: { quiz: any; courseId: string }) {
+  return (
+    <div className="flex items-center justify-between gap-2 p-2 rounded-lg border border-gray-200 bg-white text-sm">
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        <HelpCircle className="w-4 h-4 text-brand-500 flex-shrink-0" />
+        <span className="font-medium truncate">{quiz.title_ar}</span>
+        {quiz.is_required && (
+          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 flex-shrink-0">
+            إجباري
+          </span>
+        )}
+        <span dir="ltr" className="text-[10px] text-gray-500 flex-shrink-0">
+          نجاح: {quiz.passing_score}%
+        </span>
+        {quiz.time_limit_minutes && (
+          <span dir="ltr" className="text-[10px] text-gray-500 flex-shrink-0">
+            {quiz.time_limit_minutes} دقيقة
+          </span>
+        )}
+      </div>
+      <div className="flex items-center gap-1 flex-shrink-0">
+        <Button asChild variant="ghost" size="sm" title="تعديل الكويز">
+          <Link href={`/admin/courses/${courseId}/quizzes/${quiz.id}`}>
+            <Pencil className="w-3.5 h-3.5 text-gray-500" />
+          </Link>
+        </Button>
+        <form action={deleteQuiz}>
+          <input type="hidden" name="id" value={quiz.id} />
+          <input type="hidden" name="course_id" value={courseId} />
+          <Button
+            type="submit"
+            variant="ghost"
+            size="sm"
+            className="text-destructive hover:bg-destructive/10"
+            title="حذف الكويز"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+          </Button>
+        </form>
+      </div>
     </div>
   );
 }
