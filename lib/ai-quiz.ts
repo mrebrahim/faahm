@@ -1,14 +1,14 @@
 /**
- * Gemini-powered quiz question generator.
+ * OpenAI-powered quiz question generator (gpt-4o).
  *
- * Why Gemini Flash specifically:
- *   - Native JSON-schema output (responseMimeType + responseSchema) so
- *     we never have to wrangle markdown fences or partial JSON
- *   - Fast + cheap for the question-generation workload (typical request
- *     under 2 seconds for 10 questions)
+ * Why gpt-4o + Structured Outputs:
+ *   - `response_format: { type: 'json_schema', strict: true }` guarantees
+ *     the model returns JSON that matches our schema — no markdown fence
+ *     stripping, no partial-JSON wrangling.
+ *   - gpt-4o handles Arabic prompts and Arabic content generation cleanly.
  *
- * Why no SDK dependency: the REST API surface is tiny and the SDK
- * pulls in @google/generative-ai which doesn't run on Edge runtime
+ * Why no SDK dependency: the REST surface we need is tiny (one POST) and
+ * the official SDK pulls in extra deps that don't run on Edge runtime
  * without polyfills. A single fetch() keeps the bundle small.
  */
 
@@ -29,39 +29,47 @@ export type GenerateOptions = {
   language?: 'ar' | 'en'; // Output language; defaults to Arabic
 };
 
-const GEMINI_MODEL = 'gemini-1.5-flash-latest';
-const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+const OPENAI_MODEL = 'gpt-4o';
+const OPENAI_ENDPOINT = 'https://api.openai.com/v1/chat/completions';
 
 /**
- * Schema we hand to Gemini's `responseSchema` so the model is forced
- * to emit a valid array we can insert directly. Numeric option counts
- * and `is_correct` boolean shapes match our quiz_options table.
+ * Strict JSON schema for OpenAI Structured Outputs. The model is forced
+ * to return `{ questions: [...] }` matching this shape exactly. We wrap
+ * the array in an object because Structured Outputs requires a top-level
+ * object schema.
  */
 function buildResponseSchema(allowedTypes: ('single_choice' | 'multiple_choice' | 'true_false')[]) {
   return {
-    type: 'ARRAY',
-    items: {
-      type: 'OBJECT',
-      properties: {
-        question_ar: { type: 'STRING' },
-        type: { type: 'STRING', enum: allowedTypes },
-        options: {
-          type: 'ARRAY',
-          minItems: 2,
-          maxItems: 6,
-          items: {
-            type: 'OBJECT',
-            properties: {
-              option_ar: { type: 'STRING' },
-              is_correct: { type: 'BOOLEAN' },
+    type: 'object',
+    additionalProperties: false,
+    properties: {
+      questions: {
+        type: 'array',
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          properties: {
+            question_ar: { type: 'string' },
+            type: { type: 'string', enum: allowedTypes },
+            options: {
+              type: 'array',
+              items: {
+                type: 'object',
+                additionalProperties: false,
+                properties: {
+                  option_ar: { type: 'string' },
+                  is_correct: { type: 'boolean' },
+                },
+                required: ['option_ar', 'is_correct'],
+              },
             },
-            required: ['option_ar', 'is_correct'],
+            explanation_ar: { type: 'string' },
           },
+          required: ['question_ar', 'type', 'options', 'explanation_ar'],
         },
-        explanation_ar: { type: 'STRING' },
       },
-      required: ['question_ar', 'type', 'options'],
     },
+    required: ['questions'],
   };
 }
 
@@ -74,9 +82,6 @@ function buildPrompt(opts: GenerateOptions): string {
   const langLabel = opts.language === 'en' ? 'English' : 'العربية الفصحى';
   const difficulty = opts.difficulty || 'medium';
 
-  // Long Arabic prompt — Gemini handles bilingual prompts well, and
-  // keeping the meta-instructions in Arabic biases the output language
-  // when we leave language unspecified.
   return [
     `أنت مولّد أسئلة كويز خبير. أنشئ ${opts.count} سؤال للموضوع التالي بـ${langLabel}:`,
     '',
@@ -105,17 +110,17 @@ function buildPrompt(opts: GenerateOptions): string {
 }
 
 /**
- * Call Gemini and return the parsed questions. Throws a clear error when
+ * Call OpenAI and return the parsed questions. Throws a clear error when
  * the API key is missing, the call fails, or the model returns nothing
  * usable. Caller is responsible for inserting into the DB.
  */
 export async function generateQuizQuestions(
   opts: GenerateOptions
 ): Promise<GeneratedQuestion[]> {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     throw new Error(
-      'GEMINI_API_KEY غير مضبوط على السيرفر — أضف المفتاح في إعدادات Vercel وحاول تاني.'
+      'OPENAI_API_KEY غير مضبوط على السيرفر — أضف المفتاح في إعدادات Vercel وحاول تاني.'
     );
   }
   if (!opts.topic.trim()) {
@@ -124,34 +129,38 @@ export async function generateQuizQuestions(
   const count = Math.max(1, Math.min(20, Math.floor(opts.count)));
 
   const body = {
-    contents: [
+    model: OPENAI_MODEL,
+    messages: [
+      {
+        role: 'system',
+        content:
+          'You are a strict quiz generator. Return only valid JSON matching the provided schema. Write Arabic content per the user instructions.',
+      },
       {
         role: 'user',
-        parts: [{ text: buildPrompt({ ...opts, count }) }],
+        content: buildPrompt({ ...opts, count }),
       },
     ],
-    generationConfig: {
-      responseMimeType: 'application/json',
-      responseSchema: buildResponseSchema(
-        Array.from(allowedTypesFor(opts.questionType)) as any
-      ),
-      temperature: 0.7,
-      // Plenty of headroom for 20 questions × ~6 options each.
-      maxOutputTokens: 4096,
+    temperature: 0.7,
+    max_tokens: 4096,
+    response_format: {
+      type: 'json_schema',
+      json_schema: {
+        name: 'quiz_questions',
+        strict: true,
+        schema: buildResponseSchema(
+          Array.from(allowedTypesFor(opts.questionType)) as any
+        ),
+      },
     },
-    safetySettings: [
-      // Quizzes are educational; loosen the defaults so the model doesn't
-      // refuse legitimate course topics. We still keep the strict ones.
-      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_ONLY_HIGH' },
-      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' },
-      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_MEDIUM_AND_ABOVE' },
-      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_ONLY_HIGH' },
-    ],
   };
 
-  const res = await fetch(`${GEMINI_ENDPOINT}?key=${encodeURIComponent(apiKey)}`, {
+  const res = await fetch(OPENAI_ENDPOINT, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
     body: JSON.stringify(body),
     cache: 'no-store',
   });
@@ -159,34 +168,40 @@ export async function generateQuizQuestions(
   if (!res.ok) {
     const text = await res.text().catch(() => '');
     throw new Error(
-      `Gemini ${res.status}: ${text.slice(0, 200) || 'فشل الاتصال'}`
+      `OpenAI ${res.status}: ${text.slice(0, 200) || 'فشل الاتصال'}`
     );
   }
 
   const data = (await res.json()) as any;
-  const finishReason = data.candidates?.[0]?.finishReason;
-  const rawText: string | undefined = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  const choice = data.choices?.[0];
+  const finishReason = choice?.finish_reason;
+  const rawText: string | undefined = choice?.message?.content;
+  const refusal: string | undefined = choice?.message?.refusal;
 
+  if (refusal) {
+    throw new Error(`OpenAI رفض الطلب: ${refusal.slice(0, 200)}`);
+  }
   if (!rawText) {
-    if (finishReason === 'SAFETY') {
-      throw new Error('Gemini رفض الموضوع لاعتبارات أمان. عدّل الفقرة وحاول تاني.');
-    }
-    throw new Error(`Gemini أعاد ردًا فارغًا (finishReason=${finishReason || 'unknown'}).`);
+    throw new Error(`OpenAI أعاد ردًا فارغًا (finish_reason=${finishReason || 'unknown'}).`);
   }
 
   let parsed: unknown;
   try {
     parsed = JSON.parse(rawText);
   } catch {
-    throw new Error('فشل تحليل رد Gemini كـ JSON.');
+    throw new Error('فشل تحليل رد OpenAI كـ JSON.');
   }
-  if (!Array.isArray(parsed)) {
-    throw new Error('Gemini لم يُرجع قائمة أسئلة.');
+  const questions =
+    parsed && typeof parsed === 'object' && 'questions' in (parsed as any)
+      ? (parsed as any).questions
+      : null;
+  if (!Array.isArray(questions)) {
+    throw new Error('OpenAI لم يُرجع قائمة أسئلة.');
   }
 
-  // Trust but verify — drop malformed entries, enforce the type-specific
+  // Trust but verify — drop malformed entries, enforce type-specific
   // rules so the DB insert never fails because of a hallucinated row.
-  return parsed
+  return questions
     .map((q: any) => normalizeQuestion(q))
     .filter((q): q is GeneratedQuestion => q !== null);
 }
