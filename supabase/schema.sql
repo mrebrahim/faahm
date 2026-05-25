@@ -38,7 +38,8 @@ create table public.profiles (
     role            user_role not null default 'student',
     is_blocked      boolean not null default false,
     created_at      timestamptz not null default now(),
-    updated_at      timestamptz not null default now()
+    updated_at      timestamptz not null default now(),
+    marketing_opt_in boolean not null default false
 );
 
 create index idx_profiles_role on public.profiles(role);
@@ -354,11 +355,12 @@ create trigger trg_subscriptions_updated_at
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-    insert into public.profiles (id, full_name, avatar_url)
+    insert into public.profiles (id, full_name, avatar_url, marketing_opt_in)
     values (
         new.id,
         coalesce(new.raw_user_meta_data->>'full_name', new.email),
-        new.raw_user_meta_data->>'avatar_url'
+        new.raw_user_meta_data->>'avatar_url',
+        coalesce((new.raw_user_meta_data->>'marketing_opt_in')::boolean, false)
     );
     return new;
 end;
