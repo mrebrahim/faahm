@@ -107,8 +107,8 @@ export default async function HomePage() {
             </Button>
           </div>
 
-          {/* Trust strip */}
-          <div className="mt-16 flex flex-wrap items-center justify-center gap-8 md:gap-16 text-gray-500">
+          {/* Trust strip — 2x2 on phones, single row on md+ */}
+          <div className="mt-16 grid grid-cols-2 gap-6 sm:flex sm:flex-wrap sm:justify-center sm:gap-8 md:gap-16 text-gray-500">
             <StatBlock icon={Users} value="1,000+" label="متعلم نشط" />
             <StatBlock icon={BookOpen} value="100+" label="كورس بالـ AI" />
             <StatBlock icon={Award} value="500+" label="شهادة صدرت" />
