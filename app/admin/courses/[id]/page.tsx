@@ -27,10 +27,10 @@ import {
   deleteCourse,
   createChapter,
   deleteChapter,
-  createLesson,
   deleteLesson,
   togglePreviewLesson,
 } from './actions';
+import { ChapterAdder } from './chapter-adder';
 
 export const metadata = {
   title: 'تعديل كورس',
@@ -397,53 +397,15 @@ function ChapterBlock({
         </div>
       )}
 
-      {/* Add Lesson Form */}
-      <form action={createLesson} className="p-4 bg-gray-50 border-t border-gray-200 space-y-3">
-        <input type="hidden" name="chapter_id" value={chapter.id} />
-        <input type="hidden" name="course_id" value={courseId} />
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
-          <Input name="title_ar" placeholder="عنوان الدرس" required />
-          <select
-            name="video_provider"
-            defaultValue="bunny"
-            className="h-11 px-3 rounded-lg border border-gray-200 bg-white text-sm"
-          >
-            <option value="bunny">Bunny Stream</option>
-            <option value="vimeo">Vimeo</option>
-          </select>
-          <Input
-            name="video_id"
-            placeholder="GUID / Vimeo ID / رابط الفيديو الكامل"
-            required
-            dir="ltr"
-            className="text-left"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-end">
-          <Input
-            name="duration_sec"
-            type="number"
-            min="0"
-            placeholder="المدة بالثواني (اختياري)"
-            dir="ltr"
-            className="text-left"
-          />
-          <label className="flex items-center gap-2 text-sm text-gray-600">
-            <input
-              type="checkbox"
-              name="is_free_preview"
-              className="w-4 h-4 rounded accent-brand-500"
-            />
-            معاينة مجانية
-          </label>
-          <Button type="submit" size="sm">
-            <Plus className="w-4 h-4" />
-            إضافة درس
-          </Button>
-        </div>
-      </form>
+      {/* Per-chapter add UI: lesson, quiz, or attachment in one tabbed footer. */}
+      <ChapterAdder
+        courseId={courseId}
+        chapterId={chapter.id}
+        chapterLessons={(chapter.lessons || []).map((l: any) => ({
+          id: l.id,
+          title_ar: l.title_ar,
+        }))}
+      />
     </div>
   );
 }
