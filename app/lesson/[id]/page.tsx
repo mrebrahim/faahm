@@ -17,6 +17,7 @@ import {
   Play,
   Download,
   BookOpen,
+  HelpCircle,
 } from 'lucide-react';
 
 export const metadata = {
@@ -88,6 +89,23 @@ export default async function LessonPage({ params }: { params: { id: string } })
     .eq('course_id', course.id)
     .order('sort_order');
 
+  // Pull all quizzes for the course so we can render them inline in the
+  // sidebar under the lesson they attach to. is_required is shown as a
+  // small badge so students notice the mandatory ones.
+  const { data: quizzesForCourse } = await service
+    .from('quizzes')
+    .select('id, lesson_id, title_ar, is_required')
+    .eq('course_id', course.id)
+    .order('created_at');
+
+  const quizzesByLesson = new Map<string, any[]>();
+  for (const q of quizzesForCourse || []) {
+    if (!q.lesson_id) continue;
+    const arr = quizzesByLesson.get(q.lesson_id) || [];
+    arr.push(q);
+    quizzesByLesson.set(q.lesson_id, arr);
+  }
+
   const chapters = (chaptersRaw || [])
     .map((ch: any) => ({
       ...ch,
@@ -112,6 +130,16 @@ export default async function LessonPage({ params }: { params: { id: string } })
   const completed = new Set(
     (progressRows || []).filter((p: any) => p.is_completed).map((p: any) => p.lesson_id)
   );
+
+  // Mark a quiz as "done" in the sidebar once the student has passed it
+  // at least once. Failed attempts don't mark it complete.
+  const { data: passedAttempts } = await service
+    .from('quiz_attempts')
+    .select('quiz_id')
+    .eq('user_id', user.id)
+    .eq('is_passed', true)
+    .in('quiz_id', (quizzesForCourse || []).map((q: any) => q.id) as any);
+  const passedQuizzes = new Set((passedAttempts || []).map((a: any) => a.quiz_id));
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -198,6 +226,45 @@ export default async function LessonPage({ params }: { params: { id: string } })
                 {lesson.description_ar}
               </div>
             )}
+
+            {/* Quizzes attached to this lesson */}
+            {canAccess && (() => {
+              const lessonQuizzes = quizzesByLesson.get(lesson.id) || [];
+              if (lessonQuizzes.length === 0) return null;
+              return (
+                <div className="mt-6 pt-6 border-t border-gray-100">
+                  <h2 className="font-bold mb-3 text-sm">كويزات الدرس</h2>
+                  <ul className="space-y-2">
+                    {lessonQuizzes.map((q) => {
+                      const done = passedQuizzes.has(q.id);
+                      return (
+                        <li key={q.id}>
+                          <Link
+                            href={ROUTES.quiz(q.id)}
+                            className="flex items-center justify-between p-3 rounded-lg border border-gray-200 hover:border-brand-500/40 hover:bg-brand-500/5 transition-colors text-sm"
+                          >
+                            <span className="flex items-center gap-2 min-w-0">
+                              {done ? (
+                                <CheckCircle2 className="w-4 h-4 text-brand-500 flex-shrink-0" />
+                              ) : (
+                                <HelpCircle className="w-4 h-4 text-brand-500 flex-shrink-0" />
+                              )}
+                              <span className="truncate">{q.title_ar}</span>
+                              {q.is_required && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 flex-shrink-0">
+                                  إجباري
+                                </span>
+                              )}
+                            </span>
+                            <ArrowLeft className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              );
+            })()}
 
             {/* Attachments */}
             {canAccess && lesson.attachments && lesson.attachments.length > 0 && (
@@ -286,6 +353,7 @@ export default async function LessonPage({ params }: { params: { id: string } })
                       // Locked = no subscription, no per-course enrollment for THIS course,
                       // and the lesson itself isn't a free preview.
                       const isLocked = !subscribed && !enrolled && !l.is_free_preview;
+                      const lessonQuizzes = quizzesByLesson.get(l.id) || [];
                       return (
                         <li key={l.id}>
                           <Link
@@ -314,6 +382,43 @@ export default async function LessonPage({ params }: { params: { id: string } })
                               </span>
                             )}
                           </Link>
+
+                          {/* Quizzes attached to this lesson */}
+                          {lessonQuizzes.map((q) => {
+                            const quizDone = passedQuizzes.has(q.id);
+                            const quizLocked = !subscribed && !enrolled;
+                            const Wrapper = quizLocked ? 'div' : Link;
+                            const wrapperProps: any = quizLocked
+                              ? {}
+                              : { href: ROUTES.quiz(q.id) };
+                            return (
+                              <Wrapper
+                                key={q.id}
+                                {...wrapperProps}
+                                className={`flex items-center gap-2.5 px-4 py-2 ps-10 text-xs border-r-2 border-transparent ${
+                                  quizLocked
+                                    ? 'text-gray-400 cursor-default'
+                                    : 'hover:bg-gray-50 text-gray-600 cursor-pointer'
+                                }`}
+                              >
+                                <span className="w-5 flex-shrink-0">
+                                  {quizDone ? (
+                                    <CheckCircle2 className="w-3.5 h-3.5 text-brand-500" />
+                                  ) : quizLocked ? (
+                                    <Lock className="w-3.5 h-3.5 text-gray-300" />
+                                  ) : (
+                                    <HelpCircle className="w-3.5 h-3.5 text-brand-500" />
+                                  )}
+                                </span>
+                                <span className="flex-1 min-w-0 truncate">{q.title_ar}</span>
+                                {q.is_required && (
+                                  <span className="px-1 py-0.5 rounded text-[9px] font-bold bg-amber-50 text-amber-700 flex-shrink-0">
+                                    إجباري
+                                  </span>
+                                )}
+                              </Wrapper>
+                            );
+                          })}
                         </li>
                       );
                     })}
