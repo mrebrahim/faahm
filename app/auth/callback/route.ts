@@ -37,8 +37,14 @@ export async function GET(request: Request) {
 
 /**
  * Look up pending invites for the freshly-signed-in user's email and
- * convert each one into an enrollment. Idempotent via the enrollments
- * unique(user_id, course_id) constraint.
+ * apply each one:
+ *   - intended_plan = 'monthly' → 30-day free subscription (gateway='manual')
+ *   - intended_plan = 'yearly'  → 365-day free subscription (gateway='manual')
+ *   - intended_course_id (legacy) → single-course enrollment
+ *
+ * Both branches are idempotent — subscription extension stacks; enrollment
+ * upserts on (user_id, course_id). Errors are swallowed so a bad invite
+ * never blocks a valid signin.
  */
 async function applyPendingInvites() {
   try {
@@ -53,13 +59,25 @@ async function applyPendingInvites() {
 
     const { data: invites } = await service
       .from('pending_invites')
-      .select('id, intended_course_id, notes')
+      .select('id, intended_plan, intended_course_id, notes')
       .ilike('email', emailLower)
       .is('accepted_at', null);
 
     if (!invites || invites.length === 0) return;
 
+    // Lazy import to avoid pulling the admin actions module into the
+    // edge-runtime bundle unless we actually need it.
+    const { grantManualSubscription } = await import(
+      '@/app/admin/students/invite/actions'
+    );
+
     for (const inv of invites) {
+      if (inv.intended_plan === 'monthly' || inv.intended_plan === 'yearly') {
+        await grantManualSubscription(service, user.id, inv.intended_plan);
+      }
+
+      // Legacy: previous version of this feature stored a single course
+      // enrollment intent here instead of a subscription. Honour it.
       if (inv.intended_course_id) {
         await service.from('enrollments').upsert(
           {
@@ -74,6 +92,7 @@ async function applyPendingInvites() {
           { onConflict: 'user_id,course_id' }
         );
       }
+
       await service
         .from('pending_invites')
         .update({
@@ -83,7 +102,6 @@ async function applyPendingInvites() {
         .eq('id', inv.id);
     }
   } catch (err) {
-    // Audit-only failure. Don't block the user's signin.
     console.error('[auth-callback] pending_invites processing failed', err);
   }
 }
