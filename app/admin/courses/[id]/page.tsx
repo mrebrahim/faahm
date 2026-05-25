@@ -210,6 +210,40 @@ export default async function CourseEditPage({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
+              <Label htmlFor="rating_avg">متوسط التقييم (0–5)</Label>
+              <Input
+                id="rating_avg"
+                name="rating_avg"
+                type="number"
+                min="0"
+                max="5"
+                step="0.1"
+                defaultValue={course.rating_avg ?? 0}
+                dir="ltr"
+                className="text-left"
+                placeholder="مثلًا 4.6"
+              />
+              <p className="text-[11px] text-gray-500">رقم يدوي مؤقت — هنستبدله بمتوسط حقيقي لما الـ reviews تنزل.</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="rating_count">عدد التقييمات</Label>
+              <Input
+                id="rating_count"
+                name="rating_count"
+                type="number"
+                min="0"
+                step="1"
+                defaultValue={course.rating_count ?? 0}
+                dir="ltr"
+                className="text-left"
+                placeholder="مثلًا 706"
+              />
+              <p className="text-[11px] text-gray-500">0 = إخفاء النجوم من البطاقة.</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
               <Label htmlFor="what_you_learn">اللي هيتعلّمه الطالب</Label>
               <textarea
                 id="what_you_learn"

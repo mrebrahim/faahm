@@ -14,6 +14,7 @@ import {
   Play,
   CheckCircle2,
   Sparkles,
+  Star,
   User as UserIcon,
 } from 'lucide-react';
 
@@ -57,6 +58,7 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
         id, slug, title_ar, description_ar, short_description_ar, thumbnail_url,
         trailer_video_provider, trailer_video_id, trailer_video_library_id,
         what_you_learn, requirements,
+        rating_avg, rating_count,
         level, total_lessons, total_duration_sec, language,
         category:categories(slug, name_ar),
         instructor:instructors(slug, full_name_ar, bio_ar, title_ar, avatar_url),
@@ -206,6 +208,18 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
               <p className="text-lg text-gray-600 mb-6 leading-relaxed">
                 {course.short_description_ar}
               </p>
+            )}
+
+            {(course as any).rating_count > 0 && (
+              <div className="flex items-center gap-2 mb-4">
+                <span className="inline-flex items-center gap-1 font-bold text-amber-700">
+                  <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                  <span dir="ltr">{Number((course as any).rating_avg).toFixed(1)}</span>
+                </span>
+                <span dir="ltr" className="text-sm text-gray-500">
+                  ({(course as any).rating_count.toLocaleString('en-US')} ratings)
+                </span>
+              </div>
             )}
 
             <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-6">

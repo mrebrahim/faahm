@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
 import { ROUTES, APP_NAME } from '@/lib/constants';
 import { formatDuration } from '@/lib/utils';
-import { BookOpen, Clock, Search, Filter, CheckCircle2 } from 'lucide-react';
+import { BookOpen, Clock, Search, Filter, CheckCircle2, Star } from 'lucide-react';
 import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/hover-card';
 
 export const metadata = {
@@ -34,7 +34,7 @@ export default async function CoursesPage({
   let query = supabase
     .from('courses')
     .select(
-      'id, slug, title_ar, short_description_ar, thumbnail_url, level, total_lessons, total_duration_sec, category_id, what_you_learn, instructors(full_name_ar)'
+      'id, slug, title_ar, short_description_ar, thumbnail_url, level, total_lessons, total_duration_sec, category_id, what_you_learn, rating_avg, rating_count, instructors(full_name_ar)'
     )
     .eq('is_published', true);
 
@@ -259,18 +259,36 @@ function CourseCard({ course }: { course: any }) {
         {instructor?.full_name_ar && (
           <p className="text-xs text-gray-500 truncate">{instructor.full_name_ar}</p>
         )}
-        <div className="mt-auto pt-2 flex items-center flex-wrap gap-x-3 gap-y-1 text-[11px] text-gray-600">
+        {course.short_description_ar && (
+          <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">
+            {course.short_description_ar}
+          </p>
+        )}
+        <div className="mt-auto pt-2 flex items-center flex-wrap gap-1.5 text-[11px]">
+          {course.rating_count > 0 && (
+            <>
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-gray-200 text-gray-700">
+                <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                <span dir="ltr" className="font-bold">
+                  {Number(course.rating_avg).toFixed(1)}
+                </span>
+              </span>
+              <span dir="ltr" className="px-1.5 py-0.5 rounded border border-gray-200 text-gray-600">
+                {course.rating_count.toLocaleString('en-US')} ratings
+              </span>
+            </>
+          )}
           {course.total_duration_sec > 0 && (
-            <span className="inline-flex items-center gap-1">
+            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-gray-200 text-gray-600">
               <Clock className="w-3 h-3" />
               {formatDuration(course.total_duration_sec)}
             </span>
           )}
-          <span className="inline-flex items-center gap-1">
+          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded border border-gray-200 text-gray-600">
             <BookOpen className="w-3 h-3" />
             {course.total_lessons} درس
           </span>
-          <span className="px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 font-medium text-[10px]">
+          <span className="px-1.5 py-0.5 rounded border border-gray-200 text-gray-600">
             {LEVEL_LABELS[course.level] || course.level}
           </span>
         </div>
