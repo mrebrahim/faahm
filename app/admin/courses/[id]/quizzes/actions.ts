@@ -78,6 +78,8 @@ export async function createQuiz(formData: FormData) {
   }
 
   revalidatePath(`/admin/courses/${courseId}/quizzes`);
+  // Course builder embeds quizzes under each lesson — keep it in sync.
+  revalidatePath(`/admin/courses/${courseId}`);
   redirect(`/admin/courses/${courseId}/quizzes/${newId}`);
 }
 
@@ -121,6 +123,7 @@ export async function updateQuiz(formData: FormData) {
   );
 
   revalidatePath(`/admin/courses/${courseId}/quizzes/${quizId}`);
+  revalidatePath(`/admin/courses/${courseId}`);
   redirect(`/admin/courses/${courseId}/quizzes/${quizId}?success=updated`);
 }
 
@@ -147,6 +150,7 @@ export async function deleteQuiz(formData: FormData) {
   );
 
   revalidatePath(`/admin/courses/${courseId}/quizzes`);
+  revalidatePath(`/admin/courses/${courseId}`);
   redirect(`/admin/courses/${courseId}/quizzes?success=deleted`);
 }
 
