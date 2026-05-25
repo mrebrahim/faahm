@@ -56,12 +56,25 @@ export async function updateCourse(formData: FormData) {
           .filter(Boolean)
           .slice(0, 30);
 
+      // Rating: clamp avg to 0–5 with one decimal, count to >= 0.
+      // Empty/non-numeric input falls back to 0 so the DB CHECKs hold.
+      const ratingAvgRaw = parseFloat((formData.get('rating_avg') as string) || '0');
+      const rating_avg = Number.isFinite(ratingAvgRaw)
+        ? Math.round(Math.min(5, Math.max(0, ratingAvgRaw)) * 10) / 10
+        : 0;
+      const ratingCountRaw = parseInt((formData.get('rating_count') as string) || '0', 10);
+      const rating_count = Number.isFinite(ratingCountRaw)
+        ? Math.max(0, ratingCountRaw)
+        : 0;
+
       const updates = {
         title_ar: formData.get('title_ar') as string,
         description_ar: (formData.get('description_ar') as string) || null,
         category_id: (formData.get('category_id') as string) || null,
         level: formData.get('level') as string,
         thumbnail_url: (formData.get('thumbnail_url') as string) || null,
+        rating_avg,
+        rating_count,
         what_you_learn: linesToArray(formData.get('what_you_learn') as string | null),
         requirements: linesToArray(formData.get('requirements') as string | null),
         ...trailerFields,
