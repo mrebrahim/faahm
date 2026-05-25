@@ -18,6 +18,8 @@ import {
   Save,
   AlertCircle,
   CheckCircle2,
+  Pencil,
+  HelpCircle,
 } from 'lucide-react';
 import {
   updateCourse,
@@ -100,21 +102,29 @@ export default async function CourseEditPage({
             </p>
           </div>
 
-          <form action={togglePublishCourse}>
-            <input type="hidden" name="id" value={course.id} />
-            <input type="hidden" name="is_published" value={course.is_published.toString()} />
-            <Button type="submit" variant={course.is_published ? 'outline' : 'default'}>
-              {course.is_published ? (
-                <>
-                  <EyeOff className="w-4 h-4" /> إخفاء
-                </>
-              ) : (
-                <>
-                  <Eye className="w-4 h-4" /> نشر الكورس
-                </>
-              )}
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button asChild variant="outline">
+              <Link href={`/admin/courses/${course.id}/quizzes`}>
+                <HelpCircle className="w-4 h-4" />
+                الكويزات
+              </Link>
             </Button>
-          </form>
+            <form action={togglePublishCourse}>
+              <input type="hidden" name="id" value={course.id} />
+              <input type="hidden" name="is_published" value={course.is_published.toString()} />
+              <Button type="submit" variant={course.is_published ? 'outline' : 'default'}>
+                {course.is_published ? (
+                  <>
+                    <EyeOff className="w-4 h-4" /> إخفاء
+                  </>
+                ) : (
+                  <>
+                    <Eye className="w-4 h-4" /> نشر الكورس
+                  </>
+                )}
+              </Button>
+            </form>
+          </div>
         </div>
       </div>
 
@@ -347,6 +357,13 @@ function ChapterBlock({
               </div>
 
               <div className="flex items-center gap-1">
+                {/* Edit (opens detail editor with attachments + quiz link) */}
+                <Button asChild variant="ghost" size="sm" title="تعديل تفصيلي + مرفقات">
+                  <Link href={`/admin/courses/${courseId}/lessons/${lesson.id}`}>
+                    <Pencil className="w-4 h-4 text-gray-500" />
+                  </Link>
+                </Button>
+
                 {/* Toggle preview */}
                 <form action={togglePreviewLesson}>
                   <input type="hidden" name="id" value={lesson.id} />
