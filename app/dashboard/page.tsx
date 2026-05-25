@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { applyPendingInvitesForCurrentUser } from '@/lib/invites';
 import { Button } from '@/components/ui/button';
 import { ROUTES, APP_NAME } from '@/lib/constants';
 import {
@@ -23,6 +24,13 @@ export default async function DashboardPage() {
   } = await supabase.auth.getUser();
 
   if (!user) redirect('/login');
+
+  // Safety net: if the user arrived here via an invite that came back
+  // through the implicit (hash) flow, our /auth/callback route couldn't
+  // read the hash to materialise the subscription grant. Re-run here
+  // so it lands on the first dashboard view. No-op when there's no
+  // pending invite for this email.
+  await applyPendingInvitesForCurrentUser();
 
   // Use service client to bypass any RLS issues when fetching own data
   // (Safe because we've already verified the user via auth.getUser())
