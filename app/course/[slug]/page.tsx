@@ -56,6 +56,7 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
       `
         id, slug, title_ar, description_ar, short_description_ar, thumbnail_url,
         trailer_video_provider, trailer_video_id, trailer_video_library_id,
+        what_you_learn, requirements,
         level, total_lessons, total_duration_sec, language,
         category:categories(slug, name_ar),
         instructor:instructors(slug, full_name_ar, bio_ar, title_ar, avatar_url),
@@ -279,6 +280,36 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
       {/* BODY: syllabus + sidebar */}
       <main className="container mx-auto px-4 py-12 max-w-6xl grid lg:grid-cols-5 gap-10">
         <div className="lg:col-span-3 space-y-10">
+          {/* What you'll learn */}
+          {(course as any).what_you_learn?.length > 0 && (
+            <section className="p-6 rounded-2xl bg-white border border-gray-200">
+              <h2 className="font-display text-2xl font-bold mb-4">اللي هتتعلّمه</h2>
+              <ul className="grid md:grid-cols-2 gap-x-6 gap-y-3">
+                {((course as any).what_you_learn as string[]).map((point, i) => (
+                  <li key={i} className="flex items-start gap-2 text-sm text-gray-700 leading-relaxed">
+                    <CheckCircle2 className="w-4 h-4 text-brand-500 mt-0.5 flex-shrink-0" />
+                    <span>{point}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {/* Requirements */}
+          {(course as any).requirements?.length > 0 && (
+            <section>
+              <h2 className="font-display text-2xl font-bold mb-4">المتطلبات</h2>
+              <ul className="space-y-2 text-sm text-gray-700 leading-relaxed">
+                {((course as any).requirements as string[]).map((point, i) => (
+                  <li key={i} className="flex items-start gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400 mt-2 flex-shrink-0" />
+                    <span>{point}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           {/* Description */}
           {course.description_ar && (
             <section>

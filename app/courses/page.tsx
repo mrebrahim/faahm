@@ -232,7 +232,7 @@ function CourseCard({ course }: { course: any }) {
   return (
     <Link
       href={ROUTES.course(course.slug)}
-      className="group flex flex-col overflow-hidden rounded-2xl bg-white border border-gray-200 hover:border-brand-500/50 hover:shadow-lg hover:-translate-y-0.5 transition-all"
+      className="group flex flex-col overflow-hidden rounded-xl bg-white border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all"
     >
       <div className="aspect-video bg-gray-100 relative overflow-hidden">
         {course.thumbnail_url ? (
@@ -240,40 +240,35 @@ function CourseCard({ course }: { course: any }) {
           <img
             src={course.thumbnail_url}
             alt={course.title_ar}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            className="w-full h-full object-cover"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-500/20 to-gray-100">
             <BookOpen className="w-12 h-12 text-brand-500/40" />
           </div>
         )}
-        <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full bg-white/95 text-xs font-medium text-gray-700 backdrop-blur">
-          {LEVEL_LABELS[course.level] || course.level}
-        </div>
       </div>
-      <div className="p-5 flex-1 flex flex-col">
-        <h3 className="font-bold text-lg mb-2 line-clamp-2 group-hover:text-brand-600 transition-colors">
+      <div className="p-4 flex-1 flex flex-col gap-1.5">
+        <h3 className="font-bold text-base leading-snug line-clamp-2 group-hover:text-brand-600 transition-colors">
           {course.title_ar}
         </h3>
-        {course.short_description_ar && (
-          <p className="text-sm text-gray-500 mb-3 line-clamp-2">
-            {course.short_description_ar}
-          </p>
+        {instructor?.full_name_ar && (
+          <p className="text-xs text-gray-500 truncate">{instructor.full_name_ar}</p>
         )}
-        <div className="mt-auto pt-3 flex items-center justify-between text-xs text-gray-500 border-t border-gray-100">
-          <span className="flex items-center gap-1">
-            <BookOpen className="w-3.5 h-3.5" />
-            {course.total_lessons} درس
-          </span>
+        <div className="mt-auto pt-2 flex items-center flex-wrap gap-x-3 gap-y-1 text-[11px] text-gray-600">
           {course.total_duration_sec > 0 && (
-            <span className="flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5" />
+            <span className="inline-flex items-center gap-1">
+              <Clock className="w-3 h-3" />
               {formatDuration(course.total_duration_sec)}
             </span>
           )}
-          {instructor?.full_name_ar && (
-            <span className="truncate max-w-[40%]">{instructor.full_name_ar}</span>
-          )}
+          <span className="inline-flex items-center gap-1">
+            <BookOpen className="w-3 h-3" />
+            {course.total_lessons} درس
+          </span>
+          <span className="px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 font-medium text-[10px]">
+            {LEVEL_LABELS[course.level] || course.level}
+          </span>
         </div>
       </div>
     </Link>

@@ -47,12 +47,23 @@ export async function updateCourse(formData: FormData) {
         };
       }
 
+      // Textarea → string[]: split on newlines, trim, drop empties.
+      // Hard cap of 30 bullets each — generous, but prevents abuse.
+      const linesToArray = (raw: string | null) =>
+        (raw || '')
+          .split(/\r?\n/)
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .slice(0, 30);
+
       const updates = {
         title_ar: formData.get('title_ar') as string,
         description_ar: (formData.get('description_ar') as string) || null,
         category_id: (formData.get('category_id') as string) || null,
         level: formData.get('level') as string,
         thumbnail_url: (formData.get('thumbnail_url') as string) || null,
+        what_you_learn: linesToArray(formData.get('what_you_learn') as string | null),
+        requirements: linesToArray(formData.get('requirements') as string | null),
         ...trailerFields,
       };
 

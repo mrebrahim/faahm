@@ -208,6 +208,33 @@ export default async function CourseEditPage({
             />
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="what_you_learn">اللي هيتعلّمه الطالب</Label>
+              <textarea
+                id="what_you_learn"
+                name="what_you_learn"
+                rows={6}
+                defaultValue={(course.what_you_learn || []).join('\n')}
+                placeholder={`نقطة في كل سطر، مثلًا:\nتركيب n8n محليًا وعلى السحابة\nبناء أول workflow من الصفر\nربط Telegram و Google Sheets بـ Webhook`}
+                className="flex w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              />
+              <p className="text-[11px] text-gray-500">سطر لكل نقطة. السطور الفاضية بتتجاهل.</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="requirements">المتطلبات / الاستعداد</Label>
+              <textarea
+                id="requirements"
+                name="requirements"
+                rows={6}
+                defaultValue={(course.requirements || []).join('\n')}
+                placeholder={`نقطة في كل سطر، مثلًا:\nمعرفة أساسية بالإنترنت\nحاسوب فيه اتصال إنترنت\nمن غير خبرة برمجية`}
+                className="flex w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+              />
+              <p className="text-[11px] text-gray-500">سطر لكل نقطة.</p>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div className="space-y-2">
               <Label htmlFor="trailer_video_provider">مزوّد الفيديو التشويقي</Label>
