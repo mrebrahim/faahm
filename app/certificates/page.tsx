@@ -3,12 +3,14 @@ import { redirect } from 'next/navigation';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
 import { APP_NAME, ROUTES, APP_URL } from '@/lib/constants';
+import { listClaimableCourseIds } from '@/lib/cert-eligibility';
 import {
   Award,
   ShieldCheck,
   Download,
   Linkedin,
   ArrowLeft,
+  Sparkles,
 } from 'lucide-react';
 
 export const metadata = { title: 'شهاداتي — فاهم!' };
@@ -23,14 +25,26 @@ export default async function StudentCertificatesPage() {
   }
 
   const service = createServiceClient();
-  const { data: certs } = await service
-    .from('certificates')
-    .select(
-      'id, certificate_number, course_title, course_id, score_percent, duration_sec, issued_at, is_revoked'
-    )
-    .eq('user_id', user.id)
-    .eq('is_revoked', false)
-    .order('issued_at', { ascending: false });
+  const [{ data: certs }, claimableIds] = await Promise.all([
+    service
+      .from('certificates')
+      .select(
+        'id, certificate_number, course_title, course_id, score_percent, duration_sec, issued_at, is_revoked'
+      )
+      .eq('user_id', user.id)
+      .eq('is_revoked', false)
+      .order('issued_at', { ascending: false }),
+    listClaimableCourseIds(user.id),
+  ]);
+
+  // Fetch slugs/titles for any unclaimed courses so we can render the
+  // "اطلب شهادتك" banner with a deep link to the right claim page.
+  const { data: claimableCourses } = claimableIds.length
+    ? await service
+        .from('courses')
+        .select('id, slug, title_ar')
+        .in('id', claimableIds)
+    : { data: [] as any };
 
   const list = certs || [];
 
@@ -61,6 +75,37 @@ export default async function StudentCertificatesPage() {
               : `لديك ${list.length} شهادة معتمدة من ${APP_NAME}.`}
           </p>
         </div>
+
+        {(claimableCourses || []).length > 0 && (
+          <section className="mb-8 p-5 rounded-2xl border border-brand-500/30 bg-brand-500/5">
+            <div className="flex items-center gap-2 mb-3 text-brand-700 font-bold">
+              <Sparkles className="w-5 h-5" />
+              مبروك! عندك شهادة جاهزة للاستلام
+            </div>
+            <p className="text-sm text-gray-700 mb-3">
+              أكملت كل المتطلبات في الكورس التالي. اضغط "اطلب شهادتي" وأكّد
+              الاسم اللي هيظهر على الشهادة.
+            </p>
+            <ul className="space-y-2">
+              {(claimableCourses as any[]).map((c) => (
+                <li
+                  key={c.id}
+                  className="flex items-center justify-between gap-3 p-3 rounded-lg bg-white border border-brand-500/20"
+                >
+                  <div className="min-w-0">
+                    <div className="font-bold truncate">{c.title_ar}</div>
+                  </div>
+                  <Button asChild>
+                    <Link href={`/certificate/claim/${c.slug}`}>
+                      <Award className="w-4 h-4" />
+                      اطلب شهادتي
+                    </Link>
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         {list.length === 0 ? (
           <div className="p-16 rounded-2xl border border-gray-200 bg-white text-center">
