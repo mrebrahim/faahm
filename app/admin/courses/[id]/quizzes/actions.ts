@@ -5,6 +5,11 @@ import { redirect } from 'next/navigation';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/admin-guard';
 import { loggedAction, formDataForLog } from '@/lib/admin-audit';
+import {
+  generateQuizQuestions,
+  type AiQuestionType,
+  type GeneratedQuestion,
+} from '@/lib/ai-quiz';
 
 type QuestionType = 'single_choice' | 'multiple_choice' | 'true_false';
 
@@ -276,6 +281,118 @@ export async function deleteQuestion(formData: FormData) {
 
   revalidatePath(`/admin/courses/${courseId}/quizzes/${quizId}`);
   redirect(`/admin/courses/${courseId}/quizzes/${quizId}?success=question_removed`);
+}
+
+/**
+ * Generate questions via Gemini and bulk-insert them into the quiz.
+ * Uses a single DB round-trip per question because we need the new
+ * question's id before we can insert its options. Fail-soft: skips
+ * malformed AI rows but still saves the good ones.
+ */
+export async function generateQuestionsWithAI(formData: FormData) {
+  const ctx = await requireAdmin();
+  const quizId = String(formData.get('quiz_id') || '');
+  const courseId = String(formData.get('course_id') || '');
+  const topic = String(formData.get('topic') || '').trim();
+  const questionType = (String(formData.get('question_type') || 'single_choice') ||
+    'single_choice') as AiQuestionType;
+  const count = Math.max(1, Math.min(20, parseInt(String(formData.get('count') || '5'), 10) || 5));
+  const difficulty = (String(formData.get('difficulty') || 'medium') ||
+    'medium') as 'easy' | 'medium' | 'hard' | 'mixed';
+
+  if (!quizId || !courseId) return;
+  if (!topic || topic.length < 10) {
+    redirect(
+      `/admin/courses/${courseId}/quizzes/${quizId}?error=${encodeURIComponent('وصف الكويز قصير جدًا — اكتب فقرة واضحة عن المحتوى.')}`
+    );
+  }
+
+  let generated: GeneratedQuestion[] = [];
+  try {
+    generated = await generateQuizQuestions({
+      topic,
+      questionType,
+      count,
+      difficulty,
+      language: 'ar',
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'فشل توليد الأسئلة';
+    // Record the failure with the same audit pipeline so admin can see
+    // who tried what and what the upstream error was.
+    void (await import('@/lib/admin-audit')).auditLog(ctx, {
+      action: 'quiz.ai_generation_failed',
+      resourceType: 'quiz',
+      resourceId: quizId,
+      result: 'failure',
+      errorMessage: message,
+      metadata: { topic_chars: topic.length, count, questionType, difficulty },
+    });
+    redirect(
+      `/admin/courses/${courseId}/quizzes/${quizId}?error=${encodeURIComponent(message)}`
+    );
+  }
+
+  if (generated.length === 0) {
+    redirect(
+      `/admin/courses/${courseId}/quizzes/${quizId}?error=${encodeURIComponent('Gemini ما أنتجش أي سؤال صالح. عدّل الفقرة وحاول.')}`
+    );
+  }
+
+  await loggedAction(
+    ctx,
+    {
+      action: 'quiz.ai_generated',
+      resourceType: 'quiz',
+      resourceId: quizId,
+      metadata: {
+        requested: count,
+        produced: generated.length,
+        question_type: questionType,
+        difficulty,
+        topic_preview: topic.slice(0, 200),
+      },
+    },
+    async () => {
+      const service = createServiceClient();
+
+      // Continue numbering from whatever already exists so the AI rows
+      // append rather than overlap.
+      const { count: existing } = await service
+        .from('quiz_questions')
+        .select('*', { count: 'exact', head: true })
+        .eq('quiz_id', quizId);
+      let nextSort = existing || 0;
+
+      for (const q of generated) {
+        const { data: question, error: qErr } = await service
+          .from('quiz_questions')
+          .insert({
+            quiz_id: quizId,
+            question_ar: q.question_ar,
+            type: q.type,
+            explanation_ar: q.explanation_ar ?? null,
+            sort_order: nextSort++,
+          })
+          .select('id')
+          .single();
+        if (qErr || !question) continue;
+
+        const optionRows = q.options.map((o, i) => ({
+          question_id: question.id,
+          option_ar: o.option_ar,
+          is_correct: o.is_correct,
+          sort_order: i,
+        }));
+        await service.from('quiz_options').insert(optionRows);
+      }
+    }
+  );
+
+  revalidatePath(`/admin/courses/${courseId}/quizzes/${quizId}`);
+  redirect(
+    `/admin/courses/${courseId}/quizzes/${quizId}?success=ai_generated&count=${generated.length}`
+  );
 }
 
 function clamp(n: number, min: number, max: number): number {

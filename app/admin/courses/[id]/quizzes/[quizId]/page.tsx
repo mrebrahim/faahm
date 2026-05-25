@@ -5,7 +5,7 @@ import { requireAdmin } from '@/lib/admin-guard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { updateQuiz, addQuestion, deleteQuestion } from '../actions';
+import { updateQuiz, addQuestion, deleteQuestion, generateQuestionsWithAI } from '../actions';
 import { QuestionEditor } from './question-editor';
 import {
   ArrowRight,
@@ -14,6 +14,8 @@ import {
   CheckCircle2,
   AlertTriangle,
   HelpCircle,
+  Sparkles,
+  Wand2,
 } from 'lucide-react';
 
 export const metadata = {
@@ -77,11 +79,13 @@ export default async function QuizEditorPage({
 
       {searchParams.success && (
         <Banner kind="success">
-          {{
-            updated: 'تم حفظ الإعدادات.',
-            question_added: 'تم إضافة السؤال.',
-            question_removed: 'تم حذف السؤال.',
-          }[searchParams.success] || 'تم.'}
+          {searchParams.success === 'ai_generated'
+            ? `تم توليد ${(searchParams as any).count || ''} سؤال بالذكاء الاصطناعي.`
+            : ({
+                updated: 'تم حفظ الإعدادات.',
+                question_added: 'تم إضافة السؤال.',
+                question_removed: 'تم حذف السؤال.',
+              } as Record<string, string>)[searchParams.success] || 'تم.'}
         </Banner>
       )}
       {searchParams.error && (
@@ -245,9 +249,106 @@ export default async function QuizEditorPage({
         )}
       </section>
 
-      {/* New question form */}
+      {/* AI generator */}
+      <section className="bg-gradient-to-br from-brand-500/5 to-white border border-brand-500/30 rounded-2xl p-6 mb-6">
+        <div className="flex items-center gap-2 mb-1">
+          <Sparkles className="w-5 h-5 text-brand-500" />
+          <h2 className="font-bold">إنشاء أسئلة بالذكاء الاصطناعي</h2>
+          <span className="px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-700 text-[10px] font-medium">
+            Gemini
+          </span>
+        </div>
+        <p className="text-xs text-gray-500 mb-4">
+          اكتب فقرة عن موضوع الكويز، اختار النوع والعدد، وهنُنشيء الأسئلة تلقائيًا
+          ونضيفها للكويز.
+        </p>
+
+        <form action={generateQuestionsWithAI} className="space-y-3">
+          <input type="hidden" name="quiz_id" value={quiz.id} />
+          <input type="hidden" name="course_id" value={course.id} />
+
+          <div className="space-y-2">
+            <label htmlFor="topic" className="block text-sm font-medium">
+              فقرة عن محتوى الكويز (الموضوع، المفاهيم الأساسية، أمثلة...)
+            </label>
+            <textarea
+              id="topic"
+              name="topic"
+              rows={5}
+              required
+              minLength={10}
+              maxLength={4000}
+              className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              placeholder="مثال: الكويز ده عن أساسيات n8n: ما هو، كيف يختلف عن Zapier، المفاهيم الأساسية (workflow, node, trigger), وأبسط طريقة لإنشاء workflow يربط Webhook بـ Telegram. ركّز على المفاهيم النظرية والعملية للمبتدئين."
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="space-y-2">
+              <label htmlFor="question_type" className="block text-sm font-medium">
+                نوع الأسئلة
+              </label>
+              <select
+                id="question_type"
+                name="question_type"
+                defaultValue="single_choice"
+                className="w-full h-11 px-3 rounded-lg border border-gray-200 bg-white text-sm"
+              >
+                <option value="single_choice">اختيار واحد</option>
+                <option value="multiple_choice">اختيار متعدد</option>
+                <option value="true_false">صح / خطأ</option>
+                <option value="mixed">منوّع</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="count" className="block text-sm font-medium">
+                عدد الأسئلة
+              </label>
+              <input
+                id="count"
+                name="count"
+                type="number"
+                min="1"
+                max="20"
+                defaultValue="5"
+                dir="ltr"
+                className="w-full h-11 px-3 rounded-lg border border-gray-200 bg-white text-sm text-left"
+              />
+            </div>
+            <div className="space-y-2">
+              <label htmlFor="difficulty" className="block text-sm font-medium">
+                الصعوبة
+              </label>
+              <select
+                id="difficulty"
+                name="difficulty"
+                defaultValue="medium"
+                className="w-full h-11 px-3 rounded-lg border border-gray-200 bg-white text-sm"
+              >
+                <option value="easy">سهل</option>
+                <option value="medium">متوسط</option>
+                <option value="hard">صعب</option>
+                <option value="mixed">منوّع</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between flex-wrap gap-2 pt-2">
+            <p className="text-[11px] text-gray-400 max-w-md">
+              ⚠ الذكاء الاصطناعي قد يخطئ. راجع الأسئلة المُنشأة وعدّل أو احذف ما
+              يحتاج قبل نشر الكورس.
+            </p>
+            <Button type="submit" size="lg">
+              <Wand2 className="w-4 h-4" />
+              إنشاء الأسئلة
+            </Button>
+          </div>
+        </form>
+      </section>
+
+      {/* Manual question form */}
       <section className="bg-white border border-gray-200 rounded-2xl p-6">
-        <h2 className="font-bold mb-4">إضافة سؤال جديد</h2>
+        <h2 className="font-bold mb-4">إضافة سؤال يدويًا</h2>
         <QuestionEditor quizId={quiz.id} courseId={course.id} />
       </section>
     </div>
