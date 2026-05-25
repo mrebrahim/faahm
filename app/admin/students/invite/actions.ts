@@ -6,31 +6,39 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/admin-guard';
 import { loggedAction } from '@/lib/admin-audit';
 
+type PlanChoice = 'monthly' | 'yearly';
+
 /**
- * Send a Supabase invite email to a prospective student.
+ * Send a Supabase invite email to a prospective student, optionally
+ * granting them a free subscription on acceptance.
  *
  * Flow:
- *   1. Admin enters email + optional course pick
+ *   1. Admin enters email + optionally picks a free trial duration:
+ *        - "monthly" → 30 days of full access, no payment
+ *        - "yearly"  → 365 days of full access, no payment
+ *      Leaving the plan blank just sends a signup invite; the invitee
+ *      will need to pick + pay for a plan on /pricing themselves.
  *   2. We insert a pending_invites row recording the intent
- *   3. service.auth.admin.inviteUserByEmail() triggers Supabase to send the
- *      magic-link email from its own SMTP pipeline
+ *   3. service.auth.admin.inviteUserByEmail() triggers Supabase to send
+ *      the magic-link email
  *   4. Invitee clicks the link → lands on /auth/callback?code=...
- *   5. /auth/callback exchanges the code, then reads pending_invites for
- *      that email and creates enrollments before bouncing them to /pricing
+ *   5. /auth/callback exchanges the code, reads pending_invites for that
+ *      email, materialises a free subscription row when intended_plan
+ *      is set (gateway='manual'), and routes them to /dashboard.
  *
- * If the email is already a registered user, Supabase returns an
- * "already_registered" error. We catch it and create the enrollment
- * directly so the invite isn't wasted.
+ * Already-registered emails skip the email send and get the subscription
+ * (if specified) granted directly so the admin's effort isn't wasted.
  */
 export async function inviteStudent(formData: FormData) {
   const ctx = await requireAdmin();
 
   const emailRaw = String(formData.get('email') || '').trim();
   const email = emailRaw.toLowerCase();
-  const courseId = (String(formData.get('course_id') || '').trim() || null) as string | null;
+  const planRaw = String(formData.get('plan') || '').trim();
+  const plan: PlanChoice | null =
+    planRaw === 'monthly' || planRaw === 'yearly' ? planRaw : null;
   const notes = String(formData.get('notes') || '').trim() || null;
 
-  // Cheap server-side validation; the form also has a type="email" input.
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     redirect(
       '/admin/students/invite?error=' +
@@ -46,7 +54,7 @@ export async function inviteStudent(formData: FormData) {
       {
         action: 'student.invited',
         resourceType: 'invite',
-        metadata: { email, course_id: courseId, notes },
+        metadata: { email, plan, notes },
       },
       async () => {
         const service = createServiceClient();
@@ -56,51 +64,35 @@ export async function inviteStudent(formData: FormData) {
         // even if the email send fails.
         await service.from('pending_invites').insert({
           email,
-          intended_course_id: courseId,
+          intended_plan: plan,
           invited_by: ctx.userId,
           notes,
         });
 
         const { error } = await service.auth.admin.inviteUserByEmail(email, {
-          // After clicking the link, Supabase redirects here; we then
-          // route to /pricing once we've processed any pending invites.
-          redirectTo: `${appUrl}/auth/callback?next=${encodeURIComponent('/pricing?invite=1')}`,
+          redirectTo: `${appUrl}/auth/callback?next=${encodeURIComponent('/dashboard?invited=1')}`,
           data: {
             invited_by: ctx.userId,
-            intended_course_id: courseId,
+            intended_plan: plan,
           },
         });
 
         if (error) {
-          // "User already registered" is a normal case — fall through to
-          // the existing-user path. Anything else is a real failure.
+          // Already-registered → grant the subscription directly so the
+          // admin doesn't have to chase it.
           if (
             /already.*registered|already.*exists/i.test(error.message) ||
             error.status === 422
           ) {
-            // Look up the existing user and (if a course was specified)
-            // enroll them directly. They won't get a fresh signup email,
-            // but they'll see the course access on their next login.
             const { data: existing } = await service
               .from('admin_students_v')
               .select('id, email')
               .ilike('email', email)
               .maybeSingle();
-            if (existing?.id && courseId) {
-              await service.from('enrollments').upsert(
-                {
-                  user_id: existing.id,
-                  course_id: courseId,
-                  granted_by: ctx.userId,
-                  source: 'manual',
-                  notes: notes
-                    ? `Auto-enrolled from re-invite: ${notes}`
-                    : 'Auto-enrolled from re-invite',
-                },
-                { onConflict: 'user_id,course_id' }
-              );
+
+            if (existing?.id && plan) {
+              await grantManualSubscription(service, existing.id, plan);
             }
-            // Mark the pending row as resolved.
             await service
               .from('pending_invites')
               .update({
@@ -149,3 +141,56 @@ export async function cancelPendingInvite(formData: FormData) {
   revalidatePath('/admin/students/invite');
   redirect('/admin/students/invite?success=cancelled');
 }
+
+/**
+ * Create or extend a free subscription for a user. Shared by both the
+ * already-registered branch above and the auth callback's invite consumer.
+ * - monthly = 30 days, yearly = 365 days
+ * - If the user already has an active subscription, EXTEND its
+ *   current_period_end rather than creating a competing row.
+ */
+export async function grantManualSubscription(
+  service: ReturnType<typeof createServiceClient>,
+  userId: string,
+  plan: PlanChoice
+) {
+  const days = plan === 'yearly' ? 365 : 30;
+  const now = new Date();
+
+  const { data: active } = await service
+    .from('subscriptions')
+    .select('id, current_period_end, plan')
+    .eq('user_id', userId)
+    .in('status', ['active', 'trialing'])
+    .order('current_period_end', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (active) {
+    // Extend from the later of (now, current end) so the gift is purely
+    // additive — paying customers don't get their paid time shortened.
+    const base = new Date(active.current_period_end);
+    const start = base > now ? base : now;
+    const newEnd = new Date(start.getTime() + days * 86_400_000);
+    await service
+      .from('subscriptions')
+      .update({
+        current_period_end: newEnd.toISOString(),
+        status: 'active',
+        updated_at: now.toISOString(),
+      })
+      .eq('id', active.id);
+    return;
+  }
+
+  // Brand-new manual grant.
+  await service.from('subscriptions').insert({
+    user_id: userId,
+    plan,
+    status: 'active',
+    current_period_start: now.toISOString(),
+    current_period_end: new Date(now.getTime() + days * 86_400_000).toISOString(),
+    gateway: 'manual',
+  });
+}
+

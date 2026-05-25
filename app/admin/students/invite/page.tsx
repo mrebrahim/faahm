@@ -29,27 +29,16 @@ export default async function InviteStudentPage({
   await requireAdmin();
   const service = createServiceClient();
 
-  // Pull the published courses so admin can target the invite at a specific
-  // course, and the recent pending invites so admin can follow up / cancel.
-  const [{ data: courses }, { data: pending }, { data: recent }] = await Promise.all([
-    service
-      .from('courses')
-      .select('id, title_ar, slug')
-      .eq('is_published', true)
-      .order('sort_order'),
+  const [{ data: pending }, { data: recent }] = await Promise.all([
     service
       .from('pending_invites')
-      .select(
-        'id, email, invited_at, notes, intended_course_id, course:courses(title_ar)'
-      )
+      .select('id, email, invited_at, notes, intended_plan')
       .is('accepted_at', null)
       .order('invited_at', { ascending: false })
       .limit(20),
     service
       .from('pending_invites')
-      .select(
-        'id, email, invited_at, accepted_at, intended_course_id, accepted_user_id, course:courses(title_ar)'
-      )
+      .select('id, email, invited_at, accepted_at, intended_plan, accepted_user_id')
       .not('accepted_at', 'is', null)
       .order('accepted_at', { ascending: false })
       .limit(10),
@@ -131,22 +120,21 @@ export default async function InviteStudentPage({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="course_id">الكورس (اختياري)</Label>
+          <Label htmlFor="plan">اشتراك مجاني (اختياري)</Label>
           <select
-            id="course_id"
-            name="course_id"
+            id="plan"
+            name="plan"
             defaultValue=""
             className="w-full h-11 px-3 rounded-lg border border-gray-200 bg-white text-sm"
           >
-            <option value="">— بلا كورس محدد —</option>
-            {(courses || []).map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.title_ar}
-              </option>
-            ))}
+            <option value="">— بدون اشتراك (يدفع بنفسه) —</option>
+            <option value="monthly">شهري — 30 يوم وصول مجاني لكل الكورسات</option>
+            <option value="yearly">سنوي — 365 يوم وصول مجاني لكل الكورسات</option>
           </select>
           <p className="text-xs text-gray-500">
-            لو اخترت كورس، الطالب هيتم تسجيله فيه تلقائيًا بعد ما يقبل الدعوة.
+            لو اخترت اشتراك، الطالب هيدخل ويلاقي كل الكورسات متاحة بدون دفع
+            للمدة المحددة. لو سبتها فاضية، هيشوف صفحة الأسعار ويختار يدفع
+            بنفسه.
           </p>
         </div>
 
@@ -178,10 +166,13 @@ export default async function InviteStudentPage({
         <ol className="list-decimal space-y-1 ps-6 text-blue-800">
           <li>الطالب بياخد إيميل من Supabase فيه لينك تأكيد.</li>
           <li>يضغط اللينك → يفتح موقع فاهم ويتم تسجيل دخوله تلقائيًا.</li>
-          <li>لو اخترت كورس له، يتم تسجيله فيه دون مقابل.</li>
           <li>
-            يتم توجيهه لصفحة <code className="font-mono">/pricing</code> ليختار
-            اشتراك شهري ($5) أو سنوي ($40) للوصول لكل الكورسات.
+            لو اخترت اشتراك مجاني، يتم تفعيله فورًا (شهري = 30 يوم، سنوي = 365
+            يوم) ويلاقي كل الكورسات مفتوحة.
+          </li>
+          <li>
+            بدون اشتراك، يتوجّه للوحته ويشوف بانر "اشترك دلوقتي" لاختيار خطة
+            مدفوعة.
           </li>
         </ol>
       </div>
@@ -198,41 +189,38 @@ export default async function InviteStudentPage({
               <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
                 <tr>
                   <th className="text-start px-4 py-2.5 font-semibold">الإيميل</th>
-                  <th className="text-start px-4 py-2.5 font-semibold">الكورس</th>
+                  <th className="text-start px-4 py-2.5 font-semibold">الاشتراك المجاني</th>
                   <th className="text-start px-4 py-2.5 font-semibold">تم الإرسال</th>
                   <th className="text-start px-4 py-2.5 font-semibold sr-only">إلغاء</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {pending.map((p: any) => {
-                  const c = Array.isArray(p.course) ? p.course[0] : p.course;
-                  return (
-                    <tr key={p.id}>
-                      <td className="px-4 py-3" dir="ltr">
-                        {p.email}
-                      </td>
-                      <td className="px-4 py-3">
-                        {c?.title_ar || <span className="text-gray-400">—</span>}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
-                        {new Date(p.invited_at).toLocaleString('ar-EG')}
-                      </td>
-                      <td className="px-4 py-3 text-end">
-                        <form action={cancelPendingInvite} className="inline">
-                          <input type="hidden" name="id" value={p.id} />
-                          <Button
-                            type="submit"
-                            variant="ghost"
-                            size="sm"
-                            className="text-red-600 hover:bg-red-50"
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </form>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {pending.map((p: any) => (
+                  <tr key={p.id}>
+                    <td className="px-4 py-3" dir="ltr">
+                      {p.email}
+                    </td>
+                    <td className="px-4 py-3">
+                      <PlanBadge plan={p.intended_plan} />
+                    </td>
+                    <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
+                      {new Date(p.invited_at).toLocaleString('ar-EG')}
+                    </td>
+                    <td className="px-4 py-3 text-end">
+                      <form action={cancelPendingInvite} className="inline">
+                        <input type="hidden" name="id" value={p.id} />
+                        <Button
+                          type="submit"
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-600 hover:bg-red-50"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </form>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -255,38 +243,35 @@ export default async function InviteStudentPage({
               <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
                 <tr>
                   <th className="text-start px-4 py-2.5 font-semibold">الإيميل</th>
-                  <th className="text-start px-4 py-2.5 font-semibold">الكورس</th>
+                  <th className="text-start px-4 py-2.5 font-semibold">الاشتراك المجاني</th>
                   <th className="text-start px-4 py-2.5 font-semibold">قُبلت في</th>
                   <th className="text-start px-4 py-2.5 font-semibold sr-only">انتقل للملف</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {recent.map((p: any) => {
-                  const c = Array.isArray(p.course) ? p.course[0] : p.course;
-                  return (
-                    <tr key={p.id}>
-                      <td className="px-4 py-3" dir="ltr">
-                        {p.email}
-                      </td>
-                      <td className="px-4 py-3">
-                        {c?.title_ar || <span className="text-gray-400">—</span>}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
-                        {p.accepted_at && new Date(p.accepted_at).toLocaleString('ar-EG')}
-                      </td>
-                      <td className="px-4 py-3 text-end">
-                        {p.accepted_user_id && (
-                          <Link
-                            href={`/admin/students/${p.accepted_user_id}`}
-                            className="text-brand-600 hover:text-brand-700 text-xs"
-                          >
-                            افتح الملف →
-                          </Link>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
+                {recent.map((p: any) => (
+                  <tr key={p.id}>
+                    <td className="px-4 py-3" dir="ltr">
+                      {p.email}
+                    </td>
+                    <td className="px-4 py-3">
+                      <PlanBadge plan={p.intended_plan} />
+                    </td>
+                    <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
+                      {p.accepted_at && new Date(p.accepted_at).toLocaleString('ar-EG')}
+                    </td>
+                    <td className="px-4 py-3 text-end">
+                      {p.accepted_user_id && (
+                        <Link
+                          href={`/admin/students/${p.accepted_user_id}`}
+                          className="text-brand-600 hover:text-brand-700 text-xs"
+                        >
+                          افتح الملف →
+                        </Link>
+                      )}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -294,6 +279,24 @@ export default async function InviteStudentPage({
       )}
     </div>
   );
+}
+
+function PlanBadge({ plan }: { plan: string | null }) {
+  if (plan === 'yearly') {
+    return (
+      <span className="inline-block px-2 py-0.5 rounded-full text-xs bg-brand-500/10 text-brand-700">
+        سنوي · 365 يوم
+      </span>
+    );
+  }
+  if (plan === 'monthly') {
+    return (
+      <span className="inline-block px-2 py-0.5 rounded-full text-xs bg-blue-50 text-blue-700">
+        شهري · 30 يوم
+      </span>
+    );
+  }
+  return <span className="text-gray-400 text-xs">بدون اشتراك</span>;
 }
 
 function Banner({
