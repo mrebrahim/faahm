@@ -106,6 +106,16 @@ export default function SignupPage({
             </Button>
           </form>
 
+          <div className="my-5 flex items-center gap-3 text-xs text-gray-400">
+            <span className="flex-1 h-px bg-gray-200" />
+            أو
+            <span className="flex-1 h-px bg-gray-200" />
+          </div>
+
+          <Button asChild variant="outline" size="lg" className="w-full">
+            <Link href="/login/otp">إنشاء حساب بكود من البريد</Link>
+          </Button>
+
           <div className="mt-6 space-y-2 text-sm">
             <div className="flex items-start gap-2 text-gray-500">
               <CheckCircle2 className="w-4 h-4 mt-0.5 text-brand-500 flex-shrink-0" />
