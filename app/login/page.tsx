@@ -4,6 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { APP_NAME, ROUTES } from '@/lib/constants';
 import { login } from './actions';
+import { HashAuthHandler } from './hash-auth-handler';
 import { ArrowLeft } from 'lucide-react';
 
 export default function LoginPage({
@@ -13,6 +14,12 @@ export default function LoginPage({
 }) {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      {/* Handles #access_token=... fragments coming from Supabase invite,
+          recovery, signup-confirm and magic-link emails — sets the session
+          client-side and bounces to /welcome (which itself short-circuits to
+          /dashboard if the user already set a password). */}
+      <HashAuthHandler />
+
       {/* Background orb */}
       <div
         aria-hidden
