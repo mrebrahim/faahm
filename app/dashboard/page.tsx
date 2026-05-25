@@ -43,6 +43,13 @@ export default async function DashboardPage() {
     .eq('id', user.id)
     .single();
 
+  // Force first-time invitees through /welcome so they choose a password.
+  // Without this they'd have a working session today but couldn't log
+  // back in tomorrow.
+  if (profile && profile.password_set === false) {
+    redirect('/welcome');
+  }
+
   // Get active subscription
   const { data: subscription } = await service
     .from('subscriptions')
