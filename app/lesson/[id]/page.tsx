@@ -327,7 +327,7 @@ export default async function LessonPage({ params }: { params: { id: string } })
 
         {/* Sidebar: chapter nav */}
         <aside className="lg:col-span-3">
-          <div className="lg:sticky lg:top-20 rounded-2xl bg-white border border-gray-200 overflow-hidden max-h-[calc(100vh-6rem)] flex flex-col">
+          <div className="lg:sticky lg:top-20 rounded-2xl bg-white border border-gray-200 overflow-hidden lg:max-h-[calc(100vh-6rem)] flex flex-col">
             <div className="p-4 border-b border-gray-200">
               <Link
                 href={ROUTES.course(course.slug)}
@@ -340,7 +340,7 @@ export default async function LessonPage({ params }: { params: { id: string } })
               </div>
             </div>
 
-            <div className="overflow-y-auto flex-1">
+            <div className="lg:overflow-y-auto lg:flex-1">
               {chapters.map((chapter: any, idx: number) => (
                 <div key={chapter.id} className="border-b border-gray-100 last:border-b-0">
                   <div className="px-4 py-2.5 bg-gray-50 text-xs font-bold text-gray-600">

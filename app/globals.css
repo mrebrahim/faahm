@@ -54,6 +54,11 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: 'rlig' 1, 'calt' 1, 'ss01' 1;
+    /* Decorative orbs (login/signup/welcome/reset hero gradients) are
+       absolute-positioned with fixed pixel widths that exceed narrow
+       viewports. Clip horizontal overflow at the document root so
+       phones don't get a phantom horizontal scrollbar. */
+    overflow-x: hidden;
   }
 
   h1, h2, h3, h4, h5, h6 {
