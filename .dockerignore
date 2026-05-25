@@ -1,0 +1,48 @@
+# Keep the build context lean — anything not needed for `next build`
+# should be excluded so Coolify uploads don't carry node_modules / .next
+# from previous runs.
+
+# Dependencies & build output (regenerated inside the image)
+node_modules
+.next
+out
+build
+dist
+
+# Local env
+.env
+.env.*
+!.env.example
+
+# Git / IDE
+.git
+.gitignore
+.github
+.vscode
+.idea
+*.swp
+.DS_Store
+
+# Logs & caches
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.eslintcache
+.cache
+.turbo
+
+# Docs and PRDs aren't needed at runtime
+docs
+
+# Tests / fixtures (if/when we add any)
+coverage
+.next-test
+test-results
+playwright-report
+
+# Misc
+README.md
+*.md
+tsconfig.tsbuildinfo
