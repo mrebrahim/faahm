@@ -104,33 +104,54 @@ export async function loginWithGoogle() {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+type OtpOrigin = 'login' | 'signup';
+
+function originBase(from: OtpOrigin): string {
+  return from === 'signup' ? '/signup' : '/login';
+}
+
+function parseOrigin(value: FormDataEntryValue | null): OtpOrigin {
+  return value === 'signup' ? 'signup' : 'login';
+}
+
 /**
  * Send a 6-digit OTP to the user's email. Supabase's default email
  * template includes both a magic link and `{{ .Token }}` — we only
  * need the token here. shouldCreateUser=true so this single endpoint
  * works for both signup and login (the user just verifies the code).
  *
- * On success we redirect to the same page with ?sent=1 so the form
- * pivots to the code-entry step without leaking the email through
- * the URL hash. The email is passed in the query string only so the
- * verify step knows which user to validate the token against.
+ * For signup origin we forward `full_name` and `marketing_opt_in` via
+ * `options.data` so they're persisted on the auth user the moment
+ * Supabase creates it on first verifyOtp. The `handle_new_user`
+ * trigger reads `raw_user_meta_data->>'full_name'` into `profiles`.
+ *
+ * On success we redirect back to the originating page with ?sent=1
+ * so the form pivots to the code-entry step.
  */
 export async function sendOtp(formData: FormData) {
   const email = String(formData.get('email') || '').trim().toLowerCase();
   const redirectTo =
     (formData.get('redirect') as string | null)?.trim() || '/dashboard';
+  const from = parseOrigin(formData.get('from'));
+  const fullName = String(formData.get('full_name') || '').trim();
+  const marketingOptIn = formData.get('marketing_opt_in') === '1';
+
+  const base = originBase(from);
 
   if (!email || !EMAIL_REGEX.test(email)) {
-    redirect(
-      '/login/otp?error=' + encodeURIComponent('من فضلك أدخل بريد إلكتروني صحيح.')
-    );
+    redirect(`${base}?error=` + encodeURIComponent('من فضلك أدخل بريد إلكتروني صحيح.'));
   }
 
   const supabase = createClient();
+  const userData: Record<string, unknown> = {};
+  if (from === 'signup' && fullName) userData.full_name = fullName;
+  if (from === 'signup') userData.marketing_opt_in = marketingOptIn;
+
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
       shouldCreateUser: true,
+      ...(Object.keys(userData).length ? { data: userData } : {}),
     },
   });
 
@@ -144,7 +165,7 @@ export async function sendOtp(formData: FormData) {
       }
     );
     redirect(
-      '/login/otp?error=' +
+      `${base}?error=` +
         encodeURIComponent('فشل إرسال الكود. حاول تاني خلال لحظات.')
     );
   }
@@ -154,10 +175,16 @@ export async function sendOtp(formData: FormData) {
     { action: 'auth.otp_sent' }
   );
 
-  redirect(
-    `/login/otp?email=${encodeURIComponent(email)}&sent=1` +
-      `&redirect=${encodeURIComponent(redirectTo)}`
-  );
+  const params = new URLSearchParams({
+    email,
+    sent: '1',
+    redirect: redirectTo,
+  });
+  if (from === 'signup') {
+    if (fullName) params.set('name', fullName);
+    if (marketingOptIn) params.set('marketing', '1');
+  }
+  redirect(`${base}?${params.toString()}`);
 }
 
 /**
@@ -171,13 +198,15 @@ export async function verifyOtp(formData: FormData) {
   const token = String(formData.get('token') || '').trim();
   const redirectTo =
     (formData.get('redirect') as string | null)?.trim() || '/dashboard';
+  const from = parseOrigin(formData.get('from'));
+  const base = originBase(from);
 
   if (!email || !EMAIL_REGEX.test(email)) {
-    redirect('/login/otp?error=' + encodeURIComponent('بريد إلكتروني غير صحيح.'));
+    redirect(`${base}?error=` + encodeURIComponent('بريد إلكتروني غير صحيح.'));
   }
   if (!/^[0-9]{4,8}$/.test(token)) {
     redirect(
-      `/login/otp?email=${encodeURIComponent(email)}&sent=1` +
+      `${base}?email=${encodeURIComponent(email)}&sent=1` +
         `&error=${encodeURIComponent('الكود لازم يكون أرقام بس.')}`
     );
   }
@@ -199,7 +228,7 @@ export async function verifyOtp(formData: FormData) {
       }
     );
     redirect(
-      `/login/otp?email=${encodeURIComponent(email)}&sent=1` +
+      `${base}?email=${encodeURIComponent(email)}&sent=1` +
         `&error=${encodeURIComponent('الكود غير صحيح أو منتهي. حاول تاني.')}`
     );
   }

@@ -3,33 +3,24 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { APP_NAME, ROUTES } from '@/lib/constants';
-import { signup } from './actions';
-import { ArrowLeft, CheckCircle2, MailCheck } from 'lucide-react';
+import { sendOtp, verifyOtp } from '../login/actions';
+import { ArrowLeft, ArrowRight, Mail, KeyRound, CheckCircle2 } from 'lucide-react';
 
 export default function SignupPage({
   searchParams,
 }: {
-  searchParams: { error?: string; success?: string };
+  searchParams: {
+    error?: string;
+    email?: string;
+    name?: string;
+    marketing?: string;
+    sent?: string;
+  };
 }) {
-  // Success state
-  if (searchParams.success) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-        <div className="w-full max-w-md text-center">
-          <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-brand-500/20 border border-brand-500/40 flex items-center justify-center">
-            <MailCheck className="w-8 h-8 text-brand-500" />
-          </div>
-          <h1 className="font-display text-3xl font-bold mb-3">شكراً لتسجيلك!</h1>
-          <p className="text-gray-600 mb-6">
-            بعتنالك إيميل لتأكيد حسابك. افتح الإيميل واضغط على الرابط لتفعيل الحساب.
-          </p>
-          <Button asChild>
-            <Link href={ROUTES.login}>الرجوع لتسجيل الدخول</Link>
-          </Button>
-        </div>
-      </div>
-    );
-  }
+  const email = searchParams.email || '';
+  const name = searchParams.name || '';
+  const marketing = searchParams.marketing === '1';
+  const codeStep = !!email && searchParams.sent === '1';
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -48,8 +39,29 @@ export default function SignupPage({
 
         <div className="bg-white border border-gray-200 rounded-2xl p-8 backdrop-blur-sm">
           <div className="text-center mb-6">
-            <h1 className="font-display text-2xl font-bold mb-2">أنشئ حسابك</h1>
-            <p className="text-sm text-gray-500">ابدأ رحلة التعلّم في دقيقة واحدة</p>
+            <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-brand-500/10 flex items-center justify-center">
+              {codeStep ? (
+                <KeyRound className="w-6 h-6 text-brand-500" />
+              ) : (
+                <Mail className="w-6 h-6 text-brand-500" />
+              )}
+            </div>
+            <h1 className="font-display text-2xl font-bold mb-1">
+              {codeStep ? 'أدخل الكود' : 'إنشاء حساب'}
+            </h1>
+            <p className="text-sm text-gray-500">
+              {codeStep ? (
+                <>
+                  لإكمال التسجيل، أدخل الرمز المرسل إلى بريدك الإلكتروني (
+                  <span dir="ltr" className="font-bold text-foreground">
+                    {email}
+                  </span>
+                  )
+                </>
+              ) : (
+                'هنبعتلك كود من 6 أرقام لتأكيد بريدك. مفيش كلمة سر — الدخول بكود من البريد.'
+              )}
+            </p>
           </div>
 
           {searchParams.error && (
@@ -58,80 +70,151 @@ export default function SignupPage({
             </div>
           )}
 
-          <form action={signup} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="full_name">الاسم الكامل</Label>
-              <Input
-                id="full_name"
-                name="full_name"
-                type="text"
-                placeholder="إبراهيم محمد"
-                required
-                autoComplete="name"
-              />
+          {!codeStep ? (
+            <form action={sendOtp} className="space-y-4">
+              <input type="hidden" name="from" value="signup" />
+              <input type="hidden" name="redirect" value="/dashboard" />
+
+              <div className="space-y-2">
+                <Label htmlFor="full_name">الاسم بالكامل</Label>
+                <Input
+                  id="full_name"
+                  name="full_name"
+                  type="text"
+                  defaultValue={name}
+                  placeholder="اسمك"
+                  required
+                  autoComplete="name"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email">البريد الإلكتروني</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  defaultValue={email}
+                  placeholder="you@email.com"
+                  required
+                  autoComplete="email"
+                  dir="ltr"
+                  className="text-left"
+                />
+              </div>
+
+              <label className="flex items-start gap-3 text-sm text-gray-600 cursor-pointer">
+                <input
+                  type="checkbox"
+                  name="marketing_opt_in"
+                  value="1"
+                  defaultChecked={marketing}
+                  className="mt-1 h-4 w-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500"
+                />
+                <span>
+                  أوافق على تلقّي رسائل البريد الإلكتروني الترويجية والتعليمية من مدرسة فاهم
+                </span>
+              </label>
+
+              <p className="text-xs text-gray-500 leading-relaxed">
+                من خلال التسجيل، أنت توافق على شروط الخصوصية الخاصة بـ{' '}
+                <Link href="/terms" className="underline hover:text-gray-700">
+                  مدرسة فاهم
+                </Link>{' '}
+                و{' '}
+                <Link href="/privacy" className="underline hover:text-gray-700">
+                  سياسة الخصوصية
+                </Link>
+                .
+              </p>
+
+              <Button type="submit" size="lg" className="w-full">
+                ابعتلي الكود
+                <ArrowLeft className="w-4 h-4" />
+              </Button>
+            </form>
+          ) : (
+            <>
+              <form action={verifyOtp} className="space-y-4">
+                <input type="hidden" name="email" value={email} />
+                <input type="hidden" name="redirect" value="/dashboard" />
+                <input type="hidden" name="from" value="signup" />
+
+                <div className="space-y-2">
+                  <Label htmlFor="token">الكود</Label>
+                  <Input
+                    id="token"
+                    name="token"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    autoComplete="one-time-code"
+                    required
+                    minLength={4}
+                    maxLength={8}
+                    placeholder="123456"
+                    dir="ltr"
+                    className="text-left text-2xl tracking-[0.5em] font-mono text-center"
+                    autoFocus
+                  />
+                </div>
+                <Button type="submit" size="lg" className="w-full">
+                  تحقق
+                  <ArrowLeft className="w-4 h-4" />
+                </Button>
+              </form>
+
+              <div className="mt-5 flex items-center justify-between text-xs">
+                <Link
+                  href={`${ROUTES.signup}?name=${encodeURIComponent(name)}${
+                    marketing ? '&marketing=1' : ''
+                  }`}
+                  className="text-brand-600 hover:underline"
+                >
+                  <ArrowRight className="w-3.5 h-3.5 inline" />
+                  بيانات تانية
+                </Link>
+                <form action={sendOtp}>
+                  <input type="hidden" name="email" value={email} />
+                  <input type="hidden" name="full_name" value={name} />
+                  {marketing && <input type="hidden" name="marketing_opt_in" value="1" />}
+                  <input type="hidden" name="from" value="signup" />
+                  <input type="hidden" name="redirect" value="/dashboard" />
+                  <button type="submit" className="text-brand-600 hover:underline">
+                    إعادة إرسال الرمز
+                  </button>
+                </form>
+              </div>
+            </>
+          )}
+
+          {!codeStep && (
+            <div className="mt-6 space-y-2 text-sm">
+              <div className="flex items-start gap-2 text-gray-500">
+                <CheckCircle2 className="w-4 h-4 mt-0.5 text-brand-500 flex-shrink-0" />
+                <span>تجربة مجانية لمدة 7 أيام</span>
+              </div>
+              <div className="flex items-start gap-2 text-gray-500">
+                <CheckCircle2 className="w-4 h-4 mt-0.5 text-brand-500 flex-shrink-0" />
+                <span>إلغاء الاشتراك في أي وقت</span>
+              </div>
             </div>
+          )}
 
-            <div className="space-y-2">
-              <Label htmlFor="email">البريد الإلكتروني</Label>
-              <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="you@example.com"
-                required
-                autoComplete="email"
-                dir="ltr"
-                className="text-left"
-              />
+          <div className="mt-6 pt-6 border-t border-gray-100 text-center text-sm text-gray-500 space-y-2">
+            <div>
+              عندك حساب بالفعل؟{' '}
+              <Link href={ROUTES.login} className="text-brand-600 hover:text-brand-600 font-medium">
+                سجّل دخول
+              </Link>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">كلمة السر</Label>
-              <Input
-                id="password"
-                name="password"
-                type="password"
-                placeholder="8 أحرف على الأقل"
-                minLength={8}
-                required
-                autoComplete="new-password"
-                dir="ltr"
-                className="text-left"
-              />
-            </div>
-
-            <Button type="submit" size="lg" className="w-full">
-              إنشاء الحساب
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-          </form>
-
-          <div className="my-5 flex items-center gap-3 text-xs text-gray-400">
-            <span className="flex-1 h-px bg-gray-200" />
-            أو
-            <span className="flex-1 h-px bg-gray-200" />
-          </div>
-
-          <Button asChild variant="outline" size="lg" className="w-full">
-            <Link href="/login/otp">إنشاء حساب بكود من البريد</Link>
-          </Button>
-
-          <div className="mt-6 space-y-2 text-sm">
-            <div className="flex items-start gap-2 text-gray-500">
-              <CheckCircle2 className="w-4 h-4 mt-0.5 text-brand-500 flex-shrink-0" />
-              <span>تجربة مجانية لمدة 7 أيام</span>
-            </div>
-            <div className="flex items-start gap-2 text-gray-500">
-              <CheckCircle2 className="w-4 h-4 mt-0.5 text-brand-500 flex-shrink-0" />
-              <span>إلغاء الاشتراك في أي وقت</span>
-            </div>
-          </div>
-
-          <div className="mt-6 text-center text-sm text-gray-500 border-t border-gray-200 pt-6">
-            عندك حساب بالفعل؟{' '}
-            <Link href={ROUTES.login} className="text-brand-600 hover:text-brand-600 font-medium">
-              سجّل دخول
-            </Link>
+            {!codeStep && (
+              <div className="text-xs">
+                <Link href="/signup/password" className="text-brand-600 hover:underline">
+                  إنشاء حساب بكلمة المرور بدلاً من ذلك
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       </div>
