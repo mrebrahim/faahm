@@ -99,3 +99,120 @@ export async function loginWithGoogle() {
     redirect(data.url);
   }
 }
+
+// ----- OTP (email code) login/signup ----------------------------------------
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Send a 6-digit OTP to the user's email. Supabase's default email
+ * template includes both a magic link and `{{ .Token }}` — we only
+ * need the token here. shouldCreateUser=true so this single endpoint
+ * works for both signup and login (the user just verifies the code).
+ *
+ * On success we redirect to the same page with ?sent=1 so the form
+ * pivots to the code-entry step without leaking the email through
+ * the URL hash. The email is passed in the query string only so the
+ * verify step knows which user to validate the token against.
+ */
+export async function sendOtp(formData: FormData) {
+  const email = String(formData.get('email') || '').trim().toLowerCase();
+  const redirectTo =
+    (formData.get('redirect') as string | null)?.trim() || '/dashboard';
+
+  if (!email || !EMAIL_REGEX.test(email)) {
+    redirect(
+      '/login/otp?error=' + encodeURIComponent('من فضلك أدخل بريد إلكتروني صحيح.')
+    );
+  }
+
+  const supabase = createClient();
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      shouldCreateUser: true,
+    },
+  });
+
+  if (error) {
+    void auditLog(
+      { userId: null, userEmail: email, userRole: null },
+      {
+        action: 'auth.otp_send_failed',
+        result: 'failure',
+        errorMessage: error.message,
+      }
+    );
+    redirect(
+      '/login/otp?error=' +
+        encodeURIComponent('فشل إرسال الكود. حاول تاني خلال لحظات.')
+    );
+  }
+
+  void auditLog(
+    { userId: null, userEmail: email, userRole: null },
+    { action: 'auth.otp_sent' }
+  );
+
+  redirect(
+    `/login/otp?email=${encodeURIComponent(email)}&sent=1` +
+      `&redirect=${encodeURIComponent(redirectTo)}`
+  );
+}
+
+/**
+ * Verify the 6-digit OTP. On success Supabase sets the session on the
+ * server cookie and we revalidate the layout cache so RSC sees the new
+ * auth state. type='email' covers both first-time signups (verifies the
+ * address and creates the user) and returning logins.
+ */
+export async function verifyOtp(formData: FormData) {
+  const email = String(formData.get('email') || '').trim().toLowerCase();
+  const token = String(formData.get('token') || '').trim();
+  const redirectTo =
+    (formData.get('redirect') as string | null)?.trim() || '/dashboard';
+
+  if (!email || !EMAIL_REGEX.test(email)) {
+    redirect('/login/otp?error=' + encodeURIComponent('بريد إلكتروني غير صحيح.'));
+  }
+  if (!/^[0-9]{4,8}$/.test(token)) {
+    redirect(
+      `/login/otp?email=${encodeURIComponent(email)}&sent=1` +
+        `&error=${encodeURIComponent('الكود لازم يكون أرقام بس.')}`
+    );
+  }
+
+  const supabase = createClient();
+  const { data, error } = await supabase.auth.verifyOtp({
+    email,
+    token,
+    type: 'email',
+  });
+
+  if (error || !data.session) {
+    void auditLog(
+      { userId: null, userEmail: email, userRole: null },
+      {
+        action: 'auth.otp_verify_failed',
+        result: 'failure',
+        errorMessage: error?.message || 'no session',
+      }
+    );
+    redirect(
+      `/login/otp?email=${encodeURIComponent(email)}&sent=1` +
+        `&error=${encodeURIComponent('الكود غير صحيح أو منتهي. حاول تاني.')}`
+    );
+  }
+
+  void auditLog(
+    {
+      userId: data.session.user.id,
+      userEmail: data.session.user.email ?? null,
+      userRole: null,
+    },
+    { action: 'auth.otp_login_success' }
+  );
+
+  revalidatePath('/', 'layout');
+  redirect(redirectTo);
+}

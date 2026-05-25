@@ -119,6 +119,29 @@ export default function LoginPage({
             </Button>
           </form>
 
+          <div className="my-5 flex items-center gap-3 text-xs text-gray-400">
+            <span className="flex-1 h-px bg-gray-200" />
+            أو
+            <span className="flex-1 h-px bg-gray-200" />
+          </div>
+
+          <Button
+            asChild
+            variant="outline"
+            size="lg"
+            className="w-full"
+          >
+            <Link
+              href={`/login/otp${
+                searchParams.redirect
+                  ? `?redirect=${encodeURIComponent(searchParams.redirect)}`
+                  : ''
+              }`}
+            >
+              دخول بكود من البريد
+            </Link>
+          </Button>
+
           <div className="mt-6 text-center text-sm text-gray-500">
             مش عندك حساب؟{' '}
             <Link href={ROUTES.signup} className="text-brand-600 hover:text-brand-600 font-medium">
