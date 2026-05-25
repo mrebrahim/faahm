@@ -3,7 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
 import { ROUTES, APP_NAME } from '@/lib/constants';
 import { formatDuration } from '@/lib/utils';
-import { BookOpen, Clock, Search, Filter } from 'lucide-react';
+import { BookOpen, Clock, Search, Filter, CheckCircle2 } from 'lucide-react';
+import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/hover-card';
 
 export const metadata = {
   title: 'الكورسات — فاهم!',
@@ -33,7 +34,7 @@ export default async function CoursesPage({
   let query = supabase
     .from('courses')
     .select(
-      'id, slug, title_ar, short_description_ar, thumbnail_url, level, total_lessons, total_duration_sec, category_id, instructors(full_name_ar)'
+      'id, slug, title_ar, short_description_ar, thumbnail_url, level, total_lessons, total_duration_sec, category_id, what_you_learn, instructors(full_name_ar)'
     )
     .eq('is_published', true);
 
@@ -229,7 +230,10 @@ function CourseCard({ course }: { course: any }) {
   const instructor = Array.isArray(course.instructors)
     ? course.instructors[0]
     : course.instructors;
-  return (
+  const learnPoints: string[] = Array.isArray(course.what_you_learn)
+    ? course.what_you_learn
+    : [];
+  const card = (
     <Link
       href={ROUTES.course(course.slug)}
       className="group flex flex-col overflow-hidden rounded-xl bg-white border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all"
@@ -272,5 +276,55 @@ function CourseCard({ course }: { course: any }) {
         </div>
       </div>
     </Link>
+  );
+
+  // Radix HoverCard opens on pointer events from a mouse only — touch
+  // devices are ignored by design, so mobile users get the bare card.
+  return (
+    <HoverCard openDelay={120} closeDelay={80}>
+      <HoverCardTrigger asChild>{card}</HoverCardTrigger>
+      <HoverCardContent side="left" align="start" className="w-96">
+        <div className="space-y-3">
+          <div>
+            <h4 className="font-bold text-base leading-snug mb-1">
+              {course.title_ar}
+            </h4>
+            {course.short_description_ar && (
+              <p className="text-xs text-gray-500 leading-relaxed line-clamp-2">
+                {course.short_description_ar}
+              </p>
+            )}
+          </div>
+
+          {learnPoints.length > 0 ? (
+            <div>
+              <div className="text-sm font-bold mb-2">اللي هتتعلّمه</div>
+              <ul className="space-y-2">
+                {learnPoints.slice(0, 4).map((point, i) => (
+                  <li
+                    key={i}
+                    className="flex items-start gap-2 text-xs text-gray-700 leading-relaxed"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5 text-brand-500 mt-0.5 flex-shrink-0" />
+                    <span className="line-clamp-2">{point}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : (
+            <p className="text-xs text-gray-400 italic">
+              تفاصيل أكتر عن الكورس داخل صفحته.
+            </p>
+          )}
+
+          <Link
+            href={ROUTES.course(course.slug)}
+            className="block w-full text-center text-xs font-bold text-white bg-brand-500 hover:bg-brand-600 rounded-lg py-2.5 transition-colors"
+          >
+            افتح الكورس
+          </Link>
+        </div>
+      </HoverCardContent>
+    </HoverCard>
   );
 }
