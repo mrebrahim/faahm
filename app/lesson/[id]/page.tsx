@@ -6,6 +6,7 @@ import { ROUTES, APP_NAME } from '@/lib/constants';
 import { formatDuration } from '@/lib/utils';
 import { resolveVideoEmbed } from '@/lib/video';
 import { canAccessCourse } from '@/lib/access';
+import { signLessonAttachment } from '@/lib/storage';
 import { markLessonComplete } from './actions';
 import { LessonPlayer } from './player';
 import {
@@ -37,7 +38,7 @@ export default async function LessonPage({ params }: { params: { id: string } })
       `
         id, title_ar, description_ar, video_provider, video_id, video_library_id,
         duration_sec, is_free_preview, course_id, chapter_id, sort_order,
-        attachments:lesson_attachments(id, file_name_ar, file_url, file_type, file_size_kb),
+        attachments:lesson_attachments(id, file_name_ar, file_url, file_type, file_size_kb, storage_path, kind),
         course:courses(id, slug, title_ar, is_published)
       `
     )
@@ -52,6 +53,19 @@ export default async function LessonPage({ params }: { params: { id: string } })
   // grant from an admin, or the lesson being marked as a free preview.
   const { subscribed, enrolled } = await canAccessCourse(user.id, lesson.course_id);
   const canAccess = subscribed || enrolled || lesson.is_free_preview;
+
+  // Stored attachments are in a private bucket — generate short-lived
+  // signed URLs for any that don't have an external file_url already.
+  // Done in parallel since each call hits Supabase Storage.
+  if (canAccess && lesson.attachments && lesson.attachments.length > 0) {
+    await Promise.all(
+      lesson.attachments.map(async (att: any) => {
+        if (att.storage_path) {
+          att.file_url = (await signLessonAttachment(att.storage_path)) || att.file_url;
+        }
+      })
+    );
+  }
 
   // Resolve the actual embed URL from provider + id. We let the per-lesson
   // library_id override the project default so we can later split content
