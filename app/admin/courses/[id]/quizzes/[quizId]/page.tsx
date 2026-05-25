@@ -255,7 +255,7 @@ export default async function QuizEditorPage({
           <Sparkles className="w-5 h-5 text-brand-500" />
           <h2 className="font-bold">إنشاء أسئلة بالذكاء الاصطناعي</h2>
           <span className="px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-700 text-[10px] font-medium">
-            Gemini
+            GPT-4o
           </span>
         </div>
         <p className="text-xs text-gray-500 mb-4">

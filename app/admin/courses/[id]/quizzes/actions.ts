@@ -284,7 +284,7 @@ export async function deleteQuestion(formData: FormData) {
 }
 
 /**
- * Generate questions via Gemini and bulk-insert them into the quiz.
+ * Generate questions via OpenAI and bulk-insert them into the quiz.
  * Uses a single DB round-trip per question because we need the new
  * question's id before we can insert its options. Fail-soft: skips
  * malformed AI rows but still saves the good ones.
@@ -335,7 +335,7 @@ export async function generateQuestionsWithAI(formData: FormData) {
 
   if (generated.length === 0) {
     redirect(
-      `/admin/courses/${courseId}/quizzes/${quizId}?error=${encodeURIComponent('Gemini ما أنتجش أي سؤال صالح. عدّل الفقرة وحاول.')}`
+      `/admin/courses/${courseId}/quizzes/${quizId}?error=${encodeURIComponent('GPT-4o ما أنتجش أي سؤال صالح. عدّل الفقرة وحاول.')}`
     );
   }
 
