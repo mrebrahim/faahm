@@ -42,7 +42,14 @@ async function handleSignout(request: Request) {
   }
 
   await supabase.auth.signOut();
-  return NextResponse.redirect(`${url.origin}/login`, { status: 303 });
+  // Use NEXT_PUBLIC_APP_URL as the canonical base so signout always lands on
+  // the configured app domain (e.g. http://localhost:3000 in dev, or the
+  // production domain in prod) rather than whatever hostname the request
+  // came in on. This matters behind reverse proxies (Coolify, Vercel
+  // preview URLs, sslip.io, etc.) where url.origin would point at the
+  // proxy host.
+  const base = (process.env.NEXT_PUBLIC_APP_URL || url.origin).replace(/\/$/, '');
+  return NextResponse.redirect(`${base}/login`, { status: 303 });
 }
 
 export const GET = handleSignout;
