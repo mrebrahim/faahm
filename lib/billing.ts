@@ -2,6 +2,8 @@ import type Stripe from 'stripe';
 import { stripe, planFromPriceId } from '@/lib/stripe';
 import { createServiceClient } from '@/lib/supabase/server';
 
+type ServiceClient = ReturnType<typeof createServiceClient>;
+
 type SubStatus = 'active' | 'cancelled' | 'expired' | 'paused' | 'trialing';
 
 export function mapStripeStatus(s: Stripe.Subscription.Status): SubStatus {
@@ -25,7 +27,7 @@ export function mapStripeStatus(s: Stripe.Subscription.Status): SubStatus {
 }
 
 export async function resolveUserIdFromCustomer(
-  service: ReturnType<typeof createServiceClient>,
+  service: ServiceClient,
   customerId: string,
   fallback?: { metadataUserId?: string | null; email?: string | null }
 ): Promise<string | null> {
@@ -61,15 +63,10 @@ export async function resolveUserIdFromCustomer(
   return null;
 }
 
-/**
- * Idempotent: upserts the subscriptions row that matches `sub.id`. Safe to call
- * from both the Stripe webhook and the post-checkout success page — whichever
- * fires first wins, and the loser is a no-op update with the same values.
- */
 export async function upsertSubscriptionFromStripe(
-  service: ReturnType<typeof createServiceClient>,
+  service: ServiceClient,
   sub: Stripe.Subscription
-): Promise<{ ok: boolean; userId: string | null }> {
+): Promise<string | null> {
   const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id;
   const metadataUserId = (sub.metadata?.supabase_user_id as string) || null;
 
@@ -88,18 +85,14 @@ export async function upsertSubscriptionFromStripe(
     email,
   });
   if (!userId) {
-    console.error('[stripe-sync] could not resolve user for customer', customerId);
-    return { ok: false, userId: null };
+    console.error('[billing] could not resolve user for customer', customerId);
+    return null;
   }
 
   const item = sub.items.data[0];
   const priceId = item?.price?.id ?? null;
-  const plan =
-    planFromPriceId(priceId) || (sub.metadata?.plan as 'monthly' | 'yearly') || 'monthly';
+  const plan = planFromPriceId(priceId) || (sub.metadata?.plan as 'monthly' | 'yearly') || 'monthly';
 
-  // current_period_{start,end} moved from Subscription to SubscriptionItem in
-  // API version 2025-04-30+. Fall back to the subscription-level field for
-  // older accounts.
   const periodEnd =
     (item as any)?.current_period_end ??
     (sub as any).current_period_end ??
@@ -132,41 +125,44 @@ export async function upsertSubscriptionFromStripe(
   } else {
     await service.from('subscriptions').insert(row);
   }
-  return { ok: true, userId };
+
+  return userId;
 }
 
 /**
- * Provisions the user's subscription from a freshly-completed Checkout
- * session. Used by the /billing/success page so access works even if the
- * Stripe webhook is misconfigured or hasn't fired yet. No-op if the session
- * isn't paid or isn't a subscription checkout.
+ * Server-side reconcile for the /billing/success landing.
+ * Stripe redirects to success_url immediately after payment, but the webhook
+ * is async — sometimes the row isn't there yet when the user lands. We
+ * retrieve the session, write the subscription row ourselves, and let the
+ * webhook (which is idempotent on stripe_subscription_id) catch up later.
  */
-export async function provisionFromCheckoutSession(
+export async function reconcileCheckoutSession(
   sessionId: string
-): Promise<{ ok: boolean; reason?: string; userId?: string | null }> {
+): Promise<{ ok: boolean; paid: boolean; reason?: string }> {
   let session: Stripe.Checkout.Session;
   try {
-    session = await stripe.checkout.sessions.retrieve(sessionId);
+    session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ['subscription'],
+    });
   } catch (err) {
-    return { ok: false, reason: 'retrieve_failed' };
+    return { ok: false, paid: false, reason: 'session_not_found' };
+  }
+
+  if (session.payment_status !== 'paid' && session.payment_status !== 'no_payment_required') {
+    return { ok: false, paid: false, reason: 'unpaid' };
   }
 
   if (session.mode !== 'subscription' || !session.subscription) {
-    return { ok: false, reason: 'not_subscription' };
-  }
-
-  // payment_status is 'paid' for one-time and 'no_payment_required' for
-  // trials; both mean we should provision.
-  if (session.payment_status !== 'paid' && session.payment_status !== 'no_payment_required') {
-    return { ok: false, reason: 'not_paid' };
+    return { ok: true, paid: true, reason: 'not_subscription' };
   }
 
   const subId =
     typeof session.subscription === 'string' ? session.subscription : session.subscription.id;
+
   const sub = await stripe.subscriptions.retrieve(subId);
 
-  // Stamp the user id from the session metadata onto the subscription if
-  // missing, mirroring the webhook handler's behavior.
+  // Make sure the subscription metadata carries the user id so future webhook
+  // events can be linked back even if the customer mapping is missing.
   if (!sub.metadata?.supabase_user_id && session.metadata?.supabase_user_id) {
     try {
       await stripe.subscriptions.update(subId, {
@@ -186,6 +182,6 @@ export async function provisionFromCheckoutSession(
   }
 
   const service = createServiceClient();
-  const result = await upsertSubscriptionFromStripe(service, sub);
-  return { ok: result.ok, userId: result.userId };
+  await upsertSubscriptionFromStripe(service, sub);
+  return { ok: true, paid: true };
 }

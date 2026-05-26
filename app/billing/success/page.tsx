@@ -1,18 +1,16 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
 import { ROUTES, APP_NAME } from '@/lib/constants';
-import { CheckCircle2, ArrowLeft, Sparkles } from 'lucide-react';
-import { provisionFromCheckoutSession } from '@/lib/stripe-sync';
-import { hasActiveSubscription } from '@/lib/access';
+import { reconcileCheckoutSession } from '@/lib/billing';
+import { CheckCircle2, ArrowLeft, Sparkles, PlayCircle } from 'lucide-react';
 
 export const metadata = {
-  title: 'تم الاشتراك — فاهم!',
+  title: 'شكراً لاشتراكك — فاهم!',
   robots: { index: false, follow: false },
 };
 
-// Always render fresh — we hit Stripe and the DB on every visit.
 export const dynamic = 'force-dynamic';
 
 export default async function BillingSuccessPage({
@@ -26,19 +24,29 @@ export default async function BillingSuccessPage({
   } = await supabase.auth.getUser();
   if (!user) redirect(ROUTES.login);
 
-  // Provision the subscription synchronously from the Checkout session, so the
-  // user gets access even if the Stripe webhook is delayed or misconfigured.
-  // Idempotent — the webhook can run before, after, or never.
-  const sessionId = searchParams.session_id;
-  if (sessionId) {
-    try {
-      await provisionFromCheckoutSession(sessionId);
-    } catch (err) {
-      console.error('[billing/success] provision failed', err);
-    }
+  // Reconcile the Stripe session server-side so courses unlock the instant
+  // the user lands here, regardless of webhook timing. Idempotent — the
+  // webhook keys on stripe_subscription_id, so the eventual webhook either
+  // finds the same row and updates in place or is a no-op.
+  if (searchParams.session_id) {
+    await reconcileCheckoutSession(searchParams.session_id);
   }
 
-  const isActive = await hasActiveSubscription(user.id);
+  // Confirm an active subscription is now visible. If reconcile failed (e.g.
+  // missing session_id, weird redirect), the webhook will still write it
+  // shortly — show the thank-you page anyway with a softer subtitle.
+  const service = createServiceClient();
+  const { data: subscription } = await service
+    .from('subscriptions')
+    .select('plan, current_period_end')
+    .eq('user_id', user.id)
+    .in('status', ['active', 'trialing'])
+    .gt('current_period_end', new Date().toISOString())
+    .order('current_period_end', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const ready = !!subscription;
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-16">
@@ -48,30 +56,39 @@ export default async function BillingSuccessPage({
         </div>
 
         <h1 className="font-display text-3xl md:text-4xl font-extrabold mb-3">
-          تم اشتراكك بنجاح
+          شكراً لاشتراكك! 🎉
         </h1>
         <p className="text-gray-600 text-lg mb-2">
-          أهلًا بك في <span className="font-bold text-foreground">{APP_NAME}</span> 🎉
+          أهلاً بيك في <span className="font-bold text-foreground">{APP_NAME}</span>
         </p>
         <p className="text-sm text-gray-500 mb-8">
-          {isActive
-            ? 'كل الكورسات مفتوحة لك دلوقتي. ابدأ من اللي يعجبك.'
-            : 'بنفعّل اشتراكك الآن. لو الكورسات لسه مش ظاهرة، حدّث الصفحة بعد لحظات.'}
+          {ready
+            ? 'اشتراكك مفعّل وكل الكورسات مفتوحة لك دلوقتي. يلا نبدأ.'
+            : 'استلمنا دفعتك وبنفعّل اشتراكك دلوقتي. لو الكورسات مظهرتش مفتوحة خلال دقيقة، حدّث الصفحة.'}
         </p>
 
-        <div className="flex flex-col sm:flex-row gap-3 justify-center mb-10">
-          <Button asChild size="lg">
+        <div className="flex flex-col gap-3 mb-8">
+          <Button asChild size="lg" className="w-full">
             <Link href={ROUTES.courses}>
-              <Sparkles className="w-4 h-4" />
-              تصفّح الكورسات
+              <PlayCircle className="w-5 h-5" />
+              ابدأ التعلم دلوقتي
               <ArrowLeft className="w-4 h-4" />
             </Link>
           </Button>
-          <Button asChild size="lg" variant="outline">
-            <Link href={ROUTES.dashboard}>روح للوحتي</Link>
+          <Button asChild size="lg" variant="outline" className="w-full">
+            <Link href={ROUTES.dashboard}>
+              <Sparkles className="w-4 h-4" />
+              روح للوحتي
+            </Link>
           </Button>
         </div>
 
+        {ready && subscription && (
+          <p className="text-xs text-gray-400 mb-2">
+            اشتراك {subscription.plan === 'yearly' ? 'سنوي' : 'شهري'} ساري حتى{' '}
+            {new Date(subscription.current_period_end).toLocaleDateString('ar-EG')}
+          </p>
+        )}
         <p className="text-xs text-gray-400">
           إيصال الدفع جاي على إيميلك. لو فيه أي مشكلة كلّمنا.
         </p>

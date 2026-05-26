@@ -38,7 +38,8 @@ create table public.profiles (
     role            user_role not null default 'student',
     is_blocked      boolean not null default false,
     created_at      timestamptz not null default now(),
-    updated_at      timestamptz not null default now()
+    updated_at      timestamptz not null default now(),
+    marketing_opt_in boolean not null default false
 );
 
 create index idx_profiles_role on public.profiles(role);
@@ -358,7 +359,6 @@ begin
         id,
         full_name,
         avatar_url,
-        password_set,
         marketing_opt_in,
         phone,
         country
@@ -367,7 +367,6 @@ begin
         new.id,
         coalesce(new.raw_user_meta_data->>'full_name', new.email),
         new.raw_user_meta_data->>'avatar_url',
-        new.invited_at is null,
         coalesce((new.raw_user_meta_data->>'marketing_opt_in')::boolean, false),
         nullif(new.raw_user_meta_data->>'phone', ''),
         nullif(new.raw_user_meta_data->>'country', '')

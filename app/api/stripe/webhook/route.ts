@@ -2,10 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import type Stripe from 'stripe';
 import { stripe } from '@/lib/stripe';
 import { createServiceClient } from '@/lib/supabase/server';
-import {
-  resolveUserIdFromCustomer,
-  upsertSubscriptionFromStripe,
-} from '@/lib/stripe-sync';
+import { resolveUserIdFromCustomer, upsertSubscriptionFromStripe } from '@/lib/billing';
 
 // Stripe requires the raw body for signature verification.
 export const runtime = 'nodejs';
