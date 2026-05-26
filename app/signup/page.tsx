@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PhoneInput } from '@/components/phone-input';
 import { APP_NAME, ROUTES } from '@/lib/constants';
 import { sendOtp, verifyOtp } from '../login/actions';
 import { ArrowLeft, ArrowRight, Mail, KeyRound, CheckCircle2 } from 'lucide-react';
@@ -15,11 +16,15 @@ export default function SignupPage({
     name?: string;
     marketing?: string;
     sent?: string;
+    phone?: string;
+    country?: string;
   };
 }) {
   const email = searchParams.email || '';
   const name = searchParams.name || '';
   const marketing = searchParams.marketing === '1';
+  const phone = searchParams.phone || '';
+  const country = searchParams.country || '';
   const codeStep = !!email && searchParams.sent === '1';
 
   return (
@@ -103,6 +108,14 @@ export default function SignupPage({
                 />
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="phone">رقم الموبايل</Label>
+                <PhoneInput
+                  defaultPhone={phone}
+                  defaultCountry={country || undefined}
+                />
+              </div>
+
               <label className="flex items-start gap-3 text-sm text-gray-600 cursor-pointer">
                 <input
                   type="checkbox"
@@ -166,9 +179,15 @@ export default function SignupPage({
 
               <div className="mt-5 flex items-center justify-between text-xs">
                 <Link
-                  href={`${ROUTES.signup}?name=${encodeURIComponent(name)}${
-                    marketing ? '&marketing=1' : ''
-                  }`}
+                  href={(() => {
+                    const params = new URLSearchParams();
+                    if (name) params.set('name', name);
+                    if (marketing) params.set('marketing', '1');
+                    if (phone) params.set('phone', phone);
+                    if (country) params.set('country', country);
+                    const qs = params.toString();
+                    return qs ? `${ROUTES.signup}?${qs}` : ROUTES.signup;
+                  })()}
                   className="text-brand-600 hover:underline"
                 >
                   <ArrowRight className="w-3.5 h-3.5 inline" />
@@ -178,6 +197,8 @@ export default function SignupPage({
                   <input type="hidden" name="email" value={email} />
                   <input type="hidden" name="full_name" value={name} />
                   {marketing && <input type="hidden" name="marketing_opt_in" value="1" />}
+                  {phone && <input type="hidden" name="phone" value={phone} />}
+                  {country && <input type="hidden" name="country" value={country} />}
                   <input type="hidden" name="from" value="signup" />
                   <input type="hidden" name="redirect" value="/dashboard" />
                   <button type="submit" className="text-brand-600 hover:underline">

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PhoneInput } from '@/components/phone-input';
 import { APP_NAME, ROUTES } from '@/lib/constants';
 import { signup } from '../actions';
 import { ArrowLeft, ArrowRight, CheckCircle2, MailCheck } from 'lucide-react';
@@ -94,6 +95,11 @@ export default function SignupWithPasswordPage({
                 dir="ltr"
                 className="text-left"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="phone">رقم الموبايل</Label>
+              <PhoneInput />
             </div>
 
             <div className="space-y-2">

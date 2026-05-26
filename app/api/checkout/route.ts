@@ -63,8 +63,16 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL('/api/billing/portal', request.url));
   }
 
-  const appUrl =
-    process.env.NEXT_PUBLIC_APP_URL || url.origin.replace(/\/$/, '');
+  // Build the absolute URL Stripe will redirect back to. Prefer the
+  // reverse-proxy's forwarded host so we follow the domain the user is
+  // actually on (Coolify/Traefik, sslip.io, custom domain). NEXT_PUBLIC_*
+  // is inlined at build time, so falling back to it can freeze localhost
+  // into prod if the build-arg wasn't passed — only use it as a last resort.
+  const forwardedHost = request.headers.get('x-forwarded-host');
+  const forwardedProto = request.headers.get('x-forwarded-proto');
+  const appUrl = forwardedHost
+    ? `${forwardedProto || 'https'}://${forwardedHost}`
+    : (process.env.NEXT_PUBLIC_APP_URL || url.origin).replace(/\/$/, '');
 
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
