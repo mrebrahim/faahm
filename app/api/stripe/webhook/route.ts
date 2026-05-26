@@ -1,142 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import type Stripe from 'stripe';
-import { stripe, planFromPriceId } from '@/lib/stripe';
+import { stripe } from '@/lib/stripe';
 import { createServiceClient } from '@/lib/supabase/server';
+import {
+  resolveUserIdFromCustomer,
+  upsertSubscriptionFromStripe,
+} from '@/lib/stripe-sync';
 
 // Stripe requires the raw body for signature verification.
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
-
-type SubStatus = 'active' | 'cancelled' | 'expired' | 'paused' | 'trialing';
-
-function mapStripeStatus(s: Stripe.Subscription.Status): SubStatus {
-  switch (s) {
-    case 'active':
-      return 'active';
-    case 'trialing':
-      return 'trialing';
-    case 'paused':
-      return 'paused';
-    case 'past_due':
-    case 'unpaid':
-    case 'incomplete':
-    case 'incomplete_expired':
-      return 'expired';
-    case 'canceled':
-      return 'cancelled';
-    default:
-      return 'expired';
-  }
-}
-
-async function resolveUserIdFromCustomer(
-  service: ReturnType<typeof createServiceClient>,
-  customerId: string,
-  fallback?: { metadataUserId?: string | null; email?: string | null }
-): Promise<string | null> {
-  // 1. Try profiles.stripe_customer_id mapping.
-  const { data: profile } = await service
-    .from('profiles')
-    .select('id')
-    .eq('stripe_customer_id', customerId)
-    .maybeSingle();
-  if (profile?.id) return profile.id;
-
-  // 2. Fall back to metadata set on checkout / subscription.
-  if (fallback?.metadataUserId) {
-    await service
-      .from('profiles')
-      .update({ stripe_customer_id: customerId })
-      .eq('id', fallback.metadataUserId);
-    return fallback.metadataUserId;
-  }
-
-  // 3. Last resort: match by email (paid via Stripe before profile mapped).
-  if (fallback?.email) {
-    const { data: byEmail } = await service.auth.admin.listUsers();
-    const match = byEmail?.users.find(
-      (u) => u.email?.toLowerCase() === fallback.email!.toLowerCase()
-    );
-    if (match?.id) {
-      await service
-        .from('profiles')
-        .update({ stripe_customer_id: customerId })
-        .eq('id', match.id);
-      return match.id;
-    }
-  }
-
-  return null;
-}
-
-async function upsertSubscriptionFromStripe(
-  service: ReturnType<typeof createServiceClient>,
-  sub: Stripe.Subscription
-) {
-  const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id;
-  const metadataUserId = (sub.metadata?.supabase_user_id as string) || null;
-
-  // Pull customer email as last-resort fallback for user mapping.
-  let email: string | null = null;
-  if (!metadataUserId) {
-    try {
-      const customer = await stripe.customers.retrieve(customerId);
-      if (!customer.deleted) email = customer.email;
-    } catch {
-      // ignore
-    }
-  }
-
-  const userId = await resolveUserIdFromCustomer(service, customerId, {
-    metadataUserId,
-    email,
-  });
-  if (!userId) {
-    console.error('[stripe-webhook] could not resolve user for customer', customerId);
-    return;
-  }
-
-  const item = sub.items.data[0];
-  const priceId = item?.price?.id ?? null;
-  const plan = planFromPriceId(priceId) || (sub.metadata?.plan as 'monthly' | 'yearly') || 'monthly';
-
-  // current_period_{start,end} moved from Subscription to SubscriptionItem in
-  // API version 2025-04-30+. The typed SDK doesn't always expose them on the
-  // item, so cast and fall back to the subscription-level field for older accounts.
-  const periodEnd =
-    (item as any)?.current_period_end ??
-    (sub as any).current_period_end ??
-    Math.floor(Date.now() / 1000);
-  const periodStart =
-    (item as any)?.current_period_start ??
-    (sub as any).current_period_start ??
-    Math.floor(Date.now() / 1000);
-
-  // Try to update existing row by Stripe sub id; otherwise insert.
-  const { data: existing } = await service
-    .from('subscriptions')
-    .select('id')
-    .eq('stripe_subscription_id', sub.id)
-    .maybeSingle();
-
-  const row = {
-    user_id: userId,
-    plan,
-    status: mapStripeStatus(sub.status),
-    current_period_start: new Date(periodStart * 1000).toISOString(),
-    current_period_end: new Date(periodEnd * 1000).toISOString(),
-    cancelled_at: sub.canceled_at ? new Date(sub.canceled_at * 1000).toISOString() : null,
-    gateway: 'stripe' as const,
-    stripe_subscription_id: sub.id,
-    stripe_customer_id: customerId,
-  };
-
-  if (existing) {
-    await service.from('subscriptions').update(row).eq('id', existing.id);
-  } else {
-    await service.from('subscriptions').insert(row);
-  }
-}
 
 async function recordPaymentFromInvoice(
   service: ReturnType<typeof createServiceClient>,
