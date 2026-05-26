@@ -42,7 +42,7 @@ async function handleSignout(request: Request) {
   }
 
   await supabase.auth.signOut();
-  return NextResponse.redirect(`${url.origin}/`, { status: 303 });
+  return NextResponse.redirect(`${url.origin}/login`, { status: 303 });
 }
 
 export const GET = handleSignout;
