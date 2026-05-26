@@ -42,7 +42,18 @@ async function handleSignout(request: Request) {
   }
 
   await supabase.auth.signOut();
-  return NextResponse.redirect(`${url.origin}/`, { status: 303 });
+  // Prefer the reverse-proxy's forwarded host so the redirect lands on the
+  // domain the user is actually browsing (Coolify/Traefik, Vercel, sslip.io,
+  // etc.). Falls back to NEXT_PUBLIC_APP_URL, then the raw request origin.
+  // NEXT_PUBLIC_* values are inlined at build time, so if the build arg
+  // wasn't passed they'd be frozen as http://localhost:3000 — using the
+  // forwarded headers avoids that footgun entirely.
+  const forwardedHost = request.headers.get('x-forwarded-host');
+  const forwardedProto = request.headers.get('x-forwarded-proto');
+  const base = forwardedHost
+    ? `${forwardedProto || 'https'}://${forwardedHost}`
+    : (process.env.NEXT_PUBLIC_APP_URL || url.origin).replace(/\/$/, '');
+  return NextResponse.redirect(`${base}/login`, { status: 303 });
 }
 
 export const GET = handleSignout;
