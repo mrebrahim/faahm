@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { auditLog } from '@/lib/admin-audit';
+import { E164_REGEX } from '@/lib/countries';
 
 export async function login(formData: FormData) {
   const supabase = createClient();
@@ -135,6 +136,8 @@ export async function sendOtp(formData: FormData) {
   const from = parseOrigin(formData.get('from'));
   const fullName = String(formData.get('full_name') || '').trim();
   const marketingOptIn = formData.get('marketing_opt_in') === '1';
+  const phone = String(formData.get('phone') || '').trim();
+  const country = String(formData.get('country') || '').trim().toUpperCase();
 
   const base = originBase(from);
 
@@ -142,10 +145,24 @@ export async function sendOtp(formData: FormData) {
     redirect(`${base}?error=` + encodeURIComponent('من فضلك أدخل بريد إلكتروني صحيح.'));
   }
 
+  // Phone is required at signup; logins still go through without it.
+  if (from === 'signup' && !E164_REGEX.test(phone)) {
+    const params = new URLSearchParams({
+      error: 'من فضلك أدخل رقم موبايل صحيح.',
+    });
+    if (fullName) params.set('name', fullName);
+    if (marketingOptIn) params.set('marketing', '1');
+    if (phone) params.set('phone', phone);
+    if (country) params.set('country', country);
+    redirect(`${base}?${params.toString()}`);
+  }
+
   const supabase = createClient();
   const userData: Record<string, unknown> = {};
   if (from === 'signup' && fullName) userData.full_name = fullName;
   if (from === 'signup') userData.marketing_opt_in = marketingOptIn;
+  if (from === 'signup' && phone) userData.phone = phone;
+  if (from === 'signup' && country) userData.country = country;
 
   const { error } = await supabase.auth.signInWithOtp({
     email,
@@ -183,6 +200,8 @@ export async function sendOtp(formData: FormData) {
   if (from === 'signup') {
     if (fullName) params.set('name', fullName);
     if (marketingOptIn) params.set('marketing', '1');
+    if (phone) params.set('phone', phone);
+    if (country) params.set('country', country);
   }
   redirect(`${base}?${params.toString()}`);
 }

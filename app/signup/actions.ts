@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { E164_REGEX } from '@/lib/countries';
 
 export async function signup(formData: FormData) {
   const supabase = createClient();
@@ -10,13 +11,19 @@ export async function signup(formData: FormData) {
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
   const fullName = formData.get('full_name') as string;
+  const phone = String(formData.get('phone') || '').trim();
+  const country = String(formData.get('country') || '').trim().toUpperCase();
 
   if (!email || !password || !fullName) {
-    redirect('/signup?error=' + encodeURIComponent('من فضلك املأ كل الحقول'));
+    redirect('/signup/password?error=' + encodeURIComponent('من فضلك املأ كل الحقول'));
+  }
+
+  if (!E164_REGEX.test(phone)) {
+    redirect('/signup/password?error=' + encodeURIComponent('من فضلك أدخل رقم موبايل صحيح'));
   }
 
   if (password.length < 8) {
-    redirect('/signup?error=' + encodeURIComponent('كلمة السر لازم تكون 8 أحرف على الأقل'));
+    redirect('/signup/password?error=' + encodeURIComponent('كلمة السر لازم تكون 8 أحرف على الأقل'));
   }
 
   const { error } = await supabase.auth.signUp({
@@ -25,6 +32,8 @@ export async function signup(formData: FormData) {
     options: {
       data: {
         full_name: fullName,
+        phone,
+        ...(country ? { country } : {}),
       },
       emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
     },
@@ -32,11 +41,11 @@ export async function signup(formData: FormData) {
 
   if (error) {
     if (error.message.includes('already registered')) {
-      redirect('/signup?error=' + encodeURIComponent('البريد ده مسجل بالفعل'));
+      redirect('/signup/password?error=' + encodeURIComponent('البريد ده مسجل بالفعل'));
     }
-    redirect('/signup?error=' + encodeURIComponent('حصل خطأ، حاول تاني'));
+    redirect('/signup/password?error=' + encodeURIComponent('حصل خطأ، حاول تاني'));
   }
 
   revalidatePath('/', 'layout');
-  redirect('/signup?success=1');
+  redirect('/signup/password?success=1');
 }

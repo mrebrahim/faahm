@@ -354,11 +354,23 @@ create trigger trg_subscriptions_updated_at
 create or replace function public.handle_new_user()
 returns trigger as $$
 begin
-    insert into public.profiles (id, full_name, avatar_url)
+    insert into public.profiles (
+        id,
+        full_name,
+        avatar_url,
+        password_set,
+        marketing_opt_in,
+        phone,
+        country
+    )
     values (
         new.id,
         coalesce(new.raw_user_meta_data->>'full_name', new.email),
-        new.raw_user_meta_data->>'avatar_url'
+        new.raw_user_meta_data->>'avatar_url',
+        new.invited_at is null,
+        coalesce((new.raw_user_meta_data->>'marketing_opt_in')::boolean, false),
+        nullif(new.raw_user_meta_data->>'phone', ''),
+        nullif(new.raw_user_meta_data->>'country', '')
     );
     return new;
 end;
