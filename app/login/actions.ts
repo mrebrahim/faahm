@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { auditLog } from '@/lib/admin-audit';
 import { E164_REGEX } from '@/lib/countries';
+import { resolveAppUrl } from '@/lib/app-url';
 
 export async function login(formData: FormData) {
   const supabase = createClient();
@@ -83,7 +84,7 @@ export async function login(formData: FormData) {
 
 export async function loginWithGoogle() {
   const supabase = createClient();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const appUrl = resolveAppUrl();
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',

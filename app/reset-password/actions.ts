@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { auditLog } from '@/lib/admin-audit';
+import { resolveAppUrl } from '@/lib/app-url';
 
 /**
  * Step 1 of password reset: user submits their email; Supabase emails them
@@ -17,7 +18,7 @@ export async function requestPasswordReset(formData: FormData) {
   }
 
   const supabase = createClient();
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const appUrl = resolveAppUrl();
 
   const { error } = await supabase.auth.resetPasswordForEmail(email!, {
     // Supabase will append `?code=...` (PKCE) or `#access_token=...` to this URL.

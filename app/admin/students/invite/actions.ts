@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/admin-guard';
 import { loggedAction } from '@/lib/admin-audit';
+import { resolveAppUrl } from '@/lib/app-url';
 
 type PlanChoice = 'monthly' | 'yearly';
 
@@ -60,7 +61,7 @@ export async function inviteStudent(formData: FormData) {
       },
       async () => {
         const service = createServiceClient();
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://faahm.vercel.app';
+        const appUrl = resolveAppUrl();
 
         // Record the intent first so the auth callback has it ready
         // even if the email send fails.
