@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/admin-guard';
 import { auditLog } from '@/lib/admin-audit';
 import { Button } from '@/components/ui/button';
+import { DeleteStudentButton } from './delete-button';
 import {
   Users,
   Search,
@@ -34,6 +35,8 @@ type SearchParams = {
   since?: string;     // 7 | 30 | 90 (days)
   page?: string;
   sort?: string;      // joined_desc | joined_asc | last_login_desc | name_asc
+  success?: string;   // deleted
+  error?: string;
 };
 
 export default async function StudentsListPage({
@@ -135,6 +138,16 @@ export default async function StudentsListPage({
 
   return (
     <div className="p-8 max-w-7xl">
+      {searchParams.success === 'deleted' && (
+        <div className="mb-4 p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm">
+          تم حذف الطالب نهائياً.
+        </div>
+      )}
+      {searchParams.error && (
+        <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200 text-red-800 text-sm">
+          {decodeURIComponent(searchParams.error)}
+        </div>
+      )}
       {/* Header */}
       <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
         <div>
@@ -335,6 +348,9 @@ export default async function StudentsListPage({
                         تفاصيل
                         <ArrowLeft className="inline w-3 h-3 ms-1" />
                       </Link>
+                      {s.role === 'student' && (
+                        <DeleteStudentButton id={s.id} email={s.email || ''} />
+                      )}
                     </td>
                   </tr>
                 ))}
