@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Cairo, Tajawal } from 'next/font/google';
 import './globals.css';
 import { APP_NAME, APP_TAGLINE, APP_URL } from '@/lib/constants';
+import { Analytics } from '@/components/analytics';
 
 const cairo = Cairo({
   subsets: ['arabic', 'latin'],
@@ -77,6 +78,7 @@ export default function RootLayout({
     >
       <body className="font-sans min-h-screen bg-background text-foreground">
         {children}
+        <Analytics />
       </body>
     </html>
   );
