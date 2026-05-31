@@ -167,7 +167,11 @@ export default async function CourseEditPage({
       {/* Course Details Form */}
       <section className="mb-8">
         <h2 className="font-display text-xl font-bold mb-4">بيانات الكورس</h2>
-        <form action={updateCourse} className="rounded-2xl bg-white border border-gray-200 p-6 space-y-4">
+        <form
+          action={updateCourse}
+          encType="multipart/form-data"
+          className="rounded-2xl bg-white border border-gray-200 p-6 space-y-4"
+        >
           <input type="hidden" name="id" value={course.id} />
 
           <div className="space-y-2">
@@ -218,7 +222,27 @@ export default async function CourseEditPage({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="thumbnail_url">رابط الصورة</Label>
+            <Label>صورة الكورس</Label>
+            {course.thumbnail_url && (
+              <div className="mb-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={course.thumbnail_url}
+                  alt=""
+                  className="w-40 h-24 object-cover rounded-lg border border-gray-200"
+                />
+              </div>
+            )}
+            <Input
+              id="thumbnail_file"
+              name="thumbnail_file"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/avif,image/gif"
+              className="cursor-pointer"
+            />
+            <p className="text-xs text-gray-500">
+              ارفع صورة (JPG / PNG / WebP، حتى 5MB). أو ضع رابط مباشر في الحقل اللي تحت.
+            </p>
             <Input
               id="thumbnail_url"
               name="thumbnail_url"

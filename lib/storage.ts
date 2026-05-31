@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/server';
 
 export const LESSON_ATTACHMENTS_BUCKET = 'lesson-attachments';
+export const COURSE_THUMBNAILS_BUCKET = 'course-thumbnails';
 
 /**
  * Upload a single attachment file into the private lesson-attachments
@@ -71,6 +72,67 @@ export async function deleteLessonAttachmentObject(
   } catch (err) {
     console.warn('[storage] failed to delete object', storagePath, err);
   }
+}
+
+/**
+ * Upload a course thumbnail to the public course-thumbnails bucket and
+ * return its public URL. Caller persists the URL on `courses.thumbnail_url`.
+ * Replaces any previous thumbnail for the same course (one path per course).
+ */
+export async function uploadCourseThumbnail(opts: {
+  courseId: string;
+  file: File;
+}): Promise<{ publicUrl: string; path: string }> {
+  const service = createServiceClient();
+  const ext = extFromMime(opts.file.type) || extFromName(opts.file.name) || 'jpg';
+  // One canonical path per course → updating the thumbnail overwrites
+  // the previous file instead of leaving orphans. Cache-bust via the
+  // `?v=` querystring on the returned URL.
+  const path = `${opts.courseId}/cover.${ext}`;
+  const bytes = await opts.file.arrayBuffer();
+
+  const { error } = await service.storage
+    .from(COURSE_THUMBNAILS_BUCKET)
+    .upload(path, bytes, {
+      contentType: opts.file.type || 'image/jpeg',
+      upsert: true,
+    });
+  if (error) throw new Error(error.message);
+
+  const { data } = service.storage.from(COURSE_THUMBNAILS_BUCKET).getPublicUrl(path);
+  // Append a cache-busting query so updates show immediately. The URL
+  // itself is stable; just the querystring changes.
+  return { publicUrl: `${data.publicUrl}?v=${Date.now()}`, path };
+}
+
+export async function deleteCourseThumbnail(courseId: string): Promise<void> {
+  try {
+    const service = createServiceClient();
+    const { data } = await service.storage
+      .from(COURSE_THUMBNAILS_BUCKET)
+      .list(courseId, { limit: 10 });
+    if (!data || data.length === 0) return;
+    await service.storage
+      .from(COURSE_THUMBNAILS_BUCKET)
+      .remove(data.map((o) => `${courseId}/${o.name}`));
+  } catch (err) {
+    console.warn('[storage] failed to delete course thumbnail', courseId, err);
+  }
+}
+
+function extFromMime(mime: string | undefined): string | null {
+  if (!mime) return null;
+  if (mime === 'image/jpeg') return 'jpg';
+  if (mime === 'image/png') return 'png';
+  if (mime === 'image/webp') return 'webp';
+  if (mime === 'image/avif') return 'avif';
+  if (mime === 'image/gif') return 'gif';
+  return null;
+}
+
+function extFromName(name: string): string | null {
+  const m = name.toLowerCase().match(/\.([a-z0-9]+)$/);
+  return m ? m[1] : null;
 }
 
 function sanitizeFilename(name: string): string {

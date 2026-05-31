@@ -6,6 +6,7 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/admin-guard';
 import { loggedAction, formDataForLog } from '@/lib/admin-audit';
 import { parseVideoInput, type VideoProvider } from '@/lib/video';
+import { uploadCourseThumbnail } from '@/lib/storage';
 
 export async function createCourse(formData: FormData) {
   const ctx = await requireAdmin();
@@ -65,6 +66,15 @@ export async function createCourse(formData: FormData) {
           .select('id')
           .single();
         if (error) throw new Error(error.message);
+
+        // If the admin attached a file, upload it now that we have the
+        // new course id, then patch the row with the public URL.
+        const thumbFile = formData.get('thumbnail_file');
+        if (thumbFile instanceof File && thumbFile.size > 0) {
+          const uploaded = await uploadCourseThumbnail({ courseId: data.id, file: thumbFile });
+          await service.from('courses').update({ thumbnail_url: uploaded.publicUrl }).eq('id', data.id);
+        }
+
         return data.id as string;
       }
     );
