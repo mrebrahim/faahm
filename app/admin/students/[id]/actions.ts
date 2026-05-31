@@ -274,3 +274,49 @@ export async function saveStudentNotes(formData: FormData) {
 
   revalidatePath(`/admin/students/${targetId}`);
 }
+
+/**
+ * Permanently delete a student. Removes the auth.users row, which
+ * cascades to profiles, enrollments, subscriptions, and any other
+ * tables with `on delete cascade` on user_id. Use with care — there
+ * is no undo. Refuses to delete admins / instructors so an admin
+ * can't accidentally wipe a teammate.
+ */
+export async function deleteStudent(formData: FormData) {
+  const ctx = await requireAdmin();
+  const targetId = String(formData.get('id') || '');
+  if (!targetId) return;
+  if (targetId === ctx.userId) {
+    redirect('/admin/students?error=' + encodeURIComponent('ما تقدرش تحذف نفسك.'));
+  }
+
+  await loggedAction(
+    ctx,
+    {
+      action: 'student.deleted',
+      resourceType: 'profile',
+      resourceId: targetId,
+    },
+    async () => {
+      const service = createServiceClient();
+
+      // Guard against deleting admins/instructors.
+      const { data: prof } = await service
+        .from('profiles')
+        .select('role')
+        .eq('id', targetId)
+        .maybeSingle();
+      if (prof?.role && prof.role !== 'student') {
+        throw new Error(`ما ينفعش تحذف حساب من نوع "${prof.role}" من هنا.`);
+      }
+
+      const { error } = await service.auth.admin.deleteUser(targetId);
+      if (error) throw new Error(error.message);
+    }
+  ).catch((err) => {
+    redirect('/admin/students?error=' + encodeURIComponent(err.message));
+  });
+
+  revalidatePath('/admin/students');
+  redirect('/admin/students?success=deleted');
+}
