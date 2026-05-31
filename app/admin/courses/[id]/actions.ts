@@ -41,10 +41,15 @@ export async function updateCourse(formData: FormData) {
         if (!parsed) {
           throw new Error('رابط الفيديو التشويقي مش صحيح للمزوّد المختار');
         }
+        // Admin can override / supply the library id when they pasted just a
+        // GUID and the URL didn't carry a library. Fall back to whatever
+        // parseVideoInput extracted (will be null for a GUID-only paste).
+        const libraryOverride =
+          (formData.get('trailer_video_library_id') as string | null)?.trim() || null;
         trailerFields = {
           trailer_video_provider: trailerProvider,
           trailer_video_id: parsed.video_id,
-          trailer_video_library_id: parsed.video_library_id,
+          trailer_video_library_id: libraryOverride || parsed.video_library_id,
         };
       }
 
