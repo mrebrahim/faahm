@@ -131,42 +131,41 @@ export default async function InviteStudentPage({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="course_id">الكورس</Label>
+          <Label htmlFor="course_id">نوع الوصول</Label>
           <select
             id="course_id"
             name="course_id"
             defaultValue=""
             className="w-full h-11 px-3 rounded-lg border border-gray-200 bg-white text-sm"
           >
-            <option value="">— بدون كورس محدد —</option>
+            <option value="">— كل الكورسات (اختر المدة تحت) —</option>
             {(courses || []).map((c: { id: string; title_ar: string; slug: string }) => (
               <option key={c.id} value={c.id}>
-                {c.title_ar}
+                كورس واحد فقط: {c.title_ar}
               </option>
             ))}
           </select>
           <p className="text-xs text-gray-500">
-            لو اخترت كورس، الطالب هيلاقيه مفتوح فور تأكيد إيميله — وصول مباشر
-            من غير ما يدفع.
+            <strong>"كل الكورسات"</strong> = اشتراك كامل بالمدة اللي تحت.{' '}
+            <strong>"كورس واحد فقط"</strong> = إنرولمنت في الكورس ده بس بنفس المدة.
           </p>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="plan">اشتراك مجاني (اختياري)</Label>
+          <Label htmlFor="plan">المدة</Label>
           <select
             id="plan"
             name="plan"
             defaultValue=""
             className="w-full h-11 px-3 rounded-lg border border-gray-200 bg-white text-sm"
           >
-            <option value="">— بدون اشتراك (يدفع بنفسه) —</option>
-            <option value="monthly">شهري — 30 يوم وصول مجاني لكل الكورسات</option>
-            <option value="yearly">سنوي — 365 يوم وصول مجاني لكل الكورسات</option>
+            <option value="">— بدون وصول (دعوة فقط، يدفع بنفسه) —</option>
+            <option value="monthly">شهر (30 يوم)</option>
+            <option value="yearly">سنة (365 يوم)</option>
           </select>
           <p className="text-xs text-gray-500">
-            لو اخترت اشتراك، الطالب هيدخل ويلاقي كل الكورسات متاحة بدون دفع
-            للمدة المحددة. لو سبتها فاضية، هيشوف صفحة الأسعار ويختار يدفع
-            بنفسه.
+            لو سبتها فاضية، الطالب هيستلم دعوة بس بدون وصول — هيشوف صفحة
+            الأسعار ويختار يدفع.
           </p>
         </div>
 

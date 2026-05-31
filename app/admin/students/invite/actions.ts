@@ -93,19 +93,27 @@ export async function inviteStudent(formData: FormData) {
               .ilike('email', email)
               .maybeSingle();
 
-            if (existing?.id && plan) {
-              await grantManualSubscription(service, existing.id, plan);
-            }
+            // Course picked → per-course enrollment with the chosen duration
+            // (or permanent if no duration was specified).
+            // No course + plan picked → full-catalogue subscription.
+            // No course + no plan → invite-only, nothing to grant.
             if (existing?.id && courseId) {
+              const days = plan === 'yearly' ? 365 : plan === 'monthly' ? 30 : null;
+              const expiresAt = days
+                ? new Date(Date.now() + days * 86_400_000).toISOString()
+                : null;
               await service.from('enrollments').upsert(
                 {
                   user_id: existing.id,
                   course_id: courseId,
+                  expires_at: expiresAt,
                   source: 'promo',
                   notes: notes ? `From invite: ${notes}` : 'From admin invitation',
                 },
                 { onConflict: 'user_id,course_id' }
               );
+            } else if (existing?.id && plan) {
+              await grantManualSubscription(service, existing.id, plan);
             }
             await service
               .from('pending_invites')
