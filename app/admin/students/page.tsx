@@ -25,6 +25,10 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
+// Always render fresh — the admin needs to see the result of their
+// own mutations (delete / ban / enroll) immediately, with no caching.
+export const dynamic = 'force-dynamic';
+
 const PAGE_SIZE = 50;
 
 type SearchParams = {
