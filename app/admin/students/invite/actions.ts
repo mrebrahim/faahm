@@ -37,6 +37,8 @@ export async function inviteStudent(formData: FormData) {
   const planRaw = String(formData.get('plan') || '').trim();
   const plan: PlanChoice | null =
     planRaw === 'monthly' || planRaw === 'yearly' ? planRaw : null;
+  const courseIdRaw = String(formData.get('course_id') || '').trim();
+  const courseId = courseIdRaw || null;
   const notes = String(formData.get('notes') || '').trim() || null;
 
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -54,7 +56,7 @@ export async function inviteStudent(formData: FormData) {
       {
         action: 'student.invited',
         resourceType: 'invite',
-        metadata: { email, plan, notes },
+        metadata: { email, plan, course_id: courseId, notes },
       },
       async () => {
         const service = createServiceClient();
@@ -65,6 +67,7 @@ export async function inviteStudent(formData: FormData) {
         await service.from('pending_invites').insert({
           email,
           intended_plan: plan,
+          intended_course_id: courseId,
           invited_by: ctx.userId,
           notes,
         });
@@ -92,6 +95,17 @@ export async function inviteStudent(formData: FormData) {
 
             if (existing?.id && plan) {
               await grantManualSubscription(service, existing.id, plan);
+            }
+            if (existing?.id && courseId) {
+              await service.from('enrollments').upsert(
+                {
+                  user_id: existing.id,
+                  course_id: courseId,
+                  source: 'promo',
+                  notes: notes ? `From invite: ${notes}` : 'From admin invitation',
+                },
+                { onConflict: 'user_id,course_id' }
+              );
             }
             await service
               .from('pending_invites')

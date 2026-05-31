@@ -29,20 +29,31 @@ export default async function InviteStudentPage({
   await requireAdmin();
   const service = createServiceClient();
 
-  const [{ data: pending }, { data: recent }] = await Promise.all([
+  const [{ data: pending }, { data: recent }, { data: courses }] = await Promise.all([
     service
       .from('pending_invites')
-      .select('id, email, invited_at, notes, intended_plan')
+      .select('id, email, invited_at, notes, intended_plan, intended_course_id')
       .is('accepted_at', null)
       .order('invited_at', { ascending: false })
       .limit(20),
     service
       .from('pending_invites')
-      .select('id, email, invited_at, accepted_at, intended_plan, accepted_user_id')
+      .select('id, email, invited_at, accepted_at, intended_plan, intended_course_id, accepted_user_id')
       .not('accepted_at', 'is', null)
       .order('accepted_at', { ascending: false })
       .limit(10),
+    service
+      .from('courses')
+      .select('id, title_ar, slug')
+      .eq('is_published', true)
+      .order('sort_order'),
   ]);
+
+  // course_id → title_ar lookup so the tables below can render a label
+  // instead of a raw uuid.
+  const courseTitle = new Map<string, string>(
+    (courses ?? []).map((c: { id: string; title_ar: string }) => [c.id, c.title_ar])
+  );
 
   return (
     <div className="p-8 max-w-4xl">
@@ -120,6 +131,27 @@ export default async function InviteStudentPage({
         </div>
 
         <div className="space-y-2">
+          <Label htmlFor="course_id">الكورس</Label>
+          <select
+            id="course_id"
+            name="course_id"
+            defaultValue=""
+            className="w-full h-11 px-3 rounded-lg border border-gray-200 bg-white text-sm"
+          >
+            <option value="">— بدون كورس محدد —</option>
+            {(courses || []).map((c: { id: string; title_ar: string; slug: string }) => (
+              <option key={c.id} value={c.id}>
+                {c.title_ar}
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-gray-500">
+            لو اخترت كورس، الطالب هيلاقيه مفتوح فور تأكيد إيميله — وصول مباشر
+            من غير ما يدفع.
+          </p>
+        </div>
+
+        <div className="space-y-2">
           <Label htmlFor="plan">اشتراك مجاني (اختياري)</Label>
           <select
             id="plan"
@@ -189,6 +221,7 @@ export default async function InviteStudentPage({
               <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
                 <tr>
                   <th className="text-start px-4 py-2.5 font-semibold">الإيميل</th>
+                  <th className="text-start px-4 py-2.5 font-semibold">الكورس</th>
                   <th className="text-start px-4 py-2.5 font-semibold">الاشتراك المجاني</th>
                   <th className="text-start px-4 py-2.5 font-semibold">تم الإرسال</th>
                   <th className="text-start px-4 py-2.5 font-semibold sr-only">إلغاء</th>
@@ -199,6 +232,15 @@ export default async function InviteStudentPage({
                   <tr key={p.id}>
                     <td className="px-4 py-3" dir="ltr">
                       {p.email}
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      {p.intended_course_id ? (
+                        <span className="inline-block px-2 py-0.5 rounded-full text-xs bg-emerald-50 text-emerald-700">
+                          {courseTitle.get(p.intended_course_id) ?? '—'}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 text-xs">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <PlanBadge plan={p.intended_plan} />
@@ -243,6 +285,7 @@ export default async function InviteStudentPage({
               <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
                 <tr>
                   <th className="text-start px-4 py-2.5 font-semibold">الإيميل</th>
+                  <th className="text-start px-4 py-2.5 font-semibold">الكورس</th>
                   <th className="text-start px-4 py-2.5 font-semibold">الاشتراك المجاني</th>
                   <th className="text-start px-4 py-2.5 font-semibold">قُبلت في</th>
                   <th className="text-start px-4 py-2.5 font-semibold sr-only">انتقل للملف</th>
@@ -253,6 +296,15 @@ export default async function InviteStudentPage({
                   <tr key={p.id}>
                     <td className="px-4 py-3" dir="ltr">
                       {p.email}
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      {p.intended_course_id ? (
+                        <span className="inline-block px-2 py-0.5 rounded-full text-xs bg-emerald-50 text-emerald-700">
+                          {courseTitle.get(p.intended_course_id) ?? '—'}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400 text-xs">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       <PlanBadge plan={p.intended_plan} />
