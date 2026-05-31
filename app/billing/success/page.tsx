@@ -1,9 +1,12 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
+import { headers, cookies } from 'next/headers';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
-import { ROUTES, APP_NAME } from '@/lib/constants';
+import { ROUTES, APP_NAME, PLANS } from '@/lib/constants';
 import { reconcileCheckoutSession } from '@/lib/billing';
+import { trackServerEvent } from '@/lib/tracking';
+import { PurchaseTracker } from '@/components/purchase-tracker';
 import { CheckCircle2, ArrowLeft, Sparkles, PlayCircle } from 'lucide-react';
 
 export const metadata = {
@@ -48,8 +51,63 @@ export default async function BillingSuccessPage({
 
   const ready = !!subscription;
 
+  // Purchase tracking. Tie everything to the Stripe session_id so client
+  // refreshes and server-side CAPI/Events share one event_id and the ad
+  // networks deduplicate them. Skip if we don't have a session or we
+  // couldn't confirm the subscription.
+  let purchaseProps: {
+    eventId: string;
+    value: number;
+    currency: string;
+    contentName: string;
+    contentIds: string[];
+  } | null = null;
+
+  if (ready && subscription && searchParams.session_id) {
+    const plan = subscription.plan as 'monthly' | 'yearly';
+    const planInfo = PLANS[plan];
+    const eventId = `purchase-${searchParams.session_id}`;
+
+    purchaseProps = {
+      eventId,
+      value: planInfo.price,
+      currency: planInfo.currency,
+      contentName: planInfo.name,
+      contentIds: [plan],
+    };
+
+    // Fire server-side to Meta CAPI + TikTok Events API. Same event_id as
+    // the client-side firing → both networks dedupe. Email + IP + UA +
+    // fbp/fbc/ttp cookies improve match quality.
+    const h = headers();
+    const c = cookies();
+    const ipChain = h.get('x-forwarded-for') ?? '';
+    const ipAddress = ipChain.split(',')[0]?.trim() || h.get('x-real-ip') || null;
+    void trackServerEvent({
+      eventName: 'Purchase',
+      eventId,
+      user: {
+        email: user.email,
+        externalId: user.id,
+        ipAddress,
+        userAgent: h.get('user-agent'),
+        fbp: c.get('_fbp')?.value,
+        fbc: c.get('_fbc')?.value,
+        ttp: c.get('_ttp')?.value,
+      },
+      eventSourceUrl: h.get('referer') ?? undefined,
+      custom: {
+        value: planInfo.price,
+        currency: planInfo.currency,
+        contentName: planInfo.name,
+        contentIds: [plan],
+      },
+    });
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-16">
+      {purchaseProps && <PurchaseTracker {...purchaseProps} />}
       <div className="max-w-lg w-full text-center">
         <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-brand-500/15 flex items-center justify-center">
           <CheckCircle2 className="w-10 h-10 text-brand-500" />
