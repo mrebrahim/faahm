@@ -41,25 +41,32 @@ export async function applyPendingInvitesForCurrentUser(): Promise<void> {
     );
 
     for (const inv of invites) {
-      if (inv.intended_plan === 'monthly' || inv.intended_plan === 'yearly') {
-        await grantManualSubscription(service, user.id, inv.intended_plan);
-      }
-
-      // Legacy column from the earlier course-based invite iteration —
-      // still honoured so older pending rows aren't orphaned.
+      // Single-course invite wins over a plan: the admin picked a course
+      // explicitly, so we honour that and use the plan only as a duration.
+      // Plan with no course → grant a global subscription (open everything).
       if (inv.intended_course_id) {
+        const days =
+          inv.intended_plan === 'yearly'
+            ? 365
+            : inv.intended_plan === 'monthly'
+              ? 30
+              : null;
+        const expiresAt = days
+          ? new Date(Date.now() + days * 86_400_000).toISOString()
+          : null;
         await service.from('enrollments').upsert(
           {
             user_id: user.id,
             course_id: inv.intended_course_id,
+            expires_at: expiresAt,
             granted_by: null,
             source: 'promo',
-            notes: inv.notes
-              ? `From invite: ${inv.notes}`
-              : 'From admin invitation',
+            notes: inv.notes ? `From invite: ${inv.notes}` : 'From admin invitation',
           },
           { onConflict: 'user_id,course_id' }
         );
+      } else if (inv.intended_plan === 'monthly' || inv.intended_plan === 'yearly') {
+        await grantManualSubscription(service, user.id, inv.intended_plan);
       }
 
       await service
