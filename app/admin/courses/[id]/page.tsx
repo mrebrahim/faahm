@@ -315,7 +315,7 @@ export default async function CourseEditPage({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div className="space-y-2">
               <Label htmlFor="trailer_video_provider">مزوّد الفيديو التشويقي</Label>
               <select
@@ -338,6 +338,20 @@ export default async function CourseEditPage({
                 dir="ltr"
                 className="text-left"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="trailer_video_library_id">Bunny Library ID</Label>
+              <Input
+                id="trailer_video_library_id"
+                name="trailer_video_library_id"
+                defaultValue={(course as any).trailer_video_library_id || ''}
+                placeholder="e.g. 672644"
+                dir="ltr"
+                className="text-left"
+              />
+              <p className="text-[10px] text-gray-500">
+                لازم تحطه لو لصقت GUID فقط (مش رابط كامل).
+              </p>
             </div>
           </div>
 
