@@ -39,7 +39,7 @@ export default async function NewCoursePage({
         </div>
       )}
 
-      <form action={createCourse} className="space-y-6">
+      <form action={createCourse} encType="multipart/form-data" className="space-y-6">
         <div className="rounded-2xl bg-white border border-gray-200 p-6 space-y-5">
           <div className="space-y-2">
             <Label htmlFor="title_ar">عنوان الكورس *</Label>
@@ -111,7 +111,17 @@ export default async function NewCoursePage({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="thumbnail_url">رابط الصورة (اختياري)</Label>
+            <Label htmlFor="thumbnail_file">صورة الكورس (اختياري)</Label>
+            <Input
+              id="thumbnail_file"
+              name="thumbnail_file"
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/avif,image/gif"
+              className="cursor-pointer"
+            />
+            <p className="text-xs text-gray-500">
+              ارفع صورة JPG/PNG/WebP (حتى 5MB، يُفضل 16:9). أو ضع رابط مباشر هنا:
+            </p>
             <Input
               id="thumbnail_url"
               name="thumbnail_url"
@@ -120,7 +130,6 @@ export default async function NewCoursePage({
               dir="ltr"
               className="text-left"
             />
-            <p className="text-xs text-gray-500">رابط مباشر لصورة الكورس (يفضل 16:9)</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:col-span-2">

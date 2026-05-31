@@ -6,6 +6,7 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/admin-guard';
 import { loggedAction, formDataForLog } from '@/lib/admin-audit';
 import { parseVideoInput, type VideoProvider } from '@/lib/video';
+import { uploadCourseThumbnail } from '@/lib/storage';
 
 // ============================================================================
 // COURSE
@@ -67,18 +68,27 @@ export async function updateCourse(formData: FormData) {
         ? Math.max(0, ratingCountRaw)
         : 0;
 
-      const updates = {
+      // Thumbnail: prefer an uploaded file. Fall back to a pasted URL.
+      // An empty file input means "no change" → keep existing thumbnail.
+      let thumbnailUrl: string | null | undefined = (formData.get('thumbnail_url') as string) || null;
+      const thumbnailFile = formData.get('thumbnail_file');
+      if (thumbnailFile instanceof File && thumbnailFile.size > 0) {
+        const uploaded = await uploadCourseThumbnail({ courseId: id, file: thumbnailFile });
+        thumbnailUrl = uploaded.publicUrl;
+      }
+
+      const updates: Record<string, unknown> = {
         title_ar: formData.get('title_ar') as string,
         description_ar: (formData.get('description_ar') as string) || null,
         category_id: (formData.get('category_id') as string) || null,
         level: formData.get('level') as string,
-        thumbnail_url: (formData.get('thumbnail_url') as string) || null,
         rating_avg,
         rating_count,
         what_you_learn: linesToArray(formData.get('what_you_learn') as string | null),
         requirements: linesToArray(formData.get('requirements') as string | null),
         ...trailerFields,
       };
+      if (thumbnailUrl !== undefined) updates.thumbnail_url = thumbnailUrl;
 
       const { error } = await service.from('courses').update(updates).eq('id', id);
       if (error) throw new Error(error.message);
