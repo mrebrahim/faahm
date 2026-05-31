@@ -24,6 +24,11 @@ const LEVEL_LABELS: Record<string, string> = {
   advanced: 'متقدّم',
 };
 
+// Always render fresh — admin edits to the course (trailer, thumbnail,
+// chapters) need to show up immediately without waiting for a Next.js
+// data-cache invalidation.
+export const dynamic = 'force-dynamic';
+
 export async function generateMetadata({ params }: { params: { slug: string } }) {
   const supabase = createServiceClient();
   const { data: course } = await supabase
