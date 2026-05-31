@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { E164_REGEX } from '@/lib/countries';
+import { resolveAppUrl } from '@/lib/app-url';
 
 export async function signup(formData: FormData) {
   const supabase = createClient();
@@ -35,7 +36,7 @@ export async function signup(formData: FormData) {
         phone,
         ...(country ? { country } : {}),
       },
-      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+      emailRedirectTo: `${resolveAppUrl()}/auth/callback`,
     },
   });
 

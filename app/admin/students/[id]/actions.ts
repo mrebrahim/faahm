@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/admin-guard';
 import { loggedAction } from '@/lib/admin-audit';
+import { resolveAppUrl } from '@/lib/app-url';
 
 const VALID_ROLES = new Set(['student', 'instructor', 'admin']);
 
@@ -137,7 +138,7 @@ export async function sendPasswordReset(formData: FormData) {
     redirect(`/admin/students/${targetId}?error=${encodeURIComponent('الإيميل غير موجود')}`);
   }
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const appUrl = resolveAppUrl();
 
   await loggedAction(
     ctx,
