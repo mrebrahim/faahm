@@ -2,12 +2,12 @@
 
 import { revalidatePath } from 'next/cache';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
-import { getActiveSubscription } from '@/lib/access';
+import { canAccessCourse } from '@/lib/access';
 
 /**
  * Mark a lesson as completed (idempotent).
- * Allowed for: logged-in users who either (a) have an active sub, or
- * (b) are completing a free-preview lesson.
+ * Allowed for any logged-in user with a path to the lesson: an active
+ * subscription, a per-course enrollment grant, or a free-preview lesson.
  */
 export async function markLessonComplete(formData: FormData) {
   const lessonId = String(formData.get('lesson_id') || '');
@@ -29,8 +29,8 @@ export async function markLessonComplete(formData: FormData) {
   if (!lesson) return;
 
   if (!lesson.is_free_preview) {
-    const sub = await getActiveSubscription(user.id);
-    if (!sub) return;
+    const { subscribed, enrolled } = await canAccessCourse(user.id, lesson.course_id);
+    if (!subscribed && !enrolled) return;
   }
 
   await service
@@ -80,8 +80,8 @@ export async function updateWatchProgress(lessonId: string, watchedSec: number) 
   if (!lesson) return;
 
   if (!lesson.is_free_preview) {
-    const sub = await getActiveSubscription(user.id);
-    if (!sub) return;
+    const { subscribed, enrolled } = await canAccessCourse(user.id, lesson.course_id);
+    if (!subscribed && !enrolled) return;
   }
 
   // Auto-complete once we cross 90% (PRD §6.4.4).
