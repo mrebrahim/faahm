@@ -22,11 +22,14 @@ export function LessonPlayer({
   embed,
   provider,
   title,
+  watermark,
 }: {
   lessonId: string;
   embed: ResolvedEmbed;
   provider: string;
   title: string;
+  /** Identifier overlaid on the video as a leak deterrent (user email). */
+  watermark?: string | null;
 }) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const lastSent = useRef<number>(0);
@@ -96,21 +99,24 @@ export function LessonPlayer({
 
   if (embed.kind === 'native') {
     return (
-      <div className="aspect-video w-full bg-black rounded-2xl overflow-hidden border border-gray-200">
+      <div className="relative aspect-video w-full bg-black rounded-2xl overflow-hidden border border-gray-200">
         {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
         <video
           src={embed.src}
           controls
           playsInline
           preload="metadata"
+          controlsList="nodownload"
+          onContextMenu={(e) => e.preventDefault()}
           className="w-full h-full"
         />
+        {watermark && <Watermark text={watermark} />}
       </div>
     );
   }
 
   return (
-    <div className="aspect-video w-full bg-black rounded-2xl overflow-hidden border border-gray-200">
+    <div className="relative aspect-video w-full bg-black rounded-2xl overflow-hidden border border-gray-200">
       <iframe
         ref={iframeRef}
         src={embed.src}
@@ -119,6 +125,40 @@ export function LessonPlayer({
         allow="autoplay; fullscreen; picture-in-picture; encrypted-media; accelerometer; gyroscope"
         allowFullScreen
       />
+      {watermark && <Watermark text={watermark} />}
+    </div>
+  );
+}
+
+/**
+ * Drifting watermark overlay. Sits above the video at low opacity so
+ * the content is still watchable but any screen-recording / screenshot
+ * carries the viewer's identifier. pointer-events:none lets clicks pass
+ * through to the player controls underneath. Doesn't stop a determined
+ * attacker, but it makes leaks traceable.
+ */
+function Watermark({ text }: { text: string }) {
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 select-none overflow-hidden"
+      dir="ltr"
+    >
+      <div
+        className="absolute text-white/30 text-xs font-mono whitespace-nowrap mix-blend-difference animate-[wm-drift_20s_linear_infinite]"
+        style={{ textShadow: '0 0 2px rgba(0,0,0,0.6)' }}
+      >
+        {text}
+      </div>
+      <style>{`
+        @keyframes wm-drift {
+          0%   { top: 8%;  left: 6%; }
+          25%  { top: 78%; left: 4%; }
+          50%  { top: 82%; left: 68%; }
+          75%  { top: 14%; left: 72%; }
+          100% { top: 8%;  left: 6%; }
+        }
+      `}</style>
     </div>
   );
 }

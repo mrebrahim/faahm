@@ -1,3 +1,5 @@
+import { createHash } from 'crypto';
+
 /**
  * Video provider abstraction for lesson + course-trailer playback.
  *
@@ -50,7 +52,7 @@ export function resolveVideoEmbed(
   provider: VideoProvider | string | null | undefined,
   videoId: string | null | undefined,
   libraryId?: string | null,
-  options: { autoplay?: boolean; start?: number } = {}
+  options: { autoplay?: boolean; start?: number; tokenTtlSeconds?: number } = {}
 ): ResolvedEmbed | null {
   if (!videoId) return null;
   const p = (provider || DEFAULT_PROVIDER) as VideoProvider;
@@ -72,6 +74,20 @@ export function resolveVideoEmbed(
         responsive: 'true',
       });
       if (options.start && options.start > 0) params.set('t', String(Math.floor(options.start)));
+
+      // Token-authenticated URL: when BUNNY_TOKEN_KEY_<libraryId> is set
+      // we sign the embed with sha256(key + guid + expires). Bunny rejects
+      // the embed if the token is missing/wrong, which blocks hot-linking
+      // and direct embed reuse from other sites. No-op when the env is
+      // not configured — the URL just stays unsigned.
+      const tokenKey = lookupBunnyTokenKey(lib);
+      if (tokenKey) {
+        const expires = Math.floor(Date.now() / 1000) + (options.tokenTtlSeconds ?? 3600);
+        const token = signBunnyToken(tokenKey, guid, expires);
+        params.set('token', token);
+        params.set('expires', String(expires));
+      }
+
       return {
         kind: 'iframe',
         src: `https://iframe.mediadelivery.net/embed/${lib}/${guid}?${params.toString()}`,
@@ -184,4 +200,27 @@ export function parseVideoInput(
     default:
       return null;
   }
+}
+
+/**
+ * Look up the Bunny token-authentication key for a library.
+ *
+ * Reads BUNNY_TOKEN_KEY_<libraryId> from env first (per-library override),
+ * then BUNNY_TOKEN_KEY_DEFAULT (global). Returns null when nothing is
+ * configured — the embed URL is then served unsigned, which is fine in
+ * dev / when the admin hasn't enabled token auth on the Bunny library yet.
+ */
+function lookupBunnyTokenKey(libraryId: string): string | null {
+  const perLibrary = process.env[`BUNNY_TOKEN_KEY_${libraryId}`];
+  if (perLibrary) return perLibrary;
+  return process.env.BUNNY_TOKEN_KEY_DEFAULT ?? null;
+}
+
+/**
+ * Sign a Bunny Stream embed URL: sha256(secret + videoGuid + expires).
+ * Output is hex; Bunny accepts both hex and base64url tokens but hex is
+ * what their dashboard examples use, so we stay consistent with that.
+ */
+function signBunnyToken(secret: string, videoGuid: string, expires: number): string {
+  return createHash('sha256').update(secret + videoGuid + expires).digest('hex');
 }
