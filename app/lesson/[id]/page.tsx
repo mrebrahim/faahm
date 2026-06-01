@@ -8,14 +8,13 @@ import { resolveVideoEmbed } from '@/lib/video';
 import { canAccessCourse } from '@/lib/access';
 import { signLessonAttachment } from '@/lib/storage';
 import { LessonPlayer } from './player';
+import { LessonCompleteBar, LessonNav } from './lesson-actions';
 import {
   ArrowLeft,
-  ArrowRight,
   CheckCircle2,
   Lock,
   Play,
   Download,
-  BookOpen,
   HelpCircle,
 } from 'lucide-react';
 
@@ -169,9 +168,9 @@ export default async function LessonPage({ params }: { params: { id: string } })
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6 max-w-7xl grid lg:grid-cols-10 gap-6">
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-7xl grid lg:grid-cols-10 gap-4 sm:gap-6">
         {/* Player + content */}
-        <div className="lg:col-span-7 space-y-6 min-w-0">
+        <div className="lg:col-span-7 space-y-4 sm:space-y-6 min-w-0">
           {canAccess ? (
             embed ? (
               <LessonPlayer
@@ -188,7 +187,14 @@ export default async function LessonPage({ params }: { params: { id: string } })
             <PaywallBlock />
           )}
 
-          <div className="rounded-2xl bg-white border border-gray-200 p-6">
+          {canAccess && (
+            <LessonCompleteBar
+              lessonId={lesson.id}
+              isCompleted={completed.has(lesson.id)}
+            />
+          )}
+
+          <div className="rounded-2xl bg-white border border-gray-200 p-4 sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
               <h1 className="font-display text-2xl md:text-3xl font-bold">{lesson.title_ar}</h1>
               {canAccess && completed.has(lesson.id) && (
@@ -280,33 +286,14 @@ export default async function LessonPage({ params }: { params: { id: string } })
             )}
           </div>
 
-          {/* Prev / next */}
-          <div className="flex items-center justify-between gap-3">
-            {prevLesson ? (
-              <Button asChild variant="outline">
-                <Link href={ROUTES.lesson(prevLesson.id)}>
-                  <ArrowRight className="w-4 h-4" />
-                  السابق
-                </Link>
-              </Button>
-            ) : <div />}
-
-            {nextLesson ? (
-              <Button asChild>
-                <Link href={ROUTES.lesson(nextLesson.id)}>
-                  التالي: {nextLesson.title_ar}
-                  <ArrowLeft className="w-4 h-4" />
-                </Link>
-              </Button>
-            ) : (
-              <Button asChild variant="outline">
-                <Link href={ROUTES.course(course.slug)}>
-                  <BookOpen className="w-4 h-4" />
-                  العودة للكورس
-                </Link>
-              </Button>
-            )}
-          </div>
+          <LessonNav
+            lessonId={lesson.id}
+            isCompleted={completed.has(lesson.id)}
+            prevHref={prevLesson ? ROUTES.lesson(prevLesson.id) : null}
+            nextHref={nextLesson ? ROUTES.lesson(nextLesson.id) : null}
+            nextTitle={nextLesson ? nextLesson.title_ar : null}
+            courseHref={ROUTES.course(course.slug)}
+          />
         </div>
 
         {/* Sidebar: chapter nav */}
