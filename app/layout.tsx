@@ -3,6 +3,7 @@ import { Cairo, Tajawal } from 'next/font/google';
 import './globals.css';
 import { APP_NAME, APP_TAGLINE, APP_URL } from '@/lib/constants';
 import { Analytics } from '@/components/analytics';
+import { WhatsAppButton } from '@/components/whatsapp-button';
 
 const cairo = Cairo({
   subsets: ['arabic', 'latin'],
@@ -78,6 +79,7 @@ export default function RootLayout({
     >
       <body className="font-sans min-h-screen bg-background text-foreground">
         {children}
+        <WhatsAppButton />
         <Analytics />
       </body>
     </html>
