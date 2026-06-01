@@ -131,22 +131,30 @@ export function LessonPlayer({
 }
 
 /**
- * Drifting watermark overlay. Sits above the video at low opacity so
- * the content is still watchable but any screen-recording / screenshot
- * carries the viewer's identifier. pointer-events:none lets clicks pass
- * through to the player controls underneath. Doesn't stop a determined
- * attacker, but it makes leaks traceable.
+ * Drifting watermark overlay. Sits above the video so any screen-recording
+ * / screenshot carries the viewer's identifier. pointer-events:none lets
+ * clicks pass through to the player controls underneath.
+ *
+ * Avoids mix-blend-difference: CSS blend modes don't compose across iframe
+ * boundaries, so the overlay would render invisibly on top of a Bunny
+ * embed. Instead we use a semi-opaque white with a hard black stroke,
+ * which stays legible on both bright and dark video frames.
  */
 function Watermark({ text }: { text: string }) {
   return (
     <div
       aria-hidden
-      className="pointer-events-none absolute inset-0 select-none overflow-hidden"
+      className="pointer-events-none absolute inset-0 select-none overflow-hidden z-10"
       dir="ltr"
     >
       <div
-        className="absolute text-white/30 text-xs font-mono whitespace-nowrap mix-blend-difference animate-[wm-drift_20s_linear_infinite]"
-        style={{ textShadow: '0 0 2px rgba(0,0,0,0.6)' }}
+        className="absolute text-sm md:text-base font-mono whitespace-nowrap animate-[wm-drift_20s_linear_infinite]"
+        style={{
+          color: 'rgba(255,255,255,0.55)',
+          textShadow:
+            '1px 0 0 #000, -1px 0 0 #000, 0 1px 0 #000, 0 -1px 0 #000, 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000',
+          letterSpacing: '0.5px',
+        }}
       >
         {text}
       </div>
