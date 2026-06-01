@@ -1,58 +1,36 @@
-'use client';
-
 import Script from 'next/script';
-import { usePathname, useSearchParams } from 'next/navigation';
-import { useEffect, Suspense } from 'react';
+import { headers } from 'next/headers';
+import { AnalyticsRouteTracker } from './analytics-route-tracker';
 
-const GA_MEASUREMENT_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
-const FB_PIXEL_ID = process.env.NEXT_PUBLIC_FB_PIXEL_ID;
-const TIKTOK_PIXEL_ID = process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID;
-
-declare global {
-  interface Window {
-    gtag?: (...args: unknown[]) => void;
-    fbq?: (...args: unknown[]) => void;
-    ttq?: { page: () => void; track: (event: string, data?: unknown) => void; load: (id: string) => void };
-  }
-}
-
-// Fires a pageview to every loaded pixel on client-side route changes.
-// Next.js App Router doesn't full-reload between routes, so the initial
-// snippets only see the first URL — we have to re-emit on every navigation.
-function RouteChangeTracker() {
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
-
-  useEffect(() => {
-    const url = pathname + (searchParams?.toString() ? `?${searchParams}` : '');
-
-    if (GA_MEASUREMENT_ID && typeof window.gtag === 'function') {
-      window.gtag('event', 'page_view', {
-        page_path: url,
-        page_location: window.location.href,
-        page_title: document.title,
-      });
-    }
-    if (FB_PIXEL_ID && typeof window.fbq === 'function') {
-      window.fbq('track', 'PageView');
-    }
-    if (TIKTOK_PIXEL_ID && window.ttq?.page) {
-      window.ttq.page();
-    }
-  }, [pathname, searchParams]);
-
-  return null;
-}
-
+/**
+ * Server component: reads tracking IDs from process.env at request time
+ * and renders the GA4 / Meta Pixel / TikTok Pixel snippets. Doing the
+ * env read on the server means the IDs don't need to be inlined at
+ * build time — runtime-only env vars (the Coolify default) work fine.
+ *
+ * Each pixel renders only when its ID is set; an unconfigured platform
+ * is a no-op rather than a broken snippet.
+ */
 export function Analytics() {
+  // headers() opts this component into per-request rendering, so the env
+  // lookup below picks up the value that's live in the container right
+  // now (runtime), not the value that was present when the bundle was
+  // built. Without this, a statically-generated parent would freeze the
+  // value at build-time = whatever the env var was during `next build`.
+  headers();
+
+  const gaId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+  const fbId = process.env.NEXT_PUBLIC_FB_PIXEL_ID;
+  const ttId = process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID;
+
   return (
     <>
-      {GA_MEASUREMENT_ID && (
+      {gaId && (
         <>
           <Script
             id="ga4-loader"
             strategy="afterInteractive"
-            src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+            src={`https://www.googletagmanager.com/gtag/js?id=${gaId}`}
           />
           <Script id="ga4-init" strategy="afterInteractive">
             {`
@@ -60,13 +38,13 @@ export function Analytics() {
               function gtag(){dataLayer.push(arguments);}
               window.gtag = gtag;
               gtag('js', new Date());
-              gtag('config', '${GA_MEASUREMENT_ID}', { send_page_view: true });
+              gtag('config', '${gaId}', { send_page_view: true });
             `}
           </Script>
         </>
       )}
 
-      {FB_PIXEL_ID && (
+      {fbId && (
         <Script id="fb-pixel-init" strategy="afterInteractive">
           {`
             !function(f,b,e,v,n,t,s)
@@ -77,27 +55,27 @@ export function Analytics() {
             t.src=v;s=b.getElementsByTagName(e)[0];
             s.parentNode.insertBefore(t,s)}(window, document,'script',
             'https://connect.facebook.net/en_US/fbevents.js');
-            fbq('init', '${FB_PIXEL_ID}');
+            fbq('init', '${fbId}');
             fbq('track', 'PageView');
           `}
         </Script>
       )}
 
-      {TIKTOK_PIXEL_ID && (
+      {ttId && (
         <Script id="tt-pixel-init" strategy="afterInteractive">
           {`
             !function (w, d, t) {
               w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js",o=n&&n.partner;ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=r,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};n=document.createElement("script");n.type="text/javascript",n.async=!0,n.src=r+"?sdkid="+e+"&lib="+t;e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(n,e)};
-              ttq.load('${TIKTOK_PIXEL_ID}');
+              ttq.load('${ttId}');
               ttq.page();
             }(window, document, 'ttq');
           `}
         </Script>
       )}
 
-      <Suspense fallback={null}>
-        <RouteChangeTracker />
-      </Suspense>
+      {(gaId || fbId || ttId) && (
+        <AnalyticsRouteTracker hasGa={!!gaId} hasFb={!!fbId} hasTt={!!ttId} />
+      )}
     </>
   );
 }
