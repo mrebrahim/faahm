@@ -79,9 +79,9 @@ export default async function HomePage() {
 
           {/* Heading */}
           <h1 className="font-display text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6 leading-[1.15]">
-            <span className="text-foreground">أول منصة عربية</span>
+            <span className="text-foreground">كورسات عالمية</span>
             <br />
-            <span className="text-foreground">لكورسات </span>
+            <span className="text-foreground">مترجمة </span>
             <span className="text-gradient-brand">بالذكاء الاصطناعي</span>
           </h1>
 
@@ -194,7 +194,7 @@ export default async function HomePage() {
             جاهز تتعلّم <span className="text-gradient-brand">الذكاء الاصطناعي</span> بالعربي؟
           </h2>
           <p className="text-gray-600 text-lg mb-8 max-w-2xl mx-auto">
-            انضم لآلاف المتعلمين العرب اللي اختاروا فاهم — أول منصة عربية للكورسات بالذكاء الاصطناعي.
+            انضم لآلاف المتعلمين العرب اللي اختاروا فاهم — كورسات عالمية مترجمة بالذكاء الاصطناعي.
           </p>
           <Button asChild size="lg">
             <Link href={ROUTES.signup}>
@@ -524,7 +524,7 @@ function Footer() {
               <span className="font-display font-extrabold text-lg">{APP_NAME}</span>
             </div>
             <p className="text-sm text-gray-500">
-              أول منصة عربية لكورسات بالذكاء الاصطناعي
+              كورسات عالمية مترجمة بالذكاء الاصطناعي
             </p>
           </div>
 
