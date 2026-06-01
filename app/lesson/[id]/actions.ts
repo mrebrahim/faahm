@@ -47,7 +47,13 @@ export async function markLessonComplete(formData: FormData) {
       { onConflict: 'user_id,lesson_id' }
     );
 
+  // Bust the router cache wherever this user's completed-count is rendered:
+  // the lesson page itself, the student dashboard, the course outline, and
+  // the per-student progress tab in admin.
   revalidatePath(`/lesson/${lessonId}`);
+  revalidatePath('/dashboard');
+  revalidatePath('/course/[slug]', 'page');
+  revalidatePath('/admin/students/[id]', 'page');
 }
 
 /**
@@ -94,4 +100,14 @@ export async function updateWatchProgress(lessonId: string, watchedSec: number) 
     },
     { onConflict: 'user_id,lesson_id' }
   );
+
+  // Only bust router caches when this heartbeat actually flipped the
+  // lesson into 'completed' — otherwise we'd be invalidating /dashboard
+  // every 15 seconds for no visible change.
+  if (shouldComplete) {
+    revalidatePath(`/lesson/${lessonId}`);
+    revalidatePath('/dashboard');
+    revalidatePath('/course/[slug]', 'page');
+    revalidatePath('/admin/students/[id]', 'page');
+  }
 }
