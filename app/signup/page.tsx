@@ -28,7 +28,7 @@ export default function SignupPage({
   const codeStep = !!email && searchParams.sent === '1';
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="relative min-h-screen overflow-hidden bg-gray-50 flex items-center justify-center p-4">
       <div
         aria-hidden
         className="pointer-events-none absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-brand-500/5 blur-[120px]"
@@ -42,7 +42,7 @@ export default function SignupPage({
           <span className="font-display font-extrabold text-2xl">{APP_NAME}</span>
         </Link>
 
-        <div className="bg-white border border-gray-200 rounded-2xl p-8 backdrop-blur-sm">
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8 backdrop-blur-sm">
           <div className="text-center mb-6">
             <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-brand-500/10 flex items-center justify-center">
               {codeStep ? (

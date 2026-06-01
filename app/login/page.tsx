@@ -23,7 +23,7 @@ export default function LoginPage({
   const redirectTo = searchParams.redirect || '/dashboard';
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+    <div className="relative min-h-screen overflow-hidden bg-gray-50 flex items-center justify-center p-4">
       {/* Handles #access_token=... fragments coming from Supabase invite,
           recovery and magic-link emails — sets the session client-side and
           bounces to /welcome. */}
@@ -42,7 +42,7 @@ export default function LoginPage({
           <span className="font-display font-extrabold text-2xl">{APP_NAME}</span>
         </Link>
 
-        <div className="bg-white border border-gray-200 rounded-2xl p-8 backdrop-blur-sm">
+        <div className="bg-white border border-gray-200 rounded-2xl p-6 sm:p-8 backdrop-blur-sm">
           <div className="text-center mb-6">
             <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-brand-500/10 flex items-center justify-center">
               {codeStep ? (

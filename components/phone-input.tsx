@@ -43,16 +43,17 @@ export function PhoneInput({
   const e164 = cleaned ? `${country.dialCode}${cleaned}` : '';
 
   return (
-    <div className="flex gap-2" dir="ltr">
+    <div className="flex gap-2 min-w-0" dir="ltr">
       <select
         aria-label="رمز الدولة"
+        title={country.name}
         value={iso}
         onChange={(e) => setIso(e.target.value)}
-        className="h-11 rounded-lg border border-gray-300 bg-white px-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:border-brand-500 transition-colors max-w-[10rem]"
+        className="h-11 w-[6.5rem] shrink-0 rounded-lg border border-gray-300 bg-white px-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:border-brand-500 transition-colors"
       >
         {COUNTRIES.map((c) => (
           <option key={c.iso} value={c.iso}>
-            {c.flag} {c.name} {c.dialCode}
+            {c.flag} {c.dialCode} {c.name}
           </option>
         ))}
       </select>
@@ -65,7 +66,7 @@ export function PhoneInput({
         value={local}
         onChange={(e) => setLocal(e.target.value.replace(/[^\d]/g, ''))}
         required={required}
-        className="flex-1 text-left"
+        className="min-w-0 flex-1 text-left"
       />
       <input type="hidden" name={countryFieldName} value={iso} />
       <input type="hidden" name={phoneFieldName} value={e164} />
