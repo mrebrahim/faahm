@@ -150,22 +150,22 @@ export function LessonNav({
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 sm:p-4"
           onClick={() => !pending && setOpen(false)}
         >
           <div
-            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+            className="w-full max-w-md bg-white p-5 sm:p-6 shadow-xl rounded-t-2xl sm:rounded-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start gap-3 mb-3">
               <div className="w-10 h-10 rounded-xl bg-brand-500/10 flex items-center justify-center flex-shrink-0">
                 <CheckCircle2 className="w-5 h-5 text-brand-500" />
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <h2 className="font-display text-lg font-bold mb-1">
                   تعليم الدرس كمكتمل؟
                 </h2>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 leading-relaxed">
                   خلصت الدرس ده؟ تقدر تعلّمه كمكتمل قبل ما تنتقل للدرس
                   اللي بعده، أو تتخطّى وتفضل تقدر ترجعله بعدين.
                 </p>
@@ -177,6 +177,7 @@ export function LessonNav({
                 variant="outline"
                 onClick={skipAndGo}
                 disabled={pending}
+                className="w-full sm:w-auto"
               >
                 تخطّى
               </Button>
@@ -184,9 +185,12 @@ export function LessonNav({
                 type="button"
                 onClick={completeAndGo}
                 disabled={pending}
+                className="w-full sm:w-auto"
               >
-                <CheckCircle2 className="w-4 h-4" />
-                {pending ? 'جاري الحفظ…' : 'علّم كمكتمل وانتقل'}
+                <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">
+                  {pending ? 'جاري الحفظ…' : 'علّم كمكتمل وانتقل'}
+                </span>
               </Button>
             </div>
           </div>
