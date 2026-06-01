@@ -80,9 +80,22 @@ export function LessonPlayer({
         return;
       }
 
-      if (data.event === 'timeupdate' && data.data) {
-        const seconds = Number(data.data.seconds);
-        if (!Number.isFinite(seconds)) return;
+      // Bunny's player ships timeupdate in several shapes depending on the
+      // embed version: { event:'timeupdate', data:{seconds} }, or with the
+      // payload at data.value, data.context.seconds, or just data.seconds.
+      // Read whichever is finite so we don't silently miss heartbeats.
+      const isTimeUpdate =
+        data.event === 'timeupdate' || data.eventName === 'timeupdate';
+      if (isTimeUpdate) {
+        const candidate =
+          data?.data?.seconds ??
+          data?.context?.seconds ??
+          data?.value?.seconds ??
+          data?.value ??
+          data?.seconds ??
+          data?.currentTime;
+        const seconds = Number(candidate);
+        if (!Number.isFinite(seconds) || seconds < 0) return;
         latestSeconds.current = seconds;
 
         const now = Date.now();
