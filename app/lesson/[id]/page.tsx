@@ -7,7 +7,6 @@ import { formatDuration } from '@/lib/utils';
 import { resolveVideoEmbed } from '@/lib/video';
 import { canAccessCourse } from '@/lib/access';
 import { signLessonAttachment } from '@/lib/storage';
-import { markLessonComplete } from './actions';
 import { LessonPlayer } from './player';
 import {
   ArrowLeft,
@@ -191,27 +190,11 @@ export default async function LessonPage({ params }: { params: { id: string } })
           <div className="rounded-2xl bg-white border border-gray-200 p-6">
             <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
               <h1 className="font-display text-2xl md:text-3xl font-bold">{lesson.title_ar}</h1>
-              {canAccess && (
-                <form action={markLessonComplete}>
-                  <input type="hidden" name="lesson_id" value={lesson.id} />
-                  {completed.has(lesson.id) ? (
-                    <Button
-                      type="submit"
-                      variant="outline"
-                      size="sm"
-                      disabled
-                      className="opacity-100"
-                    >
-                      <CheckCircle2 className="w-4 h-4 text-brand-500" />
-                      تم الإكمال
-                    </Button>
-                  ) : (
-                    <Button type="submit" variant="outline" size="sm">
-                      <CheckCircle2 className="w-4 h-4" />
-                      علّم كمُكتمل
-                    </Button>
-                  )}
-                </form>
+              {canAccess && completed.has(lesson.id) && (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-brand-500/10 text-brand-700">
+                  <CheckCircle2 className="w-4 h-4" />
+                  تم الإكمال
+                </span>
               )}
             </div>
 
