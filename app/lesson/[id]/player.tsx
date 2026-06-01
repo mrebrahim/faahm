@@ -148,7 +148,7 @@ function Watermark({ text }: { text: string }) {
       dir="ltr"
     >
       <div
-        className="absolute text-sm md:text-base font-mono whitespace-nowrap animate-[wm-drift_20s_linear_infinite]"
+        className="absolute text-sm md:text-base font-mono whitespace-nowrap animate-[wm-jump_80s_step-end_infinite]"
         style={{
           color: 'rgba(255,255,255,0.55)',
           textShadow:
@@ -159,7 +159,7 @@ function Watermark({ text }: { text: string }) {
         {text}
       </div>
       <style>{`
-        @keyframes wm-drift {
+        @keyframes wm-jump {
           0%   { top: 8%;  left: 6%; }
           25%  { top: 78%; left: 4%; }
           50%  { top: 82%; left: 68%; }
