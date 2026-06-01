@@ -148,11 +148,13 @@ function Watermark({ text }: { text: string }) {
       dir="ltr"
     >
       <div
-        className="absolute text-sm md:text-base font-mono whitespace-nowrap animate-[wm-jump_80s_step-end_infinite]"
+        className="absolute text-xs md:text-sm font-mono whitespace-nowrap animate-[wm-jump_80s_step-end_infinite]"
         style={{
-          color: 'rgba(255,255,255,0.55)',
-          textShadow:
-            '1px 0 0 #000, -1px 0 0 #000, 0 1px 0 #000, 0 -1px 0 #000, 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000',
+          // Low opacity so the lesson stays comfortable to watch, but with
+          // a soft dark glow so the email still survives a screenshot for
+          // forensic tracing.
+          color: 'rgba(255,255,255,0.22)',
+          textShadow: '0 0 2px rgba(0,0,0,0.55), 0 1px 1px rgba(0,0,0,0.35)',
           letterSpacing: '0.5px',
         }}
       >
