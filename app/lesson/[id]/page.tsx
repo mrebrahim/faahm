@@ -179,6 +179,7 @@ export default async function LessonPage({ params }: { params: { id: string } })
                 embed={embed}
                 provider={(lesson as any).video_provider || 'bunny'}
                 title={lesson.title_ar}
+                watermark={user.email ?? user.id.slice(0, 8)}
               />
             ) : (
               <UnplayableBlock />
