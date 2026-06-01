@@ -32,6 +32,7 @@ import {
 } from './actions';
 import { deleteQuiz } from './quizzes/actions';
 import { ChapterAdder } from './chapter-adder';
+import { ReorderableChapters } from './reorderable';
 
 export const metadata = {
   title: 'تعديل كورس',
@@ -391,15 +392,11 @@ export default async function CourseEditPage({
           </div>
         ) : (
           <div className="space-y-3">
-            {sortedChapters.map((chapter: any, idx: number) => (
-              <ChapterBlock
-                key={chapter.id}
-                chapter={chapter}
-                index={idx}
-                courseId={course.id}
-                quizzesByLesson={quizzesByLesson}
-              />
-            ))}
+            <ReorderableChapters
+              courseId={course.id}
+              chapters={sortedChapters as any}
+              quizzesByLesson={Object.fromEntries(quizzesByLesson)}
+            />
             {courseLevelQuizzes.length > 0 && (
               <div className="rounded-2xl bg-white border border-gray-200 p-4">
                 <div className="flex items-center gap-2 mb-3 text-sm font-bold text-gray-700">
@@ -439,128 +436,6 @@ export default async function CourseEditPage({
 }
 
 // ============================================================================
-function ChapterBlock({
-  chapter,
-  index,
-  courseId,
-  quizzesByLesson,
-}: {
-  chapter: any;
-  index: number;
-  courseId: string;
-  quizzesByLesson: Map<string, any[]>;
-}) {
-  return (
-    <div className="rounded-2xl bg-white border border-gray-200 overflow-hidden">
-      {/* Chapter Header */}
-      <div className="flex items-center justify-between p-4 bg-gray-50 border-b border-gray-200">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-brand-500/20 text-brand-600 flex items-center justify-center text-sm font-bold">
-            {index + 1}
-          </div>
-          <div>
-            <h3 className="font-bold">{chapter.title_ar}</h3>
-            <p className="text-xs text-gray-500">{chapter.lessons?.length || 0} درس</p>
-          </div>
-        </div>
-
-        <form action={deleteChapter}>
-          <input type="hidden" name="id" value={chapter.id} />
-          <input type="hidden" name="course_id" value={courseId} />
-          <Button type="submit" variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10">
-            <Trash2 className="w-4 h-4" />
-          </Button>
-        </form>
-      </div>
-
-      {/* Lessons */}
-      {chapter.lessons && chapter.lessons.length > 0 && (
-        <div className="divide-y divide-gray-200">
-          {chapter.lessons.map((lesson: any, lessonIdx: number) => {
-            const lessonQuizzes = quizzesByLesson.get(lesson.id) || [];
-            return (
-              <div key={lesson.id}>
-                <div className="flex items-center justify-between p-3 hover:bg-gray-50">
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <Video className="w-4 h-4 text-brand-500 flex-shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <div className="font-medium text-sm truncate">
-                        {lessonIdx + 1}. {lesson.title_ar}
-                      </div>
-                      <div className="text-xs text-gray-500 flex items-center gap-3 mt-0.5">
-                        <span dir="ltr" className="font-mono uppercase">
-                          {(lesson.video_provider || 'bunny')}: {lesson.video_id || '—'}
-                        </span>
-                        {lesson.duration_sec > 0 && <span>{formatDuration(lesson.duration_sec)}</span>}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-1">
-                    {/* Edit (opens detail editor with attachments + quiz link) */}
-                    <Button asChild variant="ghost" size="sm" title="تعديل تفصيلي + مرفقات">
-                      <Link href={`/admin/courses/${courseId}/lessons/${lesson.id}`}>
-                        <Pencil className="w-4 h-4 text-gray-500" />
-                      </Link>
-                    </Button>
-
-                    {/* Toggle preview */}
-                    <form action={togglePreviewLesson}>
-                      <input type="hidden" name="id" value={lesson.id} />
-                      <input type="hidden" name="course_id" value={courseId} />
-                      <input type="hidden" name="is_free_preview" value={lesson.is_free_preview.toString()} />
-                      <Button
-                        type="submit"
-                        variant="ghost"
-                        size="sm"
-                        title={lesson.is_free_preview ? 'معاينة مجانية' : 'يتطلب اشتراك'}
-                      >
-                        {lesson.is_free_preview ? (
-                          <Unlock className="w-4 h-4 text-brand-500" />
-                        ) : (
-                          <Lock className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </form>
-
-                    {/* Delete */}
-                    <form action={deleteLesson}>
-                      <input type="hidden" name="id" value={lesson.id} />
-                      <input type="hidden" name="course_id" value={courseId} />
-                      <Button type="submit" variant="ghost" size="sm" className="text-destructive hover:bg-destructive/10">
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </form>
-                  </div>
-                </div>
-
-                {/* Quizzes attached to this lesson */}
-                {lessonQuizzes.length > 0 && (
-                  <div className="pl-9 pr-3 pb-3 space-y-2 bg-gray-50/40">
-                    {lessonQuizzes.map((q) => (
-                      <QuizRow key={q.id} quiz={q} courseId={courseId} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Per-chapter add UI: lesson, quiz, or attachment in one tabbed footer. */}
-      <ChapterAdder
-        courseId={courseId}
-        chapterId={chapter.id}
-        chapterLessons={(chapter.lessons || []).map((l: any) => ({
-          id: l.id,
-          title_ar: l.title_ar,
-        }))}
-      />
-    </div>
-  );
-}
-
 // ============================================================================
 function QuizRow({ quiz, courseId }: { quiz: any; courseId: string }) {
   return (

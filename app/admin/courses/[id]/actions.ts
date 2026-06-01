@@ -336,3 +336,87 @@ export async function togglePreviewLesson(formData: FormData) {
 
   revalidatePath(`/admin/courses/${course_id}`);
 }
+
+/**
+ * Save a new order for a list of chapters in one course. The client
+ * sends the chapter UUIDs in their new visual order; we map each id
+ * to its index and write that as `sort_order` so the next read shows
+ * them in the same order. A single transaction so the list either
+ * lands fully or not at all.
+ */
+export async function reorderChapters(formData: FormData) {
+  const ctx = await requireAdmin();
+  const courseId = String(formData.get('course_id') || '');
+  const idsRaw = String(formData.get('ids') || '');
+  if (!courseId || !idsRaw) return;
+
+  const ids = idsRaw.split(',').map((s) => s.trim()).filter(Boolean);
+  if (ids.length === 0) return;
+
+  await loggedAction(
+    ctx,
+    {
+      action: 'course.chapters_reordered',
+      resourceType: 'course',
+      resourceId: courseId,
+      metadata: { count: ids.length },
+    },
+    async () => {
+      const service = createServiceClient();
+      // Per-row updates: Supabase doesn't expose a single-statement bulk
+      // update with different values, and an upsert path would require
+      // every other column to be present. The list is short (tens, not
+      // thousands), so the round-trip cost is fine.
+      await Promise.all(
+        ids.map((id, idx) =>
+          service
+            .from('chapters')
+            .update({ sort_order: idx })
+            .eq('id', id)
+            .eq('course_id', courseId)
+        )
+      );
+    }
+  );
+
+  revalidatePath(`/admin/courses/${courseId}`);
+}
+
+/**
+ * Same shape as reorderChapters but scoped to a single chapter's lessons.
+ * Ids come in in their new visual order; we write sort_order = index.
+ */
+export async function reorderLessons(formData: FormData) {
+  const ctx = await requireAdmin();
+  const courseId = String(formData.get('course_id') || '');
+  const chapterId = String(formData.get('chapter_id') || '');
+  const idsRaw = String(formData.get('ids') || '');
+  if (!courseId || !chapterId || !idsRaw) return;
+
+  const ids = idsRaw.split(',').map((s) => s.trim()).filter(Boolean);
+  if (ids.length === 0) return;
+
+  await loggedAction(
+    ctx,
+    {
+      action: 'course.lessons_reordered',
+      resourceType: 'chapter',
+      resourceId: chapterId,
+      metadata: { count: ids.length, course_id: courseId },
+    },
+    async () => {
+      const service = createServiceClient();
+      await Promise.all(
+        ids.map((id, idx) =>
+          service
+            .from('lessons')
+            .update({ sort_order: idx })
+            .eq('id', id)
+            .eq('chapter_id', chapterId)
+        )
+      );
+    }
+  );
+
+  revalidatePath(`/admin/courses/${courseId}`);
+}
