@@ -9,13 +9,15 @@ import type { ResolvedEmbed } from '@/lib/video';
  *
  * - Renders an <iframe> for embedded providers (Vimeo, Bunny Stream, YouTube).
  * - Renders a <video> tag for self-hosted MP4/HLS URLs.
- * - For Vimeo specifically, hooks postMessage 'timeupdate' events and
- *   heartbeats progress to the server every ~15s. Other providers fall
- *   back to the manual "mark as complete" button on the lesson page;
- *   we don't track watch position automatically for them yet.
+ * - For Vimeo and Bunny, hooks postMessage 'timeupdate' events and
+ *   heartbeats progress to the server every ~15s. updateWatchProgress
+ *   auto-marks the lesson as completed once watched_sec crosses 90% of
+ *   the lesson duration. YouTube and self-hosted don't have a stable
+ *   postMessage protocol from us yet — they fall through unread.
  *
- * Why postMessage instead of the Vimeo Player SDK? Keeps the bundle tiny
- * (Vimeo's player.js is ~25KB). The wire protocol is stable and documented.
+ * Why postMessage instead of the provider SDKs? Keeps the bundle tiny
+ * (Vimeo's player.js is ~25KB, Bunny's is similar). Both providers'
+ * postMessage protocols are stable and documented.
  */
 export function LessonPlayer({
   lessonId,
@@ -36,24 +38,36 @@ export function LessonPlayer({
   const latestSeconds = useRef<number>(0);
 
   useEffect(() => {
-    if (provider !== 'vimeo') return;
+    if (provider !== 'vimeo' && provider !== 'bunny') return;
     const iframe = iframeRef.current;
     if (!iframe) return;
 
-    const post = (method: string) => {
+    // Vimeo wants {method, value: <event>} per subscription; Bunny ships
+    // its own player.js variant — the data shape on the wire is the same
+    // (data.event + data.data.seconds) so the handler below works for
+    // both. We send subscriptions for Vimeo only because Bunny streams
+    // timeupdate by default.
+    const postVimeo = (method: string) => {
       try {
         iframe.contentWindow?.postMessage(
           JSON.stringify({ method, value: 'timeupdate' }),
           '*'
         );
       } catch {
-        // iframe not ready yet — Vimeo will fire 'ready' once it is.
+        // iframe not ready yet — provider fires 'ready' once it is.
       }
     };
 
+    const isVimeoOrigin = (o: string) => o.includes('vimeo.com');
+    const isBunnyOrigin = (o: string) =>
+      o.includes('mediadelivery.net') || o.includes('b-cdn.net');
+
     const onMessage = (event: MessageEvent) => {
-      // Only trust messages from the Vimeo player origin.
-      if (typeof event.data !== 'string' || !event.origin.includes('vimeo.com')) return;
+      if (typeof event.data !== 'string') return;
+      const fromVimeo = provider === 'vimeo' && isVimeoOrigin(event.origin);
+      const fromBunny = provider === 'bunny' && isBunnyOrigin(event.origin);
+      if (!fromVimeo && !fromBunny) return;
+
       let data: any;
       try {
         data = JSON.parse(event.data);
@@ -61,8 +75,8 @@ export function LessonPlayer({
         return;
       }
 
-      if (data.event === 'ready') {
-        post('addEventListener');
+      if (data.event === 'ready' && fromVimeo) {
+        postVimeo('addEventListener');
         return;
       }
 
@@ -71,7 +85,6 @@ export function LessonPlayer({
         if (!Number.isFinite(seconds)) return;
         latestSeconds.current = seconds;
 
-        // Heartbeat at most every 15s.
         const now = Date.now();
         if (now - lastSent.current >= 15_000) {
           lastSent.current = now;
@@ -82,7 +95,6 @@ export function LessonPlayer({
 
     window.addEventListener('message', onMessage);
 
-    // Best-effort final flush when the user leaves the page.
     const flush = () => {
       if (latestSeconds.current > 0) {
         void updateWatchProgress(lessonId, latestSeconds.current);
