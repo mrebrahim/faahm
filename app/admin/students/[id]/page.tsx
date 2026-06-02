@@ -179,14 +179,13 @@ export default async function StudentDetailPage({
 
         {/* Actions */}
         <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-2 flex-wrap">
-          {latestPaidPayment && (
-            <RefundButton
-              paymentId={latestPaidPayment.id}
-              amountCents={latestPaidPayment.amount_cents || 0}
-              studentEmail={student.email || ''}
-              variant="prominent"
-            />
-          )}
+          <RefundButton
+            paymentId={latestPaidPayment?.id ?? null}
+            amountCents={latestPaidPayment?.amount_cents || 0}
+            userId={student.id}
+            studentEmail={student.email || ''}
+            variant="prominent"
+          />
           <form action={sendPasswordReset}>
             <input type="hidden" name="id" value={student.id} />
             <Button type="submit" variant="outline" size="sm">
@@ -471,6 +470,7 @@ async function PaymentsTab({ userId }: { userId: string }) {
                       <RefundButton
                         paymentId={p.id}
                         amountCents={p.amount_cents || 0}
+                        userId={userId}
                         studentEmail={profile?.email || ''}
                       />
                     ) : (

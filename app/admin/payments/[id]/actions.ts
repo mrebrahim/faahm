@@ -139,3 +139,109 @@ export async function recordManualRefund(formData: FormData) {
   revalidatePath('/admin/payments');
   redirect(`/admin/payments/${paymentId}?success=refund_recorded`);
 }
+
+/**
+ * Record a refund for a student who doesn't have a payment row yet —
+ * typically the bulk-imported students from before we started tracking
+ * manual payments. Creates a back-filled payments row (gateway=manual,
+ * status=paid) and immediately refunds it in one operation so the
+ * revenue and refunds dashboards see the correct numbers without the
+ * admin having to do a two-step entry.
+ *
+ * The created payment carries metadata.source='retroactive_refund' so
+ * we can tell it apart from real income later.
+ */
+export async function recordAdHocRefund(formData: FormData) {
+  const ctx = await requireAdmin();
+  const userId = String(formData.get('user_id') || '');
+  const amountCents = parseInt(String(formData.get('amount_cents') || '0'), 10);
+  const reason = String(formData.get('reason') || '').trim() || null;
+  const cancelSub = formData.get('cancel_subscription') === 'on';
+
+  if (!userId) {
+    redirect('/admin/students?error=' + encodeURIComponent('الطالب مش موجود.'));
+  }
+  if (!Number.isFinite(amountCents) || amountCents <= 0) {
+    redirect(
+      `/admin/students/${userId}?error=` +
+        encodeURIComponent('مبلغ الاسترداد لازم يكون أكبر من صفر.')
+    );
+  }
+
+  await loggedAction(
+    ctx,
+    {
+      action: 'payment.adhoc_refund_recorded',
+      resourceType: 'profile',
+      resourceId: userId,
+      metadata: { amount_cents: amountCents, reason, cancel_subscription: cancelSub },
+    },
+    async () => {
+      const service = createServiceClient();
+
+      // Step 1: back-fill the missing payment so the refunds table FK
+      // is satisfied. status=paid for one beat, then status=refunded
+      // after the refund row is inserted — keeps the audit linear.
+      const { data: createdPayment, error: payErr } = await service
+        .from('payments')
+        .insert({
+          user_id: userId,
+          amount_cents: amountCents,
+          currency: 'USD',
+          gateway: 'manual',
+          status: 'paid',
+          metadata: {
+            source: 'retroactive_refund',
+            recorded_by: ctx.userEmail,
+            note: 'Back-filled when admin processed an ad-hoc refund',
+          },
+        })
+        .select('id, subscription_id')
+        .single();
+      if (payErr || !createdPayment) {
+        throw new Error(payErr?.message || 'فشل إنشاء سجل الدفعة.');
+      }
+
+      // Step 2: insert the matching refund row.
+      const { error: refErr } = await service.from('refunds').insert({
+        payment_id: createdPayment.id,
+        amount_cents: amountCents,
+        reason,
+        internal_notes: 'Ad-hoc refund — payment back-filled in same operation',
+        refunded_by: ctx.userId,
+        refunded_by_email: ctx.userEmail,
+      });
+      if (refErr) throw new Error(refErr.message);
+
+      // Step 3: flip payment status so the dashboard treats it as
+      // fully refunded (matching the existing recordManualRefund flow).
+      await service
+        .from('payments')
+        .update({ status: 'refunded' })
+        .eq('id', createdPayment.id);
+
+      // Step 4: cancel any active subscription if asked. We don't tie
+      // it to a specific subscription_id (we made up the payment),
+      // so cancel the latest active row on the user.
+      if (cancelSub) {
+        await service
+          .from('subscriptions')
+          .update({
+            status: 'cancelled',
+            cancelled_at: new Date().toISOString(),
+          })
+          .eq('user_id', userId)
+          .in('status', ['active', 'trialing']);
+      }
+    }
+  ).catch((err) => {
+    redirect(
+      `/admin/students/${userId}?error=` +
+        encodeURIComponent(err instanceof Error ? err.message : 'فشل تسجيل الاسترداد')
+    );
+  });
+
+  revalidatePath(`/admin/students/${userId}`);
+  revalidatePath('/admin/revenue');
+  redirect(`/admin/students/${userId}?success=refund_recorded`);
+}
