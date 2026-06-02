@@ -60,14 +60,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <NavLink href="/admin/certificates" icon={Award}>الشهادات</NavLink>
           </NavSection>
 
-          {showFinance && (
-            <NavSection title="المالية">
+          <NavSection title="المالية">
+            {showFinance && (
               <NavLink href="/admin/revenue" icon={TrendingUp}>لوحة الإيرادات</NavLink>
-              <NavLink href="/admin/payments" icon={CreditCard}>المدفوعات</NavLink>
-              <NavLink href="/admin/subscriptions" icon={CreditCard}>الاشتراكات</NavLink>
-              <NavLink href="/admin/coupons" icon={Ticket}>الكوبونات</NavLink>
-            </NavSection>
-          )}
+            )}
+            <NavLink href="/admin/payments" icon={CreditCard}>المدفوعات</NavLink>
+            <NavLink href="/admin/subscriptions" icon={CreditCard}>الاشتراكات</NavLink>
+            <NavLink href="/admin/coupons" icon={Ticket}>الكوبونات</NavLink>
+          </NavSection>
 
           <NavSection title="النظام">
             <NavLink href="/admin/audit-log" icon={Shield}>سجل المراجعة</NavLink>

@@ -18,16 +18,11 @@ export const ADMIN_ROLES = new Set([
 export const FINANCE_ROLES = new Set(['admin', 'super_admin', 'billing_admin']);
 
 /**
- * /admin sub-paths that expose money — keep in sync with FINANCE_ROLES.
- * Middleware blocks non-finance roles from these; the admin nav hides
- * them; the admin home swaps out the revenue widgets.
+ * /admin sub-paths that show aggregated revenue / profit dashboards.
+ * Moderators are blocked from these but keep access to operational
+ * money-adjacent pages (payments list, subscriptions, coupons).
  */
-export const FINANCE_PATH_PREFIXES = [
-  '/admin/revenue',
-  '/admin/payments',
-  '/admin/subscriptions',
-  '/admin/coupons',
-];
+export const FINANCE_PATH_PREFIXES = ['/admin/revenue'];
 
 export function canViewFinance(role: string | null | undefined): boolean {
   return !!role && FINANCE_ROLES.has(role);

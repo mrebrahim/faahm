@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireFinanceAdmin } from '@/lib/admin-guard';
+import { requireAdmin } from '@/lib/admin-guard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,7 +14,7 @@ export default async function ManualGrantPage({
 }: {
   searchParams: { q?: string; error?: string };
 }) {
-  await requireFinanceAdmin();
+  await requireAdmin();
   const service = createServiceClient();
 
   // Show a small picker of recent users — full search by email below.

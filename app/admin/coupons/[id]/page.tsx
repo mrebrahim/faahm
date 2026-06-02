@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireFinanceAdmin } from '@/lib/admin-guard';
+import { requireAdmin } from '@/lib/admin-guard';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { updateCoupon, toggleCouponActive } from '../actions';
@@ -16,7 +16,7 @@ export default async function CouponEditPage({
   params: { id: string };
   searchParams: { success?: string; error?: string };
 }) {
-  await requireFinanceAdmin();
+  await requireAdmin();
   const service = createServiceClient();
 
   const { data: coupon } = await service

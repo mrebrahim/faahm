@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireFinanceAdmin } from '@/lib/admin-guard';
+import { requireAdmin } from '@/lib/admin-guard';
 import { Button } from '@/components/ui/button';
 import { Plus, CheckCircle2, XCircle } from 'lucide-react';
 import { toggleCouponActive } from './actions';
@@ -8,7 +8,7 @@ import { toggleCouponActive } from './actions';
 export const metadata = { title: 'الكوبونات — إدارة فاهم!' };
 
 export default async function CouponsPage() {
-  await requireFinanceAdmin();
+  await requireAdmin();
   const service = createServiceClient();
 
   const { data: coupons } = await service

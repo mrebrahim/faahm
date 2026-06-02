@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { requireFinanceAdmin } from '@/lib/admin-guard';
+import { requireAdmin } from '@/lib/admin-guard';
 import { ArrowRight, AlertCircle } from 'lucide-react';
 import { createCoupon } from '../actions';
 import { CouponForm } from '../coupon-form';
@@ -11,7 +11,7 @@ export default async function NewCouponPage({
 }: {
   searchParams: { error?: string };
 }) {
-  await requireFinanceAdmin();
+  await requireAdmin();
 
   return (
     <div className="p-6 lg:p-8 max-w-2xl">

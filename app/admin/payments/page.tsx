@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireFinanceAdmin } from '@/lib/admin-guard';
+import { requireAdmin } from '@/lib/admin-guard';
 import { auditLog } from '@/lib/admin-audit';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,7 +44,7 @@ export default async function PaymentsPage({
 }: {
   searchParams: SearchParams;
 }) {
-  const ctx = await requireFinanceAdmin();
+  const ctx = await requireAdmin();
   void auditLog(ctx, {
     action: 'payments.list_viewed',
     metadata: { filters: searchParams },

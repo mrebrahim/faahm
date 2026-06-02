@@ -17,52 +17,49 @@ export const metadata = {
 
 export default async function AdminDashboardPage() {
   // Layout has already run requireAdmin (so role + audit are settled);
-  // re-resolve the role here to decide whether to fetch + render the
-  // money widgets. Moderators get a finance-free dashboard.
+  // re-resolve the role here to decide whether to render the revenue
+  // total. Moderators see every operational stat but stay blind to the
+  // aggregate revenue / profit number.
   const ctx = await requireAdmin();
   const showFinance = canViewFinance(ctx.userRole);
 
   // Use service client to bypass RLS for admin stats
   const supabase = createServiceClient();
 
-  // Fetch counts in parallel. Skip finance-only queries for moderators.
-  const baseQueries = [
+  // Fetch counts in parallel
+  const [
+    { count: totalUsers },
+    { count: totalCourses },
+    { count: activeSubscriptions },
+    { count: totalPayments },
+    { data: recentSignups },
+    { data: recentPayments },
+  ] = await Promise.all([
     supabase.from('profiles').select('*', { count: 'exact', head: true }),
     supabase.from('courses').select('*', { count: 'exact', head: true }),
+    supabase.from('subscriptions').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+    supabase.from('payments').select('*', { count: 'exact', head: true }).eq('status', 'paid'),
     supabase
       .from('profiles')
       .select('id, full_name, created_at')
       .order('created_at', { ascending: false })
       .limit(5),
-  ] as const;
+    supabase
+      .from('payments')
+      .select('id, amount_cents, currency, status, created_at, user_id')
+      .order('created_at', { ascending: false })
+      .limit(5),
+  ]);
 
-  const financeQueries = showFinance
-    ? ([
-        supabase.from('subscriptions').select('*', { count: 'exact', head: true }).eq('status', 'active'),
-        supabase.from('payments').select('*', { count: 'exact', head: true }).eq('status', 'paid'),
-        supabase
-          .from('payments')
-          .select('id, amount_cents, currency, status, created_at, user_id')
-          .order('created_at', { ascending: false })
-          .limit(5),
-        supabase.from('payments').select('amount_cents').eq('status', 'paid'),
-      ] as const)
-    : null;
-
-  const [{ count: totalUsers }, { count: totalCourses }, { data: recentSignups }] =
-    await Promise.all(baseQueries);
-
-  let activeSubscriptions: number | null = null;
-  let totalPayments: number | null = null;
-  let recentPayments: any[] | null = null;
+  // Skip the revenue sum entirely for non-finance roles so the number
+  // never enters the render tree, even briefly.
   let totalRevenue = 0;
-
-  if (financeQueries) {
-    const [subs, pays, recents, paid] = await Promise.all(financeQueries);
-    activeSubscriptions = subs.count ?? 0;
-    totalPayments = pays.count ?? 0;
-    recentPayments = recents.data ?? [];
-    totalRevenue = (paid.data || []).reduce((sum, p) => sum + (p.amount_cents || 0), 0);
+  if (showFinance) {
+    const { data: paidPayments } = await supabase
+      .from('payments')
+      .select('amount_cents')
+      .eq('status', 'paid');
+    totalRevenue = (paidPayments || []).reduce((sum, p) => sum + (p.amount_cents || 0), 0);
   }
 
   return (
@@ -84,7 +81,7 @@ export default async function AdminDashboardPage() {
       {/* Stats Grid */}
       <div
         className={`grid grid-cols-1 md:grid-cols-2 ${
-          showFinance ? 'lg:grid-cols-4' : 'lg:grid-cols-2'
+          showFinance ? 'lg:grid-cols-4' : 'lg:grid-cols-3'
         } gap-4 mb-8`}
       >
         <StatCard
@@ -101,29 +98,27 @@ export default async function AdminDashboardPage() {
           trend="منشورة ومسودات"
           link="/admin/courses"
         />
+        <StatCard
+          icon={CreditCard}
+          label="الاشتراكات النشطة"
+          value={activeSubscriptions?.toString() || '0'}
+          trend="مدفوعة حاليًا"
+          link="/admin/subscriptions"
+        />
         {showFinance && (
-          <>
-            <StatCard
-              icon={CreditCard}
-              label="الاشتراكات النشطة"
-              value={activeSubscriptions?.toString() || '0'}
-              trend="مدفوعة حاليًا"
-              link="/admin/subscriptions"
-            />
-            <StatCard
-              icon={TrendingUp}
-              label="الإيرادات"
-              value={`$${(totalRevenue / 100).toFixed(2)}`}
-              trend={`${totalPayments || 0} عملية دفع`}
-              link="/admin/payments"
-              highlight
-            />
-          </>
+          <StatCard
+            icon={TrendingUp}
+            label="الإيرادات"
+            value={`$${(totalRevenue / 100).toFixed(2)}`}
+            trend={`${totalPayments || 0} عملية دفع`}
+            link="/admin/payments"
+            highlight
+          />
         )}
       </div>
 
       {/* Two columns */}
-      <div className={`grid grid-cols-1 ${showFinance ? 'lg:grid-cols-2' : ''} gap-6`}>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Signups */}
         <div className="rounded-2xl bg-white border border-gray-200">
           <div className="p-6 border-b border-gray-200 flex items-center justify-between">
@@ -151,8 +146,7 @@ export default async function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Recent Payments — finance roles only */}
-        {showFinance && (
+        {/* Recent Payments */}
         <div className="rounded-2xl bg-white border border-gray-200">
           <div className="p-6 border-b border-gray-200 flex items-center justify-between">
             <h3 className="font-bold">آخر المدفوعات</h3>
@@ -189,7 +183,6 @@ export default async function AdminDashboardPage() {
             )}
           </div>
         </div>
-        )}
       </div>
     </div>
   );

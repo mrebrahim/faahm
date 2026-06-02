@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireFinanceAdmin } from '@/lib/admin-guard';
+import { requireAdmin } from '@/lib/admin-guard';
 import { loggedAction, formDataForLog } from '@/lib/admin-audit';
 
 const CODE_REGEX = /^[A-Z0-9_-]{4,20}$/;
@@ -50,7 +50,7 @@ function parseCouponForm(formData: FormData) {
 }
 
 export async function createCoupon(formData: FormData) {
-  const ctx = await requireFinanceAdmin();
+  const ctx = await requireAdmin();
   let row: ReturnType<typeof parseCouponForm>;
   try {
     row = parseCouponForm(formData);
@@ -100,7 +100,7 @@ export async function createCoupon(formData: FormData) {
 }
 
 export async function updateCoupon(formData: FormData) {
-  const ctx = await requireFinanceAdmin();
+  const ctx = await requireAdmin();
   const id = String(formData.get('id') || '');
   if (!id) redirect('/admin/coupons');
 
@@ -142,7 +142,7 @@ export async function updateCoupon(formData: FormData) {
 }
 
 export async function toggleCouponActive(formData: FormData) {
-  const ctx = await requireFinanceAdmin();
+  const ctx = await requireAdmin();
   const id = String(formData.get('id') || '');
   const current = formData.get('is_active') === 'true';
   if (!id) redirect('/admin/coupons');

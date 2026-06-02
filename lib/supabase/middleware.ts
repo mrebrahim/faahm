@@ -117,16 +117,13 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    // Finance routes (revenue / payments / subscriptions / coupons) are
-    // hidden from moderator and content-admin roles. Keep this in sync
-    // with FINANCE_ROLES in lib/admin-guard.ts.
+    // Aggregate revenue / profit dashboards are hidden from non-finance
+    // roles (moderator, content_admin). Operational money-adjacent pages
+    // — payments list, subscriptions, coupons — stay open so moderators
+    // can manage students. Keep this in sync with FINANCE_PATH_PREFIXES
+    // in lib/admin-guard.ts.
     const financeRoles = new Set(['admin', 'super_admin', 'billing_admin']);
-    const financePrefixes = [
-      '/admin/revenue',
-      '/admin/payments',
-      '/admin/subscriptions',
-      '/admin/coupons',
-    ];
+    const financePrefixes = ['/admin/revenue'];
     const isFinancePath = financePrefixes.some(
       (p) => pathname === p || pathname.startsWith(p + '/')
     );
