@@ -254,7 +254,7 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
                   <ArrowLeft className="w-4 h-4" />
                 </Link>
               </Button>
-              {!subscribed && firstPreviewLesson && user && (
+              {!subscribed && firstPreviewLesson && (
                 <Button asChild size="lg" variant="outline">
                   <Link href={ROUTES.lesson(firstPreviewLesson.id)}>
                     <Play className="w-4 h-4" />
@@ -373,15 +373,18 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
                       <ul className="divide-y divide-gray-100 border-t border-gray-100">
                         {chapter.lessons.map((lesson: any, lIdx: number) => {
                           const canAccess = subscribed || lesson.is_free_preview;
-                          const Wrapper = canAccess && user ? Link : 'div';
-                          const wrapperProps: any =
-                            canAccess && user ? { href: ROUTES.lesson(lesson.id) } : {};
+                          // Anyone can click a free-preview lesson; only
+                          // subscribers/enrolled can click the rest.
+                          const Wrapper = canAccess ? Link : 'div';
+                          const wrapperProps: any = canAccess
+                            ? { href: ROUTES.lesson(lesson.id) }
+                            : {};
                           return (
                             <li key={lesson.id}>
                               <Wrapper
                                 {...wrapperProps}
                                 className={`flex items-center justify-between px-4 py-3 text-sm ${
-                                  canAccess && user
+                                  canAccess
                                     ? 'hover:bg-brand-500/5 hover:text-brand-600 cursor-pointer'
                                     : 'text-gray-500'
                                 }`}
@@ -401,11 +404,18 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
                                     </span>
                                   )}
                                 </div>
-                                <span className="text-xs text-gray-400 flex-shrink-0 ms-3">
-                                  {lesson.duration_sec > 0
-                                    ? formatDuration(lesson.duration_sec)
-                                    : ''}
-                                </span>
+                                <div className="flex items-center gap-3 flex-shrink-0 ms-3">
+                                  {lesson.is_free_preview && (
+                                    <span className="text-xs text-brand-600 underline decoration-dotted underline-offset-2 font-medium">
+                                      معاينة
+                                    </span>
+                                  )}
+                                  <span className="text-xs text-gray-400">
+                                    {lesson.duration_sec > 0
+                                      ? formatDuration(lesson.duration_sec)
+                                      : ''}
+                                  </span>
+                                </div>
                               </Wrapper>
                             </li>
                           );
