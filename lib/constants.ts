@@ -6,6 +6,15 @@ export const APP_NAME = 'فاهم!';
 export const APP_TAGLINE = 'أول منصة عربية لكورسات بالذكاء الاصطناعي';
 export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://faahm.com';
 
+/**
+ * Canonical public hostname used in SEO surfaces (sitemap.xml,
+ * robots.txt, OpenGraph URLs). Deliberately separate from APP_URL so
+ * a misconfigured NEXT_PUBLIC_APP_URL on a preview / sslip.io host
+ * doesn't leak into the indexable XML — Google should always see
+ * faahm.com as the origin.
+ */
+export const CANONICAL_URL = 'https://faahm.com';
+
 // Pricing
 export const PLANS = {
   monthly: {

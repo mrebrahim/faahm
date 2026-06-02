@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next';
-import { APP_URL } from '@/lib/constants';
+import { CANONICAL_URL } from '@/lib/constants';
 
 /**
  * robots.txt
@@ -43,7 +43,7 @@ export default function robots(): MetadataRoute.Robots {
         ],
       },
     ],
-    sitemap: `${APP_URL}/sitemap.xml`,
-    host: APP_URL,
+    sitemap: `${CANONICAL_URL}/sitemap.xml`,
+    host: CANONICAL_URL,
   };
 }
