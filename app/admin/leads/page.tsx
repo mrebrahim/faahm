@@ -3,7 +3,8 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/admin-guard';
 import { archetypeById } from '@/lib/career/archetypes';
 import { getType } from '@/lib/personality/personality-types';
-import { Mail, MessageCircle, Inbox, Sparkles, Users2, Send } from 'lucide-react';
+import { getBand } from '@/lib/ai-readiness/bands';
+import { Mail, MessageCircle, Inbox, Sparkles, Users2, Send, Bot } from 'lucide-react';
 
 export const metadata = {
   title: 'العملاء المحتملين — إدارة فاهم!',
@@ -12,23 +13,26 @@ export const metadata = {
 
 export const dynamic = 'force-dynamic';
 
-type TestType = 'all' | 'career' | 'personality' | 'newsletter';
+type TestType = 'all' | 'career' | 'personality' | 'ai_readiness' | 'newsletter';
 
 const TYPE_LABELS: Record<Exclude<TestType, 'all'>, string> = {
   career: 'التيست المهني',
   personality: 'اختبار الشخصية',
+  ai_readiness: 'جاهزية الـ AI',
   newsletter: 'النشرة البريدية',
 };
 
 const TYPE_BADGE_CLASS: Record<Exclude<TestType, 'all'>, string> = {
   career: 'bg-brand-500/10 text-brand-700',
   personality: 'bg-indigo-500/10 text-indigo-700',
+  ai_readiness: 'bg-cyan-500/10 text-cyan-700',
   newsletter: 'bg-amber-500/10 text-amber-700',
 };
 
 const TYPE_ICON: Record<Exclude<TestType, 'all'>, React.ComponentType<{ className?: string }>> = {
   career: Sparkles,
   personality: Users2,
+  ai_readiness: Bot,
   newsletter: Send,
 };
 
@@ -46,6 +50,7 @@ export default async function LeadsPage({
   const filter: TestType =
     searchParams.type === 'career' ||
     searchParams.type === 'personality' ||
+    searchParams.type === 'ai_readiness' ||
     searchParams.type === 'newsletter'
       ? searchParams.type
       : 'all';
@@ -115,6 +120,14 @@ export default async function LeadsPage({
           accent="indigo"
         />
         <TabLink
+          href="/admin/leads?type=ai_readiness"
+          active={filter === 'ai_readiness'}
+          label={TYPE_LABELS.ai_readiness}
+          count={totalsByType.ai_readiness || 0}
+          icon={TYPE_ICON.ai_readiness}
+          accent="cyan"
+        />
+        <TabLink
           href="/admin/leads?type=newsletter"
           active={filter === 'newsletter'}
           label={TYPE_LABELS.newsletter}
@@ -181,16 +194,18 @@ function TabLink({
   label: string;
   count: number;
   icon?: React.ComponentType<{ className?: string }>;
-  accent?: 'brand' | 'indigo' | 'amber';
+  accent?: 'brand' | 'indigo' | 'cyan' | 'amber';
 }) {
   const activeClass =
     accent === 'brand'
       ? 'border-brand-500 bg-brand-500/10 text-brand-700'
       : accent === 'indigo'
         ? 'border-indigo-500 bg-indigo-500/10 text-indigo-700'
-        : accent === 'amber'
-          ? 'border-amber-500 bg-amber-500/10 text-amber-700'
-          : 'border-gray-700 bg-gray-100 text-gray-900';
+        : accent === 'cyan'
+          ? 'border-cyan-500 bg-cyan-500/10 text-cyan-700'
+          : accent === 'amber'
+            ? 'border-amber-500 bg-amber-500/10 text-amber-700'
+            : 'border-gray-700 bg-gray-100 text-gray-900';
   return (
     <Link
       href={href}
@@ -238,6 +253,10 @@ function LeadRow({ lead }: { lead: any }) {
     } else {
       resultLabel = lead.result_code;
     }
+  } else if (testType === 'ai_readiness' && lead.result_code) {
+    const band = getBand(lead.result_code as any);
+    resultLabel = band.name_ar.split('—')[0].trim();
+    resultEmoji = band.emoji;
   }
 
   const sourceLabel =
@@ -251,7 +270,9 @@ function LeadRow({ lead }: { lead: any }) {
       ? `أهلاً ${lead.name || ''}! بناءً على نتيجة التيست المهني (${resultLabel})، الكورس اللي يناسبك: ${lead.primary_course_slug || ''}`
       : testType === 'personality'
         ? `أهلاً ${lead.name || ''}! نمط شخصيتك ${resultLabel} فيه نقط قوة قوية. الكورس اللي بيناسبك: ${lead.primary_course_slug || ''}`
-        : `أهلاً!`;
+        : testType === 'ai_readiness'
+          ? `أهلاً ${lead.name || ''}! بناءً على نتيجة اختبار الجاهزية للـ AI (${resultLabel})، الخطوة الجاية: ${lead.primary_course_slug || ''}`
+          : `أهلاً!`;
 
   return (
     <tr>

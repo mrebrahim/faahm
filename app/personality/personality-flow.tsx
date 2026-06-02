@@ -443,19 +443,32 @@ function Result({
         </div>
       )}
 
-      {/* Cross-sell to career test */}
-      <div className="rounded-2xl bg-gradient-to-br from-brand-500/10 to-emerald-500/10 border border-brand-500/30 p-5 sm:p-6">
-        <h3 className="font-display text-lg font-bold mb-1">عرفت إنت مين…</h3>
-        <p className="text-sm text-gray-600 mb-3">
-          تعرف تشتغل في إيه؟ خد التيست المهني — هيرشّحلك المسار اللي يكسّر فيه شخصيتك.
-        </p>
-        <Button asChild variant="outline" className="w-full sm:w-auto">
-          <Link href="/career">
-            <Sparkles className="w-4 h-4" />
-            خد التيست المهني
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
-        </Button>
+      {/* Cross-sell — career + AI readiness */}
+      <div className="grid sm:grid-cols-2 gap-3">
+        <div className="rounded-2xl bg-gradient-to-br from-brand-500/10 to-emerald-500/10 border border-brand-500/30 p-5">
+          <h3 className="font-display text-base font-bold mb-1">التيست المهني</h3>
+          <p className="text-xs text-gray-600 mb-3">
+            تعرف تشتغل في إيه؟ المسار اللي يكسّر فيه شخصيتك.
+          </p>
+          <Button asChild variant="outline" size="sm" className="w-full">
+            <Link href="/career">
+              <Sparkles className="w-4 h-4" />
+              ابدأ
+            </Link>
+          </Button>
+        </div>
+        <div className="rounded-2xl bg-gradient-to-br from-cyan-500/10 to-sky-500/10 border border-cyan-500/30 p-5">
+          <h3 className="font-display text-base font-bold mb-1">جاهزيتك للـ AI</h3>
+          <p className="text-xs text-gray-600 mb-3">
+            هل الـ AI هياخد شغلك؟ اعرف وضعك بالأرقام.
+          </p>
+          <Button asChild variant="outline" size="sm" className="w-full">
+            <Link href="/ai-readiness">
+              <Sparkles className="w-4 h-4" />
+              ابدأ
+            </Link>
+          </Button>
+        </div>
       </div>
 
       <a

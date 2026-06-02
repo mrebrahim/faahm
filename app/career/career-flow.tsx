@@ -469,19 +469,32 @@ function Result({
         </div>
       )}
 
-      {/* Cross-sell to personality test */}
-      <div className="rounded-2xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/30 p-5 sm:p-6">
-        <h3 className="font-display text-lg font-bold mb-1">عرفت تشتغل في إيه…</h3>
-        <p className="text-sm text-gray-600 mb-3">
-          تعرف إنت مين؟ خد اختبار الشخصية وشوف نمطك من 16 نمط في 5 دقايق.
-        </p>
-        <Button asChild variant="outline" className="w-full sm:w-auto">
-          <Link href="/personality">
-            <Sparkles className="w-4 h-4" />
-            خد اختبار الشخصية
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
-        </Button>
+      {/* Cross-sell — personality + AI readiness */}
+      <div className="grid sm:grid-cols-2 gap-3">
+        <div className="rounded-2xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/30 p-5">
+          <h3 className="font-display text-base font-bold mb-1">اختبار الشخصية</h3>
+          <p className="text-xs text-gray-600 mb-3">
+            شوف نمطك من 16 نمط في 5 دقايق.
+          </p>
+          <Button asChild variant="outline" size="sm" className="w-full">
+            <Link href="/personality">
+              <Sparkles className="w-4 h-4" />
+              ابدأ
+            </Link>
+          </Button>
+        </div>
+        <div className="rounded-2xl bg-gradient-to-br from-cyan-500/10 to-sky-500/10 border border-cyan-500/30 p-5">
+          <h3 className="font-display text-base font-bold mb-1">جاهزيتك للـ AI</h3>
+          <p className="text-xs text-gray-600 mb-3">
+            هل الـ AI هياخد شغلك؟ اعرف وضعك بالأرقام.
+          </p>
+          <Button asChild variant="outline" size="sm" className="w-full">
+            <Link href="/ai-readiness">
+              <Sparkles className="w-4 h-4" />
+              ابدأ
+            </Link>
+          </Button>
+        </div>
       </div>
 
       {/* WhatsApp follow-up */}
