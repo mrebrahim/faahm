@@ -1,75 +1,128 @@
 import Link from 'next/link';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/admin-guard';
-import { Mail, MessageCircle, Inbox } from 'lucide-react';
+import { archetypeById } from '@/lib/career/archetypes';
+import { getType } from '@/lib/personality/personality-types';
+import { Mail, MessageCircle, Inbox, Sparkles, Users2, Send } from 'lucide-react';
 
 export const metadata = {
-  title: 'بريد العملاء المحتملين — إدارة فاهم!',
+  title: 'العملاء المحتملين — إدارة فاهم!',
   robots: { index: false, follow: false },
 };
 
 export const dynamic = 'force-dynamic';
 
-const SOURCE_LABELS: Record<string, string> = {
-  homepage_zaka_live: 'الصفحة الرئيسية — ذكاء لايف',
-  unknown: 'مصدر غير محدد',
+type TestType = 'all' | 'career' | 'personality' | 'newsletter';
+
+const TYPE_LABELS: Record<Exclude<TestType, 'all'>, string> = {
+  career: 'التيست المهني',
+  personality: 'اختبار الشخصية',
+  newsletter: 'النشرة البريدية',
 };
 
-export default async function LeadsPage() {
+const TYPE_BADGE_CLASS: Record<Exclude<TestType, 'all'>, string> = {
+  career: 'bg-brand-500/10 text-brand-700',
+  personality: 'bg-indigo-500/10 text-indigo-700',
+  newsletter: 'bg-amber-500/10 text-amber-700',
+};
+
+const TYPE_ICON: Record<Exclude<TestType, 'all'>, React.ComponentType<{ className?: string }>> = {
+  career: Sparkles,
+  personality: Users2,
+  newsletter: Send,
+};
+
+const SOURCE_LABELS: Record<string, string> = {
+  homepage_zaka_live: 'الصفحة الرئيسية — ذكاء لايف',
+};
+
+export default async function LeadsPage({
+  searchParams,
+}: {
+  searchParams: { type?: string };
+}) {
   await requireAdmin();
   const service = createServiceClient();
+  const filter: TestType =
+    searchParams.type === 'career' ||
+    searchParams.type === 'personality' ||
+    searchParams.type === 'newsletter'
+      ? searchParams.type
+      : 'all';
 
-  const [{ data: leads, count }, { data: bySource }] = await Promise.all([
-    service
-      .from('leads')
-      .select(
-        'id, email, source, ip, user_agent, referer, contacted_at, created_at',
-        { count: 'exact' }
-      )
-      .order('created_at', { ascending: false })
-      .limit(500),
-    service.from('leads').select('source'),
+  const baseQuery = service
+    .from('admin_leads_unified')
+    .select(
+      'id, test_type, detail_source, name, whatsapp, email, result_code, primary_course_slug, utm_source, utm_campaign, contacted_at, created_at',
+      { count: 'exact' }
+    )
+    .order('created_at', { ascending: false })
+    .limit(500);
+
+  const filteredQuery =
+    filter === 'all' ? baseQuery : baseQuery.eq('test_type', filter);
+
+  // Counts per type for the tab badges — single round-trip via the same view.
+  const [{ data: leads, count }, { data: byType }] = await Promise.all([
+    filteredQuery,
+    service.from('admin_leads_unified').select('test_type'),
   ]);
 
-  const sourceCounts = (bySource || []).reduce<Record<string, number>>((acc, row: any) => {
-    acc[row.source] = (acc[row.source] || 0) + 1;
-    return acc;
-  }, {});
+  const totalsByType = (byType || []).reduce<Record<string, number>>(
+    (acc, row: any) => {
+      acc[row.test_type] = (acc[row.test_type] || 0) + 1;
+      return acc;
+    },
+    {}
+  );
+  const grandTotal = (byType || []).length;
 
   return (
-    <div className="p-6 lg:p-8 max-w-6xl">
+    <div className="p-6 lg:p-8 max-w-7xl">
       <div className="mb-6 flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <h1 className="font-display text-3xl font-bold">بريد العملاء المحتملين</h1>
+          <h1 className="font-display text-3xl font-bold flex items-center gap-2">
+            <Inbox className="w-6 h-6 text-brand-500" />
+            العملاء المحتملين
+          </h1>
           <p className="text-sm text-gray-500 mt-1">
-            كل الإيميلات اللي اتسجّلت من نماذج الـ Marketing على الموقع.
+            كل اللي سجّلوا بياناتهم على المنصة — من الاختبارات والنماذج. اختار
+            الفلتر لتعرف كل اختبار جايب كام عميل.
           </p>
         </div>
         <span className="text-sm bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full font-medium">
-          {count ?? 0} إيميل
+          {count ?? 0} {filter === 'all' ? 'إجمالي' : 'في الفلتر'}
         </span>
       </div>
 
-      {/* Source breakdown */}
-      {Object.keys(sourceCounts).length > 0 && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-          {Object.entries(sourceCounts)
-            .sort((a, b) => b[1] - a[1])
-            .map(([source, n]) => (
-              <div
-                key={source}
-                className="rounded-xl border border-gray-200 bg-white p-3"
-              >
-                <div className="text-xs text-gray-500 truncate">
-                  {SOURCE_LABELS[source] ?? source}
-                </div>
-                <div className="font-display text-xl font-bold mt-1" dir="ltr">
-                  {n}
-                </div>
-              </div>
-            ))}
-        </div>
-      )}
+      {/* Tabs */}
+      <div className="flex flex-wrap gap-2 mb-6">
+        <TabLink href="/admin/leads" active={filter === 'all'} label="الكل" count={grandTotal} />
+        <TabLink
+          href="/admin/leads?type=career"
+          active={filter === 'career'}
+          label={TYPE_LABELS.career}
+          count={totalsByType.career || 0}
+          icon={TYPE_ICON.career}
+          accent="brand"
+        />
+        <TabLink
+          href="/admin/leads?type=personality"
+          active={filter === 'personality'}
+          label={TYPE_LABELS.personality}
+          count={totalsByType.personality || 0}
+          icon={TYPE_ICON.personality}
+          accent="indigo"
+        />
+        <TabLink
+          href="/admin/leads?type=newsletter"
+          active={filter === 'newsletter'}
+          label={TYPE_LABELS.newsletter}
+          count={totalsByType.newsletter || 0}
+          icon={TYPE_ICON.newsletter}
+          accent="amber"
+        />
+      </div>
 
       {/* Table */}
       <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
@@ -78,56 +131,18 @@ export default async function LeadsPage() {
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-xs text-gray-500 uppercase">
                 <tr>
-                  <th className="text-start px-4 py-2.5 font-semibold">البريد الإلكتروني</th>
-                  <th className="text-start px-4 py-2.5 font-semibold">المصدر</th>
+                  <th className="text-start px-4 py-2.5 font-semibold">العميل</th>
+                  <th className="text-start px-4 py-2.5 font-semibold">الاختبار / المصدر</th>
+                  <th className="text-start px-4 py-2.5 font-semibold">النتيجة</th>
+                  <th className="text-start px-4 py-2.5 font-semibold">الكورس الموصى به</th>
+                  <th className="text-start px-4 py-2.5 font-semibold">UTM</th>
                   <th className="text-start px-4 py-2.5 font-semibold">التاريخ</th>
-                  <th className="text-start px-4 py-2.5 font-semibold">إجراءات</th>
+                  <th className="text-start px-4 py-2.5 font-semibold">إجراء</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {leads.map((lead: any) => (
-                  <tr key={lead.id}>
-                    <td className="px-4 py-3" dir="ltr">
-                      <a
-                        href={`mailto:${lead.email}`}
-                        className="text-brand-600 hover:underline font-medium"
-                      >
-                        {lead.email}
-                      </a>
-                    </td>
-                    <td className="px-4 py-3 text-xs">
-                      <span className="inline-block px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-700">
-                        {SOURCE_LABELS[lead.source] ?? lead.source}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
-                      {new Date(lead.created_at).toLocaleString('ar-EG')}
-                    </td>
-                    <td className="px-4 py-3 text-xs">
-                      <div className="flex items-center gap-2">
-                        <a
-                          href={`mailto:${lead.email}`}
-                          className="inline-flex items-center gap-1 text-brand-600 hover:underline"
-                          title="إيميل"
-                        >
-                          <Mail className="w-3.5 h-3.5" />
-                          إيميل
-                        </a>
-                        <a
-                          href={`https://wa.me/?text=${encodeURIComponent(
-                            'أهلاً، شكراً لتسجيل اهتمامك في فاهم!'
-                          )}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-emerald-600 hover:underline"
-                          title="واتساب"
-                        >
-                          <MessageCircle className="w-3.5 h-3.5" />
-                          واتساب
-                        </a>
-                      </div>
-                    </td>
-                  </tr>
+                  <LeadRow key={`${lead.test_type}-${lead.id}`} lead={lead} />
                 ))}
               </tbody>
             </table>
@@ -135,20 +150,200 @@ export default async function LeadsPage() {
         ) : (
           <div className="p-12 text-center text-sm text-gray-500">
             <Inbox className="w-10 h-10 mx-auto mb-3 text-gray-300" />
-            لسه ما حدش سجّل اهتمامه. النماذج المتاحة:{' '}
-            <Link href="/" className="text-brand-600 underline">
-              ذكاء لايف
-            </Link>
-            .
+            مفيش عملاء في الفلتر ده.
           </div>
         )}
       </div>
 
       {count && count > 500 ? (
         <p className="text-xs text-gray-400 mt-3 text-center">
-          عرض آخر 500 سجل من إجمالي {count}.
+          عرض آخر 500 سجل من إجمالي {count} (مع الفلتر الحالي).
         </p>
       ) : null}
     </div>
+  );
+}
+
+/* ============================================================================
+   BITS
+   ============================================================================ */
+
+function TabLink({
+  href,
+  active,
+  label,
+  count,
+  icon: Icon,
+  accent,
+}: {
+  href: string;
+  active: boolean;
+  label: string;
+  count: number;
+  icon?: React.ComponentType<{ className?: string }>;
+  accent?: 'brand' | 'indigo' | 'amber';
+}) {
+  const activeClass =
+    accent === 'brand'
+      ? 'border-brand-500 bg-brand-500/10 text-brand-700'
+      : accent === 'indigo'
+        ? 'border-indigo-500 bg-indigo-500/10 text-indigo-700'
+        : accent === 'amber'
+          ? 'border-amber-500 bg-amber-500/10 text-amber-700'
+          : 'border-gray-700 bg-gray-100 text-gray-900';
+  return (
+    <Link
+      href={href}
+      className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-full border-2 text-sm font-medium transition-colors ${
+        active
+          ? activeClass
+          : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+      }`}
+    >
+      {Icon && <Icon className="w-3.5 h-3.5" />}
+      {label}
+      <span
+        className={`text-[10px] font-bold rounded-full px-1.5 py-0.5 ${
+          active ? 'bg-white/60' : 'bg-gray-100 text-gray-500'
+        }`}
+        dir="ltr"
+      >
+        {count}
+      </span>
+    </Link>
+  );
+}
+
+function LeadRow({ lead }: { lead: any }) {
+  const testType = lead.test_type as Exclude<TestType, 'all'>;
+  const Icon = TYPE_ICON[testType];
+  const phoneIntl = (lead.whatsapp || '').replace(/[^0-9]/g, '');
+
+  // Look up Arabic label for the result code per test.
+  let resultLabel = '—';
+  let resultEmoji: string | null = null;
+  if (testType === 'career' && lead.result_code) {
+    const arc = archetypeById(lead.result_code);
+    if (arc) {
+      resultLabel = arc.name_ar;
+      resultEmoji = arc.emoji;
+    } else {
+      resultLabel = lead.result_code;
+    }
+  } else if (testType === 'personality' && lead.result_code) {
+    const t = getType(lead.result_code);
+    if (t) {
+      resultLabel = `${t.name_ar} · ${lead.result_code}`;
+      resultEmoji = t.emoji;
+    } else {
+      resultLabel = lead.result_code;
+    }
+  }
+
+  const sourceLabel =
+    testType === 'newsletter'
+      ? SOURCE_LABELS[lead.detail_source] ?? lead.detail_source ?? '—'
+      : TYPE_LABELS[testType];
+
+  // WhatsApp pre-fill differs per test so the message lands with useful context.
+  const waMsg =
+    testType === 'career'
+      ? `أهلاً ${lead.name || ''}! بناءً على نتيجة التيست المهني (${resultLabel})، الكورس اللي يناسبك: ${lead.primary_course_slug || ''}`
+      : testType === 'personality'
+        ? `أهلاً ${lead.name || ''}! نمط شخصيتك ${resultLabel} فيه نقط قوة قوية. الكورس اللي بيناسبك: ${lead.primary_course_slug || ''}`
+        : `أهلاً!`;
+
+  return (
+    <tr>
+      <td className="px-4 py-3">
+        {lead.name ? (
+          <>
+            <div className="font-medium">{lead.name}</div>
+            <div className="text-xs text-gray-500" dir="ltr">
+              {lead.whatsapp}
+            </div>
+            {lead.email && (
+              <div className="text-xs text-gray-400 mt-0.5" dir="ltr">
+                {lead.email}
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="text-sm font-medium" dir="ltr">
+            {lead.email}
+          </div>
+        )}
+      </td>
+      <td className="px-4 py-3 text-xs">
+        <span
+          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full ${TYPE_BADGE_CLASS[testType]}`}
+        >
+          <Icon className="w-3 h-3" />
+          {sourceLabel}
+        </span>
+      </td>
+      <td className="px-4 py-3 text-xs">
+        {resultLabel === '—' ? (
+          <span className="text-gray-400">—</span>
+        ) : (
+          <span className="inline-flex items-center gap-1">
+            {resultEmoji && <span>{resultEmoji}</span>}
+            {resultLabel}
+          </span>
+        )}
+      </td>
+      <td className="px-4 py-3 text-xs">
+        {lead.primary_course_slug ? (
+          <Link
+            href={`/course/${lead.primary_course_slug}`}
+            target="_blank"
+            className="text-brand-600 underline hover:no-underline"
+          >
+            {lead.primary_course_slug}
+          </Link>
+        ) : (
+          <span className="text-gray-400">—</span>
+        )}
+      </td>
+      <td className="px-4 py-3 text-xs text-gray-500">
+        {lead.utm_source ? (
+          <>
+            <div>{lead.utm_source}</div>
+            {lead.utm_campaign && (
+              <div className="text-[10px] text-gray-400">{lead.utm_campaign}</div>
+            )}
+          </>
+        ) : (
+          '—'
+        )}
+      </td>
+      <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
+        {new Date(lead.created_at).toLocaleString('ar-EG')}
+      </td>
+      <td className="px-4 py-3 text-xs">
+        <div className="flex items-center gap-2 flex-wrap">
+          {phoneIntl && (
+            <a
+              href={`https://wa.me/${phoneIntl}?text=${encodeURIComponent(waMsg)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-emerald-600 hover:underline"
+            >
+              <MessageCircle className="w-3.5 h-3.5" />
+              واتساب
+            </a>
+          )}
+          {lead.email && (
+            <a
+              href={`mailto:${lead.email}`}
+              className="inline-flex items-center gap-1 text-brand-600 hover:underline"
+            >
+              <Mail className="w-3.5 h-3.5" />
+              إيميل
+            </a>
+          )}
+        </div>
+      </td>
+    </tr>
   );
 }
