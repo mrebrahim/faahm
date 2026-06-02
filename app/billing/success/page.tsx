@@ -3,11 +3,17 @@ import { redirect } from 'next/navigation';
 import { headers, cookies } from 'next/headers';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
-import { ROUTES, APP_NAME, PLANS } from '@/lib/constants';
+import { ROUTES, APP_NAME, PLANS, OFFLINE_PAYMENTS } from '@/lib/constants';
 import { reconcileCheckoutSession } from '@/lib/billing';
 import { trackServerEvent } from '@/lib/tracking';
 import { PurchaseTracker } from '@/components/purchase-tracker';
-import { CheckCircle2, ArrowLeft, Sparkles, PlayCircle } from 'lucide-react';
+import {
+  CheckCircle2,
+  ArrowLeft,
+  Sparkles,
+  PlayCircle,
+  MessageCircle,
+} from 'lucide-react';
 
 export const metadata = {
   title: 'شكراً لاشتراكك — فاهم!',
@@ -126,6 +132,23 @@ export default async function BillingSuccessPage({
         </p>
 
         <div className="flex flex-col gap-3 mb-8">
+          {!ready && (
+            <a
+              href={(() => {
+                const msg = [
+                  'لقد اشتركت وهذه اسكرين شوت من التحويل',
+                  `الإيميل: ${user.email ?? ''}`,
+                ].join('\n');
+                return `https://wa.me/${OFFLINE_PAYMENTS.confirmationWhatsApp}?text=${encodeURIComponent(msg)}`;
+              })()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-[#25D366] hover:bg-[#1ebe5b] text-white font-bold text-sm transition-colors"
+            >
+              <MessageCircle className="w-5 h-5" />
+              اضغط لتأكيد الدفع عبر واتساب
+            </a>
+          )}
           <Button asChild size="lg" className="w-full">
             <Link href={ROUTES.courses}>
               <PlayCircle className="w-5 h-5" />
