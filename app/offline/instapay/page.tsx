@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { APP_NAME, PLANS, ROUTES, OFFLINE_PAYMENTS, type PlanId } from '@/lib/constants';
 import { ArrowRight, ExternalLink, Smartphone, Copy } from 'lucide-react';
+import { CheckoutTracker } from '@/components/checkout-tracker';
 import { WhatsAppConfirmButton } from '../_components/whatsapp-confirm';
 
 export const metadata = {
@@ -38,6 +39,14 @@ export default async function InstapayOfflinePage({
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
+      <CheckoutTracker
+        eventId={`checkout-instapay-${user.id}-${planParam}`}
+        value={plan.price}
+        currency={plan.currency}
+        contentName={plan.name}
+        contentIds={[planParam]}
+        step="instapay"
+      />
       <div className="container mx-auto px-4 max-w-md">
         <Link
           href={`/checkout?plan=${planParam}`}

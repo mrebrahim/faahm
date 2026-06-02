@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
+import { CheckoutTracker } from '@/components/checkout-tracker';
 import { APP_NAME, PLANS, ROUTES, OFFLINE_PAYMENTS, type PlanId } from '@/lib/constants';
 import {
   ArrowLeft,
@@ -64,6 +65,14 @@ export default async function CheckoutPage({
       </header>
 
       <main className="container mx-auto px-4 py-10 max-w-2xl">
+        <CheckoutTracker
+          eventId={`checkout-picker-${user.id}-${planParam}`}
+          value={plan.price}
+          currency={plan.currency}
+          contentName={plan.name}
+          contentIds={[planParam]}
+          step="picker"
+        />
         {/* Order summary */}
         <div className="rounded-2xl border border-brand-500/30 bg-brand-500/5 p-5 mb-4">
           <div className="flex items-start justify-between gap-3 mb-3">
