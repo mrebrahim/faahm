@@ -15,14 +15,16 @@ export const metadata = {
 export default function ResetPasswordPage({
   searchParams,
 }: {
-  searchParams: { error?: string; sent?: string; code?: string };
+  searchParams: { error?: string; sent?: string; code?: string; recovered?: string };
 }) {
-  // If Supabase sent us back with a recovery code (PKCE flow) or the URL
-  // hash has an access_token (legacy implicit flow), render the
-  // "choose new password" UI. The hash-only flow runs client-side, so we
-  // always render both for safety; the new-password form figures out
-  // whether it has a usable session.
-  const hasRecoveryCode = Boolean(searchParams.code);
+  // Two entry points to the "set a new password" UI:
+  //   - ?recovered=1: /auth/callback already exchanged the code, the
+  //     recovery session is in cookies, and the form just needs to call
+  //     updateUser({password}).
+  //   - ?code=xxx: legacy direct redirect; the client form exchanges
+  //     the code itself. Kept as a fallback for old emails still in
+  //     inboxes from before the callback rewire.
+  const hasRecoveryCode = Boolean(searchParams.code) || searchParams.recovered === '1';
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -62,7 +64,7 @@ export default function ResetPasswordPage({
               )}
 
               {hasRecoveryCode ? (
-                <SetNewPasswordForm recoveryCode={searchParams.code!} />
+                <SetNewPasswordForm recoveryCode={searchParams.code ?? null} />
               ) : (
                 <RequestResetForm />
               )}

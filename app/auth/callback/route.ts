@@ -25,14 +25,23 @@ export async function GET(request: Request) {
   const code = searchParams.get('code');
   const next = searchParams.get('next') ?? '/dashboard';
 
-  // Password-recovery flow: do NOT exchange the code here. The
-  // /reset-password page exchanges it itself via the client and then
-  // calls updateUser({password}); if we exchanged it now, the code
-  // would be burned and the form would land on a stale session.
+  // Password-recovery flow: exchange server-side so the recovery
+  // session lands in cookies the client can read. Doing the exchange
+  // on the client failed in production because the PKCE code_verifier
+  // cookie set during /reset-password (server action) wasn't always
+  // visible to the browser client at exchange time. After a successful
+  // exchange, updateUser({password}) works without needing the code.
   if (next === '/reset-password' && code) {
-    const url = new URL(`${origin}/reset-password`);
-    url.searchParams.set('code', code);
-    return NextResponse.redirect(url.toString());
+    const supabase = createClient();
+    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    if (error) {
+      return NextResponse.redirect(
+        `${origin}/reset-password?error=${encodeURIComponent(
+          'اللينك ده مش صالح أو منتهي. اطلب لينك جديد من صفحة "نسيت كلمة السر".'
+        )}`
+      );
+    }
+    return NextResponse.redirect(`${origin}/reset-password?recovered=1`);
   }
 
   if (code) {

@@ -10,21 +10,22 @@ import { ArrowLeft } from 'lucide-react';
 
 /**
  * Renders inside /reset-password when Supabase has redirected the user back
- * with either a PKCE recovery code (?code=...) or an access token in the
- * URL hash (legacy implicit flow). We exchange the code for a session,
- * then call updateUser({ password }) to actually set the new password.
+ * with a recovery session. Two cases:
+ *   - recoveryCode === null: /auth/callback already exchanged the code
+ *     server-side; the cookie session is live, we just need updateUser.
+ *   - recoveryCode is a string: legacy direct-redirect emails — exchange
+ *     the code client-side before letting the user submit.
  */
-export function SetNewPasswordForm({ recoveryCode }: { recoveryCode: string }) {
+export function SetNewPasswordForm({ recoveryCode }: { recoveryCode: string | null }) {
   const supabase = createClient();
   const router = useRouter();
-  const [ready, setReady] = useState(false);
+  const [ready, setReady] = useState(recoveryCode === null);
   const [exchangeError, setExchangeError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // On mount: exchange the recovery code for a temporary session so the
-  // subsequent updateUser() call is authenticated.
   useEffect(() => {
+    if (recoveryCode === null) return;
     let cancelled = false;
     (async () => {
       const { error: ex } = await supabase.auth.exchangeCodeForSession(recoveryCode);
