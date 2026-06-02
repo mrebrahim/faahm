@@ -381,6 +381,15 @@ async function Header() {
               جديد
             </span>
           </Link>
+          <Link
+            href="/personality"
+            className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-700 transition-colors font-bold"
+          >
+            اختبار الشخصية
+            <span className="text-[10px] font-bold bg-indigo-500/15 text-indigo-700 px-1.5 py-0.5 rounded-full">
+              جديد
+            </span>
+          </Link>
           <Link href="/about" className="hover:text-foreground transition-colors">
             عن فاهم
           </Link>
@@ -574,6 +583,17 @@ function Footer() {
                 >
                   تيست شغفك المهني
                   <span className="text-[9px] font-bold bg-brand-500/15 text-brand-700 px-1.5 py-0.5 rounded-full">
+                    جديد
+                  </span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/personality"
+                  className="inline-flex items-center gap-1.5 hover:text-indigo-600"
+                >
+                  اختبار الشخصية
+                  <span className="text-[9px] font-bold bg-indigo-500/15 text-indigo-700 px-1.5 py-0.5 rounded-full">
                     جديد
                   </span>
                 </Link>

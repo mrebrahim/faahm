@@ -18,6 +18,7 @@ import {
   TrendingUp,
   Inbox,
   Sparkles,
+  Users2,
 } from 'lucide-react';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -60,6 +61,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <NavLink href="/admin/students" icon={Users}>الطلاب</NavLink>
             <NavLink href="/admin/leads" icon={Inbox}>بريد العملاء المحتملين</NavLink>
             <NavLink href="/admin/career-leads" icon={Sparkles}>عملاء التيست المهني</NavLink>
+            <NavLink href="/admin/personality-leads" icon={Users2}>عملاء اختبار الشخصية</NavLink>
             <NavLink href="/admin/quizzes" icon={HelpCircle}>المسابقات</NavLink>
             <NavLink href="/admin/certificates" icon={Award}>الشهادات</NavLink>
           </NavSection>
