@@ -15,8 +15,13 @@ import { APP_URL } from '@/lib/constants';
  * pricing top the list because they're conversion-critical; legal
  * pages sit at 0.3 so they're indexed but don't compete with content.
  */
-export const dynamic = 'force-dynamic';
-export const revalidate = 3600; // hourly — courses rarely flip published status faster than that
+/**
+ * Cache for one hour. Courses don't flip published status faster than
+ * that, and a fresh DB read per crawl would be wasteful. We don't use
+ * force-dynamic because it conflicts with revalidate and Google likes
+ * the sitemap to serve straight static XML, not a runtime render.
+ */
+export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
