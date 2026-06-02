@@ -7,7 +7,8 @@ import { getBand } from '@/lib/ai-readiness/bands';
 import { getTheme as getSelfDiscoveryTheme } from '@/lib/self-discovery/themes';
 import { getLevel as getSkillLevel } from '@/lib/ai-skills/levels';
 import { getBlocker } from '@/lib/productivity/blockers';
-import { Mail, MessageCircle, Inbox, Sparkles, Users2, Send, Bot, Heart, ListChecks, Zap } from 'lucide-react';
+import { getBand as getEntrepreneurshipBand } from '@/lib/entrepreneurship/bands';
+import { Mail, MessageCircle, Inbox, Sparkles, Users2, Send, Bot, Heart, ListChecks, Zap, Briefcase } from 'lucide-react';
 
 export const metadata = {
   title: 'العملاء المحتملين — إدارة فاهم!',
@@ -24,6 +25,7 @@ type TestType =
   | 'self_discovery'
   | 'ai_skills'
   | 'productivity'
+  | 'entrepreneurship'
   | 'newsletter';
 
 const TYPE_LABELS: Record<Exclude<TestType, 'all'>, string> = {
@@ -33,6 +35,7 @@ const TYPE_LABELS: Record<Exclude<TestType, 'all'>, string> = {
   self_discovery: 'اكتشاف الذات',
   ai_skills: 'مستوى الـ AI',
   productivity: 'الإنتاجية',
+  entrepreneurship: 'الشغل الحر',
   newsletter: 'النشرة البريدية',
 };
 
@@ -43,6 +46,7 @@ const TYPE_BADGE_CLASS: Record<Exclude<TestType, 'all'>, string> = {
   self_discovery: 'bg-rose-500/10 text-rose-700',
   ai_skills: 'bg-violet-500/10 text-violet-700',
   productivity: 'bg-amber-500/10 text-amber-700',
+  entrepreneurship: 'bg-emerald-700/10 text-emerald-800',
   newsletter: 'bg-orange-500/10 text-orange-700',
 };
 
@@ -53,6 +57,7 @@ const TYPE_ICON: Record<Exclude<TestType, 'all'>, React.ComponentType<{ classNam
   self_discovery: Heart,
   ai_skills: ListChecks,
   productivity: Zap,
+  entrepreneurship: Briefcase,
   newsletter: Send,
 };
 
@@ -74,6 +79,7 @@ export default async function LeadsPage({
     searchParams.type === 'self_discovery' ||
     searchParams.type === 'ai_skills' ||
     searchParams.type === 'productivity' ||
+    searchParams.type === 'entrepreneurship' ||
     searchParams.type === 'newsletter'
       ? searchParams.type
       : 'all';
@@ -175,6 +181,14 @@ export default async function LeadsPage({
           accent="amber"
         />
         <TabLink
+          href="/admin/leads?type=entrepreneurship"
+          active={filter === 'entrepreneurship'}
+          label={TYPE_LABELS.entrepreneurship}
+          count={totalsByType.entrepreneurship || 0}
+          icon={TYPE_ICON.entrepreneurship}
+          accent="emerald"
+        />
+        <TabLink
           href="/admin/leads?type=newsletter"
           active={filter === 'newsletter'}
           label={TYPE_LABELS.newsletter}
@@ -241,7 +255,7 @@ function TabLink({
   label: string;
   count: number;
   icon?: React.ComponentType<{ className?: string }>;
-  accent?: 'brand' | 'indigo' | 'cyan' | 'rose' | 'violet' | 'amber' | 'orange';
+  accent?: 'brand' | 'indigo' | 'cyan' | 'rose' | 'violet' | 'amber' | 'orange' | 'emerald';
 }) {
   const activeClass =
     accent === 'brand'
@@ -258,7 +272,9 @@ function TabLink({
                 ? 'border-amber-500 bg-amber-500/10 text-amber-700'
                 : accent === 'orange'
                   ? 'border-orange-500 bg-orange-500/10 text-orange-700'
-                  : 'border-gray-700 bg-gray-100 text-gray-900';
+                  : accent === 'emerald'
+                    ? 'border-emerald-700 bg-emerald-700/10 text-emerald-800'
+                    : 'border-gray-700 bg-gray-100 text-gray-900';
   return (
     <Link
       href={href}
@@ -326,6 +342,14 @@ function LeadRow({ lead }: { lead: any }) {
     const b = getBlocker(lead.result_code as any);
     resultLabel = b.name_ar;
     resultEmoji = b.emoji;
+  } else if (testType === 'entrepreneurship' && lead.result_code) {
+    // result_code = '<bandId>|<workType>' — see admin_leads_unified view.
+    const [bandId, wt] = (lead.result_code as string).split('|');
+    const band = getEntrepreneurshipBand(bandId as any);
+    const wtLabel =
+      wt === 'service' ? 'خدمات' : wt === 'product' ? 'منتج' : wt === 'content' ? 'محتوى' : '—';
+    resultLabel = `${band.name_ar.split('—')[0].trim()} · ${wtLabel}`;
+    resultEmoji = band.emoji;
   }
 
   const sourceLabel =
@@ -347,7 +371,9 @@ function LeadRow({ lead }: { lead: any }) {
               ? `أهلاً ${lead.name || ''}! مستواك في الـ AI: ${resultLabel}. الكورس اللي تبدأ بيه: ${lead.primary_course_slug || ''}`
               : testType === 'productivity'
                 ? `أهلاً ${lead.name || ''}! اللي بيوقّفك أكتر: ${resultLabel}. عندنا كورس مخصص يحل ده: ${lead.primary_course_slug || ''}`
-                : `أهلاً!`;
+                : testType === 'entrepreneurship'
+                  ? `أهلاً ${lead.name || ''}! جاهزيتك للشغل الحر: ${resultLabel}. الكورس اللي يبني بها مسارك: ${lead.primary_course_slug || ''}`
+                  : `أهلاً!`;
 
   return (
     <tr>

@@ -14,6 +14,7 @@ import {
   Heart,
   ListChecks,
   Zap,
+  Briefcase,
 } from 'lucide-react';
 
 /**
@@ -369,5 +370,13 @@ const TESTS = [
     icon: Zap,
     iconBg: 'bg-amber-500/10',
     iconColor: 'text-amber-600',
+  },
+  {
+    href: '/entrepreneurship',
+    title: 'جاهز تكسب من الـ AI؟',
+    subtitle: 'تيست الشغل الحر / البيزنس + الفجوة الأهم',
+    icon: Briefcase,
+    iconBg: 'bg-emerald-700/10',
+    iconColor: 'text-emerald-700',
   },
 ];
