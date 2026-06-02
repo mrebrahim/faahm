@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/admin-guard';
 import { auditLog } from '@/lib/admin-audit';
 import { Button } from '@/components/ui/button';
+import { RefundButton } from './refund-button';
 import {
   banStudent,
   unbanStudent,
@@ -377,11 +378,18 @@ async function SubscriptionsTab({ userId }: { userId: string }) {
 
 async function PaymentsTab({ userId }: { userId: string }) {
   const service = createServiceClient();
-  const { data: payments } = await service
-    .from('payments')
-    .select('*')
-    .eq('user_id', userId)
-    .order('created_at', { ascending: false });
+  const [{ data: payments }, { data: profile }] = await Promise.all([
+    service
+      .from('payments')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false }),
+    service
+      .from('admin_students_v')
+      .select('email')
+      .eq('id', userId)
+      .maybeSingle(),
+  ]);
 
   return (
     <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
@@ -394,6 +402,7 @@ async function PaymentsTab({ userId }: { userId: string }) {
               <Th>الحالة</Th>
               <Th>المزوّد</Th>
               <Th>الإيصال</Th>
+              <Th>استرداد</Th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -414,7 +423,9 @@ async function PaymentsTab({ userId }: { userId: string }) {
                           ? 'bg-emerald-50 text-emerald-700'
                           : p.status === 'failed'
                             ? 'bg-red-50 text-red-700'
-                            : 'bg-gray-100 text-gray-600'
+                            : p.status === 'refunded'
+                              ? 'bg-amber-50 text-amber-700'
+                              : 'bg-gray-100 text-gray-600'
                       }`}
                     >
                       {p.status}
@@ -433,6 +444,17 @@ async function PaymentsTab({ userId }: { userId: string }) {
                       </a>
                     ) : (
                       '—'
+                    )}
+                  </Td>
+                  <Td>
+                    {p.status === 'paid' ? (
+                      <RefundButton
+                        paymentId={p.id}
+                        amountCents={p.amount_cents || 0}
+                        studentEmail={profile?.email || ''}
+                      />
+                    ) : (
+                      <span className="text-gray-300 text-xs">—</span>
                     )}
                   </Td>
                 </tr>

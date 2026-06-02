@@ -29,7 +29,9 @@ export default async function RevenuePage() {
     todayPaid,
     mtdPaid,
     last30Paid,
+    todayRefunded,
     last30Refunded,
+    last90Refunded,
     activeSubs,
     last30AllStatuses,
     topCoupons,
@@ -40,7 +42,11 @@ export default async function RevenuePage() {
     service.from('payments').select('amount_cents').eq('status', 'paid').gte('created_at', startOfToday),
     service.from('payments').select('amount_cents').eq('status', 'paid').gte('created_at', startOfMonth),
     service.from('payments').select('amount_cents').eq('status', 'paid').gte('created_at', start30d),
-    service.from('payments').select('amount_cents').eq('status', 'refunded').gte('created_at', start30d),
+    // Refund KPIs: status=refunded covers fully-refunded payments. For
+    // partial refunds we also count the refunds table where it exists.
+    service.from('refunds').select('amount_cents').gte('created_at', startOfToday),
+    service.from('refunds').select('amount_cents').gte('created_at', start30d),
+    service.from('refunds').select('amount_cents').gte('created_at', start90d),
     service.from('subscriptions').select('plan, gateway').eq('status', 'active'),
     service.from('payments').select('status, gateway').gte('created_at', start30d),
     service
@@ -67,7 +73,9 @@ export default async function RevenuePage() {
   const todayUsd = sum(todayPaid.data);
   const mtdUsd = sum(mtdPaid.data);
   const last30Usd = sum(last30Paid.data);
+  const refundedToday = sum(todayRefunded.data);
   const refunded30 = sum(last30Refunded.data);
+  const refunded90 = sum(last90Refunded.data);
 
   const activeSubsList = activeSubs.data || [];
   let mrrCents = 0;
@@ -144,12 +152,16 @@ export default async function RevenuePage() {
         <Kpi icon={CreditCard} label="إيرادات اليوم" value={`$${todayUsd.toFixed(2)}`} />
         <Kpi icon={CreditCard} label="هذا الشهر" value={`$${mtdUsd.toFixed(2)}`} />
         <Kpi icon={TrendingUp} label="MRR" value={`$${mrrUsd.toFixed(2)}`} hint={`ARR ~$${arrUsd.toFixed(0)}`} />
-        <Kpi icon={Users} label="اشتراكات نشطة" value={String(totalActive)} />
+        <Kpi
+          icon={Users}
+          label="اشتراكات نشطة"
+          value={String(totalActive)}
+          hint={`شهري ${planBreakdown.monthly || 0} · سنوي ${planBreakdown.yearly || 0}`}
+        />
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
         <Kpi icon={CreditCard} label="إيرادات 30 يوم" value={`$${last30Usd.toFixed(2)}`} />
-        <Kpi icon={RefreshCcw} label="استردادات 30 يوم" value={`$${refunded30.toFixed(2)}`} />
         <Kpi
           icon={TrendingUp}
           label="معدّل النجاح"
@@ -160,6 +172,32 @@ export default async function RevenuePage() {
           icon={CreditCard}
           label="صافي 30 يوم"
           value={`$${(last30Usd - refunded30).toFixed(2)}`}
+          hint="إيراد − استرداد"
+        />
+        <Kpi
+          icon={RefreshCcw}
+          label="استردادات إجمالية"
+          value={`$${refunded30.toFixed(2)}`}
+          hint="آخر 30 يوم"
+        />
+      </div>
+
+      {/* Refund KPIs — daily / 30 / 90 day windows */}
+      <div className="grid grid-cols-3 gap-3 mb-8">
+        <Kpi
+          icon={RefreshCcw}
+          label="استردادات اليوم"
+          value={`$${refundedToday.toFixed(2)}`}
+        />
+        <Kpi
+          icon={RefreshCcw}
+          label="استردادات 30 يوم"
+          value={`$${refunded30.toFixed(2)}`}
+        />
+        <Kpi
+          icon={RefreshCcw}
+          label="استردادات 90 يوم"
+          value={`$${refunded90.toFixed(2)}`}
         />
       </div>
 
