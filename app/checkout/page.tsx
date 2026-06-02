@@ -10,6 +10,7 @@ import {
   Wallet,
   ArrowRight,
   CheckCircle2,
+  Ticket,
 } from 'lucide-react';
 
 export const metadata = {
@@ -64,13 +65,21 @@ export default async function CheckoutPage({
 
       <main className="container mx-auto px-4 py-10 max-w-2xl">
         {/* Order summary */}
-        <div className="rounded-2xl border border-brand-500/30 bg-brand-500/5 p-5 mb-6">
+        <div className="rounded-2xl border border-brand-500/30 bg-brand-500/5 p-5 mb-4">
           <div className="flex items-start justify-between gap-3 mb-3">
             <div>
               <div className="text-xs text-brand-700 font-medium mb-1">طلبك</div>
               <h1 className="font-display text-xl font-bold">{plan.name}</h1>
             </div>
             <div className="text-right">
+              {planParam === 'yearly' && (
+                <div
+                  className="text-sm text-gray-400 line-through font-medium"
+                  dir="ltr"
+                >
+                  $60
+                </div>
+              )}
               <div className="font-display text-3xl font-extrabold" dir="ltr">
                 ${plan.price}
               </div>
@@ -88,6 +97,41 @@ export default async function CheckoutPage({
             ))}
           </ul>
         </div>
+
+        {/* Coupon — placeholder UX showing the standing 33% off the yearly
+            plan as a 'pre-applied' code. Visual only for now; a real coupon
+            engine plugs into /api/checkout later. */}
+        {planParam === 'yearly' && (
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 mb-6">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
+                  <Ticket className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-emerald-800">
+                      كوبون مفعّل
+                    </span>
+                    <code
+                      dir="ltr"
+                      className="font-mono text-[11px] font-bold bg-white text-emerald-700 px-1.5 py-0.5 rounded border border-emerald-200"
+                    >
+                      SAVE33
+                    </code>
+                  </div>
+                  <div className="text-[11px] text-emerald-700 mt-0.5">
+                    خصم 33% على الاشتراك السنوي — وفّرت{' '}
+                    <span dir="ltr" className="font-bold">$20</span>
+                  </div>
+                </div>
+              </div>
+              <span className="text-[11px] font-bold text-emerald-700 bg-white border border-emerald-200 px-2 py-0.5 rounded-full">
+                −$20
+              </span>
+            </div>
+          </div>
+        )}
 
         <h2 className="font-display text-lg font-bold mb-3">اختر طريقة الدفع:</h2>
 
