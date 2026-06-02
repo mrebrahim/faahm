@@ -32,6 +32,7 @@ export default async function RevenuePage() {
     todayRefunded,
     last30Refunded,
     last90Refunded,
+    refundReasonsRows,
     activeSubs,
     last30AllStatuses,
     topCoupons,
@@ -47,6 +48,9 @@ export default async function RevenuePage() {
     service.from('refunds').select('amount_cents').gte('created_at', startOfToday),
     service.from('refunds').select('amount_cents').gte('created_at', start30d),
     service.from('refunds').select('amount_cents').gte('created_at', start90d),
+    // Reason breakdown — last 90 days only so the chart doesn't get
+    // dominated by very old anecdata once volume picks up.
+    service.from('refunds').select('amount_cents, reason').gte('created_at', start90d),
     service.from('subscriptions').select('plan, gateway').eq('status', 'active'),
     service.from('payments').select('status, gateway').gte('created_at', start30d),
     service
@@ -136,6 +140,22 @@ export default async function RevenuePage() {
     (acc, c) => acc + c,
     0
   );
+
+  // Refund reasons (last 90 days). Group by reason text — admins use a
+  // dropdown of canonical labels so groups are stable.
+  const refundReasonCounts = new Map<string, { count: number; cents: number }>();
+  for (const r of refundReasonsRows.data || []) {
+    const label = (r.reason as string | null)?.trim() || 'بدون سبب مسجّل';
+    const prev = refundReasonCounts.get(label) || { count: 0, cents: 0 };
+    refundReasonCounts.set(label, {
+      count: prev.count + 1,
+      cents: prev.cents + (r.amount_cents || 0),
+    });
+  }
+  const refundReasonRows = Array.from(refundReasonCounts.entries())
+    .map(([label, v]) => ({ label, count: v.count, usd: v.cents / 100 }))
+    .sort((a, b) => b.count - a.count);
+  const refundReasonTotal = refundReasonRows.reduce((acc, r) => acc + r.count, 0);
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl">
@@ -255,6 +275,49 @@ export default async function RevenuePage() {
                 </span>
               </div>
             </li>
+          </ul>
+        )}
+      </Card>
+
+      {/* Refund reasons (last 90 days) */}
+      <Card
+        title="أسباب الاسترداد"
+        action={
+          <span className="text-[11px] text-gray-400" dir="ltr">
+            آخر 90 يوم · {refundReasonTotal} عملية
+          </span>
+        }
+        className="mb-6"
+      >
+        {refundReasonRows.length === 0 ? (
+          <div className="text-sm text-gray-500 leading-relaxed">
+            <p className="mb-2">مفيش استردادات في آخر 90 يوم 🎉</p>
+            <p className="text-xs">
+              لما تسجّل استرداد لطالب، الـ system بيخزّن السبب وبيظهر التوزيع هنا
+              عشان تعرف أكتر مشاكل بتسبّب الاسترداد.
+            </p>
+          </div>
+        ) : (
+          <ul className="space-y-3">
+            {refundReasonRows.map((r) => {
+              const pct = refundReasonTotal > 0 ? (r.count * 100) / refundReasonTotal : 0;
+              return (
+                <li key={r.label}>
+                  <div className="flex items-center justify-between text-sm mb-1.5 gap-3">
+                    <span className="truncate">{r.label}</span>
+                    <span className="text-gray-500 text-xs whitespace-nowrap" dir="ltr">
+                      {r.count} · ${r.usd.toFixed(2)} · {pct.toFixed(0)}%
+                    </span>
+                  </div>
+                  <div className="w-full h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                    <div
+                      className="h-full bg-amber-500"
+                      style={{ width: `${Math.min(pct, 100)}%` }}
+                    />
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </Card>

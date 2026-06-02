@@ -72,6 +72,18 @@ export default async function StudentDetailPage({
 
   if (!student) notFound();
 
+  // Latest refundable payment — used by the action bar to expose a
+  // prominent 'إلغاء الاشتراك واسترداد' button without making admins
+  // hunt for it in the payments tab.
+  const { data: latestPaidPayment } = await service
+    .from('payments')
+    .select('id, amount_cents')
+    .eq('user_id', params.id)
+    .eq('status', 'paid')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   void auditLog(ctx, {
     action: 'student.viewed',
     resourceType: 'profile',
@@ -167,6 +179,14 @@ export default async function StudentDetailPage({
 
         {/* Actions */}
         <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-2 flex-wrap">
+          {latestPaidPayment && (
+            <RefundButton
+              paymentId={latestPaidPayment.id}
+              amountCents={latestPaidPayment.amount_cents || 0}
+              studentEmail={student.email || ''}
+              variant="prominent"
+            />
+          )}
           <form action={sendPasswordReset}>
             <input type="hidden" name="id" value={student.id} />
             <Button type="submit" variant="outline" size="sm">

@@ -5,51 +5,75 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { RefreshCcw, X } from 'lucide-react';
 import { recordManualRefund } from '@/app/admin/payments/[id]/actions';
+import { REFUND_REASONS, REFUND_OTHER_LABEL } from '@/lib/refund-reasons';
 
 /**
- * One-click refund button used inline next to a paid payment row on a
- * student's profile. Opens a small confirm modal pre-filled with the
- * original payment amount (since the admin already recorded what was
- * paid, no manual entry needed). Defaults to also cancelling the
- * linked subscription so the student loses access in the same action.
+ * Refund trigger + confirm modal. Used in two places on the student
+ * profile:
+ *   1. Per-row in the payments tab.
+ *   2. As a prominent button in the actions bar that targets the
+ *      student's latest paid payment.
+ *
+ * The reason is captured via a dropdown of canonical labels so the
+ * revenue dashboard can group refunds by cause. Picking 'أخرى' reveals
+ * a free-text field for one-offs.
  */
 export function RefundButton({
   paymentId,
   amountCents,
   studentEmail,
+  variant = 'row',
 }: {
   paymentId: string;
   amountCents: number;
   studentEmail: string;
+  /** 'row' = small outline button in a table; 'prominent' = action-bar pill. */
+  variant?: 'row' | 'prominent';
 }) {
   const [open, setOpen] = useState(false);
-  const [reason, setReason] = useState('');
+  const [reasonChoice, setReasonChoice] = useState<string>(REFUND_REASONS[0]);
+  const [otherReason, setOtherReason] = useState('');
   const [cancelSub, setCancelSub] = useState(true);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
   const usd = (amountCents / 100).toFixed(2);
 
+  const isOther = reasonChoice === REFUND_OTHER_LABEL;
+  const finalReason = isOther ? otherReason.trim() : reasonChoice;
+  const canSubmit = !pending && (!isOther || otherReason.trim().length > 0);
+
   const submit = () => {
+    if (!canSubmit) return;
     startTransition(async () => {
       const fd = new FormData();
       fd.set('payment_id', paymentId);
       fd.set('amount_cents', String(amountCents));
-      if (reason) fd.set('reason', reason);
+      if (finalReason) fd.set('reason', finalReason);
       if (cancelSub) fd.set('cancel_subscription', 'on');
       try {
         await recordManualRefund(fd);
       } catch {
-        // recordManualRefund redirects, which Next throws as a control-flow
-        // error in a transition — treat as success and let the router
-        // pick up the new URL.
+        // recordManualRefund redirects via Next's control-flow throw —
+        // not a real error.
       }
       setOpen(false);
       router.refresh();
     });
   };
 
-  return (
-    <>
+  const trigger =
+    variant === 'prominent' ? (
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        onClick={() => setOpen(true)}
+        className="text-red-600 border-red-200 hover:bg-red-50"
+      >
+        <RefreshCcw className="w-4 h-4" />
+        إلغاء الاشتراك واسترداد
+      </Button>
+    ) : (
       <Button
         type="button"
         variant="outline"
@@ -60,6 +84,11 @@ export function RefundButton({
         <RefreshCcw className="w-4 h-4" />
         استرداد
       </Button>
+    );
+
+  return (
+    <>
+      {trigger}
 
       {open && (
         <div
@@ -72,8 +101,8 @@ export function RefundButton({
             className="w-full max-w-md bg-white p-5 sm:p-6 shadow-xl rounded-t-2xl sm:rounded-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-start justify-between mb-4">
-              <div>
+            <div className="flex items-start justify-between mb-4 gap-3">
+              <div className="min-w-0">
                 <h2 className="font-display text-lg font-bold mb-1">
                   استرداد المبلغ بالكامل؟
                 </h2>
@@ -83,10 +112,10 @@ export function RefundButton({
                     ${usd}
                   </span>{' '}
                   للطالب{' '}
-                  <span dir="ltr" className="font-mono text-foreground">
+                  <span dir="ltr" className="font-mono text-foreground break-all">
                     {studentEmail}
                   </span>
-                  . الإجراء ده هيظهر في لوحة الإيرادات كاسترداد.
+                  .
                 </p>
               </div>
               <button
@@ -101,19 +130,42 @@ export function RefundButton({
 
             <div className="space-y-3 mb-5">
               <div>
-                <label htmlFor="refund-reason" className="text-sm font-medium block mb-1">
-                  سبب الاسترداد (اختياري)
+                <label htmlFor="refund-reason-select" className="text-sm font-medium block mb-1">
+                  سبب الاسترداد
                 </label>
-                <input
-                  id="refund-reason"
-                  type="text"
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  placeholder="مثال: ضمان الـ 7 أيام"
+                <select
+                  id="refund-reason-select"
+                  value={reasonChoice}
+                  onChange={(e) => setReasonChoice(e.target.value)}
                   className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
-                />
+                >
+                  {REFUND_REASONS.map((r) => (
+                    <option key={r} value={r}>
+                      {r}
+                    </option>
+                  ))}
+                  <option value={REFUND_OTHER_LABEL}>{REFUND_OTHER_LABEL}…</option>
+                </select>
               </div>
-              <label className="flex items-start gap-2 text-sm text-gray-700 cursor-pointer">
+
+              {isOther && (
+                <div>
+                  <label htmlFor="refund-reason-other" className="text-sm font-medium block mb-1">
+                    اكتب السبب
+                  </label>
+                  <input
+                    id="refund-reason-other"
+                    type="text"
+                    value={otherReason}
+                    onChange={(e) => setOtherReason(e.target.value)}
+                    placeholder="اكتب سبب الاسترداد بالتفصيل"
+                    autoFocus
+                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  />
+                </div>
+              )}
+
+              <label className="flex items-start gap-2 text-sm text-gray-700 cursor-pointer pt-1">
                 <input
                   type="checkbox"
                   checked={cancelSub}
@@ -137,7 +189,7 @@ export function RefundButton({
               <Button
                 type="button"
                 onClick={submit}
-                disabled={pending}
+                disabled={!canSubmit}
                 className="w-full sm:w-auto bg-red-600 hover:bg-red-700"
               >
                 <RefreshCcw className="w-4 h-4" />
