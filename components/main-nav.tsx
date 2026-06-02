@@ -15,6 +15,7 @@ import {
   ListChecks,
   Zap,
   Briefcase,
+  HeartHandshake,
 } from 'lucide-react';
 
 /**
@@ -378,5 +379,13 @@ const TESTS = [
     icon: Briefcase,
     iconBg: 'bg-emerald-700/10',
     iconColor: 'text-emerald-700',
+  },
+  {
+    href: '/eq',
+    title: 'ذكاءك العاطفي EQ',
+    subtitle: 'تيست خفيف لـ 4 محاور — نقطة قوتك وفرصة نموك',
+    icon: HeartHandshake,
+    iconBg: 'bg-pink-500/10',
+    iconColor: 'text-pink-600',
   },
 ];
