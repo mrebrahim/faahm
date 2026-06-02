@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireAdmin } from '@/lib/admin-guard';
+import { requireFinanceAdmin } from '@/lib/admin-guard';
 import { auditLog } from '@/lib/admin-audit';
 import {
   TrendingUp,
@@ -13,7 +13,7 @@ import {
 export const metadata = { title: 'الإيرادات — إدارة فاهم!' };
 
 export default async function RevenuePage() {
-  const ctx = await requireAdmin();
+  const ctx = await requireFinanceAdmin();
   void auditLog(ctx, { action: 'revenue.dashboard_viewed' });
   const service = createServiceClient();
 

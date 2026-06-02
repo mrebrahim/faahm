@@ -7,7 +7,7 @@ import { requireAdmin } from '@/lib/admin-guard';
 import { loggedAction } from '@/lib/admin-audit';
 import { resolveAppUrl } from '@/lib/app-url';
 
-const VALID_ROLES = new Set(['student', 'instructor', 'admin']);
+const VALID_ROLES = new Set(['student', 'instructor', 'admin', 'moderator']);
 
 /**
  * Self-protection: an admin can take destructive actions on any account

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { headers } from 'next/headers';
-import { requireAdmin } from '@/lib/admin-guard';
+import { requireAdmin, canViewFinance } from '@/lib/admin-guard';
 import { auditLog } from '@/lib/admin-audit';
 import { APP_NAME } from '@/lib/constants';
 import {
@@ -30,6 +30,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   });
 
   const profile = { full_name: ctx.userEmail, role: ctx.userRole };
+  const showFinance = canViewFinance(ctx.userRole);
+  const roleLabel = ctx.userRole === 'moderator' ? 'مشرف' : 'مدير';
 
   return (
     <div className="min-h-screen bg-white flex">
@@ -58,12 +60,14 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <NavLink href="/admin/certificates" icon={Award}>الشهادات</NavLink>
           </NavSection>
 
-          <NavSection title="المالية">
-            <NavLink href="/admin/revenue" icon={TrendingUp}>لوحة الإيرادات</NavLink>
-            <NavLink href="/admin/payments" icon={CreditCard}>المدفوعات</NavLink>
-            <NavLink href="/admin/subscriptions" icon={CreditCard}>الاشتراكات</NavLink>
-            <NavLink href="/admin/coupons" icon={Ticket}>الكوبونات</NavLink>
-          </NavSection>
+          {showFinance && (
+            <NavSection title="المالية">
+              <NavLink href="/admin/revenue" icon={TrendingUp}>لوحة الإيرادات</NavLink>
+              <NavLink href="/admin/payments" icon={CreditCard}>المدفوعات</NavLink>
+              <NavLink href="/admin/subscriptions" icon={CreditCard}>الاشتراكات</NavLink>
+              <NavLink href="/admin/coupons" icon={Ticket}>الكوبونات</NavLink>
+            </NavSection>
+          )}
 
           <NavSection title="النظام">
             <NavLink href="/admin/audit-log" icon={Shield}>سجل المراجعة</NavLink>
@@ -75,7 +79,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         <div className="p-4 border-t border-gray-200 space-y-2">
           <div className="px-3 py-2 text-xs text-gray-500">
             <div>{profile?.full_name}</div>
-            <div className="text-brand-600">مدير</div>
+            <div className="text-brand-600">{roleLabel}</div>
           </div>
           <Link
             href="/"

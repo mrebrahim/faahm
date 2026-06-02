@@ -104,10 +104,35 @@ export async function updateSession(request: NextRequest) {
       .eq('id', user.id)
       .single();
 
-    const adminRoles = new Set(['admin', 'super_admin', 'content_admin', 'billing_admin']);
+    const adminRoles = new Set([
+      'admin',
+      'super_admin',
+      'content_admin',
+      'billing_admin',
+      'moderator',
+    ]);
     if (profile?.is_blocked || !profile?.role || !adminRoles.has(profile.role)) {
       const url = request.nextUrl.clone();
       url.pathname = '/dashboard';
+      return NextResponse.redirect(url);
+    }
+
+    // Finance routes (revenue / payments / subscriptions / coupons) are
+    // hidden from moderator and content-admin roles. Keep this in sync
+    // with FINANCE_ROLES in lib/admin-guard.ts.
+    const financeRoles = new Set(['admin', 'super_admin', 'billing_admin']);
+    const financePrefixes = [
+      '/admin/revenue',
+      '/admin/payments',
+      '/admin/subscriptions',
+      '/admin/coupons',
+    ];
+    const isFinancePath = financePrefixes.some(
+      (p) => pathname === p || pathname.startsWith(p + '/')
+    );
+    if (isFinancePath && !financeRoles.has(profile.role)) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/admin';
       return NextResponse.redirect(url);
     }
   }

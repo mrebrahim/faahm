@@ -190,6 +190,7 @@ export default async function StudentDetailPage({
             >
               <option value="student">طالب</option>
               <option value="instructor">مدرّب</option>
+              <option value="moderator">مشرف (بدون مالية)</option>
               <option value="admin">مدير</option>
             </select>
             <Button type="submit" variant="outline" size="sm">

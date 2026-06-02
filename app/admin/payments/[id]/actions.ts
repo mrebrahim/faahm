@@ -3,11 +3,11 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireAdmin } from '@/lib/admin-guard';
+import { requireFinanceAdmin } from '@/lib/admin-guard';
 import { loggedAction } from '@/lib/admin-audit';
 
 export async function addPaymentNote(formData: FormData) {
-  const ctx = await requireAdmin();
+  const ctx = await requireFinanceAdmin();
   const paymentId = String(formData.get('payment_id') || '');
   const note = String(formData.get('note') || '').trim();
 
@@ -47,7 +47,7 @@ export async function addPaymentNote(formData: FormData) {
  * wire live Stripe/Paymob refund calls in front of this insert.
  */
 export async function recordManualRefund(formData: FormData) {
-  const ctx = await requireAdmin();
+  const ctx = await requireFinanceAdmin();
   const paymentId = String(formData.get('payment_id') || '');
   const amountCents = parseInt(String(formData.get('amount_cents') || '0'), 10);
   const reason = String(formData.get('reason') || '').trim() || null;

@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireAdmin } from '@/lib/admin-guard';
+import { requireFinanceAdmin } from '@/lib/admin-guard';
 import { auditLog } from '@/lib/admin-audit';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,7 +27,7 @@ export default async function PaymentDetailPage({
   params: { id: string };
   searchParams: { success?: string; error?: string };
 }) {
-  const ctx = await requireAdmin();
+  const ctx = await requireFinanceAdmin();
   const service = createServiceClient();
 
   const { data: payment } = await service

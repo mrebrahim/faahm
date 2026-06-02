@@ -3,11 +3,11 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireAdmin } from '@/lib/admin-guard';
+import { requireFinanceAdmin } from '@/lib/admin-guard';
 import { loggedAction } from '@/lib/admin-audit';
 
 export async function cancelSubscription(formData: FormData) {
-  const ctx = await requireAdmin();
+  const ctx = await requireFinanceAdmin();
   const id = String(formData.get('id') || '');
   const mode = (String(formData.get('mode') || 'immediate') as 'immediate' | 'period_end');
   if (!id) redirect('/admin/subscriptions');
@@ -35,7 +35,7 @@ export async function cancelSubscription(formData: FormData) {
 }
 
 export async function extendSubscription(formData: FormData) {
-  const ctx = await requireAdmin();
+  const ctx = await requireFinanceAdmin();
   const id = String(formData.get('id') || '');
   const days = Math.max(1, Math.min(3650, parseInt(String(formData.get('days') || '30'), 10)));
   if (!id) redirect('/admin/subscriptions');
@@ -80,7 +80,7 @@ export async function extendSubscription(formData: FormData) {
 }
 
 export async function grantManualSubscription(formData: FormData) {
-  const ctx = await requireAdmin();
+  const ctx = await requireFinanceAdmin();
   const userId = String(formData.get('user_id') || '');
   const plan = (String(formData.get('plan') || 'monthly') as 'monthly' | 'yearly');
   const days = Math.max(1, Math.min(3650, parseInt(String(formData.get('days') || '30'), 10)));
