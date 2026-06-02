@@ -42,6 +42,18 @@ export async function inviteStudent(formData: FormData) {
   const courseId = courseIdRaw || null;
   const notes = String(formData.get('notes') || '').trim() || null;
 
+  // Optional manual revenue: admin records that the student paid X USD
+  // off-platform (cash, transfer, etc.) and we want it reflected on the
+  // revenue dashboard. Stored as cents so it lives in the same column
+  // shape as Stripe payments.
+  const paidUsdRaw = String(formData.get('paid_amount_usd') || '').trim();
+  const paidAmountCents = (() => {
+    if (!paidUsdRaw) return null;
+    const usd = Number(paidUsdRaw);
+    if (!Number.isFinite(usd) || usd <= 0) return null;
+    return Math.round(usd * 100);
+  })();
+
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     redirect(
       '/admin/students/invite?error=' +
@@ -57,7 +69,7 @@ export async function inviteStudent(formData: FormData) {
       {
         action: 'student.invited',
         resourceType: 'invite',
-        metadata: { email, plan, course_id: courseId, notes },
+        metadata: { email, plan, course_id: courseId, notes, paid_amount_cents: paidAmountCents },
       },
       async () => {
         const service = createServiceClient();
@@ -69,6 +81,7 @@ export async function inviteStudent(formData: FormData) {
           email,
           intended_plan: plan,
           intended_course_id: courseId,
+          intended_paid_amount_cents: paidAmountCents,
           invited_by: ctx.userId,
           notes,
         });
@@ -115,6 +128,17 @@ export async function inviteStudent(formData: FormData) {
               );
             } else if (existing?.id && plan) {
               await grantManualSubscription(service, existing.id, plan);
+            }
+            // If the admin recorded a manual payment, materialise it now
+            // so it shows up on /admin/revenue alongside Stripe payments.
+            if (existing?.id && paidAmountCents) {
+              await recordManualPayment(service, {
+                userId: existing.id,
+                amountCents: paidAmountCents,
+                courseId,
+                plan,
+                notes,
+              });
             }
             await service
               .from('pending_invites')
@@ -163,6 +187,39 @@ export async function cancelPendingInvite(formData: FormData) {
 
   revalidatePath('/admin/students/invite');
   redirect('/admin/students/invite?success=cancelled');
+}
+
+/**
+ * Insert a manual payment row so off-platform revenue (cash, bank
+ * transfer, instalments collected by hand) flows into /admin/revenue
+ * exactly like Stripe/Paymob payments do. The course_id (if any) lives
+ * in metadata so the revenue dashboard can break the total down per
+ * course. Called both from the already-registered fast path and from
+ * applyPendingInvitesForCurrentUser when a brand-new invitee accepts.
+ */
+export async function recordManualPayment(
+  service: ReturnType<typeof createServiceClient>,
+  args: {
+    userId: string;
+    amountCents: number;
+    courseId: string | null;
+    plan: PlanChoice | null;
+    notes: string | null;
+  }
+) {
+  await service.from('payments').insert({
+    user_id: args.userId,
+    amount_cents: args.amountCents,
+    currency: 'USD',
+    gateway: 'manual',
+    status: 'paid',
+    metadata: {
+      source: 'admin_invite',
+      course_id: args.courseId,
+      plan: args.plan,
+      notes: args.notes,
+    },
+  });
 }
 
 /**

@@ -28,7 +28,7 @@ export async function applyPendingInvitesForCurrentUser(): Promise<void> {
 
     const { data: invites } = await service
       .from('pending_invites')
-      .select('id, intended_plan, intended_course_id, notes')
+      .select('id, intended_plan, intended_course_id, intended_paid_amount_cents, notes')
       .ilike('email', emailLower)
       .is('accepted_at', null);
 
@@ -36,7 +36,7 @@ export async function applyPendingInvitesForCurrentUser(): Promise<void> {
 
     // Lazy import keeps the server-actions module out of bundles that
     // only need to read; only the post-acceptance path actually grants.
-    const { grantManualSubscription } = await import(
+    const { grantManualSubscription, recordManualPayment } = await import(
       '@/app/admin/students/invite/actions'
     );
 
@@ -67,6 +67,21 @@ export async function applyPendingInvitesForCurrentUser(): Promise<void> {
         );
       } else if (inv.intended_plan === 'monthly' || inv.intended_plan === 'yearly') {
         await grantManualSubscription(service, user.id, inv.intended_plan);
+      }
+
+      // If the admin recorded a manual payment for this invite, write
+      // the matching payments row so /admin/revenue picks it up.
+      if (inv.intended_paid_amount_cents && inv.intended_paid_amount_cents > 0) {
+        await recordManualPayment(service, {
+          userId: user.id,
+          amountCents: inv.intended_paid_amount_cents,
+          courseId: inv.intended_course_id,
+          plan:
+            inv.intended_plan === 'monthly' || inv.intended_plan === 'yearly'
+              ? inv.intended_plan
+              : null,
+          notes: inv.notes,
+        });
       }
 
       await service

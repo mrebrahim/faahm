@@ -8,6 +8,8 @@ import {
   CreditCard,
   RefreshCcw,
   Ticket,
+  BookOpen,
+  HandCoins,
 } from 'lucide-react';
 
 export const metadata = { title: 'الإيرادات — إدارة فاهم!' };
@@ -32,6 +34,8 @@ export default async function RevenuePage() {
     last30AllStatuses,
     topCoupons,
     recentPayments,
+    paidByCourse,
+    publishedCourses,
   ] = await Promise.all([
     service.from('payments').select('amount_cents').eq('status', 'paid').gte('created_at', startOfToday),
     service.from('payments').select('amount_cents').eq('status', 'paid').gte('created_at', startOfMonth),
@@ -49,6 +53,12 @@ export default async function RevenuePage() {
       .select('id, created_at, amount_cents, currency, status, user_name, user_email, gateway')
       .order('created_at', { ascending: false })
       .limit(10),
+    // For per-course revenue we need every paid payment + its metadata
+    // (which holds course_id for manual invite-payments). Stripe payments
+    // don't carry a course_id today — they're treated as platform-wide
+    // and bucketed separately.
+    service.from('payments').select('amount_cents, gateway, metadata').eq('status', 'paid'),
+    service.from('courses').select('id, title_ar').order('sort_order'),
   ]);
 
   const sum = (rows: any[] | null) =>
@@ -87,6 +97,38 @@ export default async function RevenuePage() {
 
   const totalActive = activeSubsList.length;
 
+  // Revenue per course (manual payments only — Stripe doesn't tag a course
+  // because the platform sub covers everything). The rest goes into the
+  // "اشتراك شامل" bucket so the totals reconcile with the platform-wide
+  // numbers above.
+  const courseTitleById = new Map<string, string>(
+    (publishedCourses.data || []).map((c: any) => [c.id, c.title_ar])
+  );
+  const revenuePerCourseCents = new Map<string, number>();
+  let platformWideCents = 0;
+  for (const p of paidByCourse.data || []) {
+    const courseId = (p.metadata as any)?.course_id as string | null | undefined;
+    if (courseId && courseTitleById.has(courseId)) {
+      revenuePerCourseCents.set(
+        courseId,
+        (revenuePerCourseCents.get(courseId) || 0) + (p.amount_cents || 0)
+      );
+    } else {
+      platformWideCents += p.amount_cents || 0;
+    }
+  }
+  const perCourseRows = Array.from(revenuePerCourseCents.entries())
+    .map(([id, cents]) => ({
+      id,
+      title: courseTitleById.get(id) ?? '—',
+      usd: cents / 100,
+    }))
+    .sort((a, b) => b.usd - a.usd);
+  const manualTotalCents = Array.from(revenuePerCourseCents.values()).reduce(
+    (acc, c) => acc + c,
+    0
+  );
+
   return (
     <div className="p-6 lg:p-8 max-w-7xl">
       <div className="mb-6">
@@ -120,6 +162,64 @@ export default async function RevenuePage() {
           value={`$${(last30Usd - refunded30).toFixed(2)}`}
         />
       </div>
+
+      {/* Revenue per course */}
+      <Card
+        title="الإيرادات لكل كورس"
+        action={
+          <span className="text-[11px] text-gray-400" dir="ltr">
+            ${(manualTotalCents / 100).toFixed(2)} منسوبة لكورس · ${(platformWideCents / 100).toFixed(2)} اشتراك شامل
+          </span>
+        }
+        className="mb-6"
+      >
+        {perCourseRows.length === 0 ? (
+          <div className="text-sm text-gray-500 leading-relaxed">
+            <p className="mb-2">لسه ما فيش إيرادات منسوبة لكورس بعينه.</p>
+            <p className="text-xs">
+              لما تدعو طالب لكورس واحد وتدخل المبلغ المدفوع في صفحة الدعوة،
+              المبلغ ده هيتسجّل هنا تحت اسم الكورس.
+            </p>
+          </div>
+        ) : (
+          <ul className="space-y-3">
+            {perCourseRows.map((r) => {
+              const pct =
+                manualTotalCents > 0 ? (r.usd * 100) / (manualTotalCents / 100) : 0;
+              return (
+                <li key={r.id}>
+                  <div className="flex items-center justify-between text-sm mb-1.5">
+                    <span className="inline-flex items-center gap-2 truncate">
+                      <BookOpen className="w-3.5 h-3.5 text-brand-500 flex-shrink-0" />
+                      <span className="truncate">{r.title}</span>
+                    </span>
+                    <span dir="ltr" className="font-bold text-foreground whitespace-nowrap">
+                      ${r.usd.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="w-full h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                    <div
+                      className="h-full bg-brand-500"
+                      style={{ width: `${Math.min(pct, 100)}%` }}
+                    />
+                  </div>
+                </li>
+              );
+            })}
+            <li>
+              <div className="flex items-center justify-between text-sm mb-1.5 pt-2 border-t border-gray-100">
+                <span className="inline-flex items-center gap-2 text-gray-600">
+                  <HandCoins className="w-3.5 h-3.5" />
+                  اشتراك شامل (كل الكورسات)
+                </span>
+                <span dir="ltr" className="font-bold text-gray-600">
+                  ${(platformWideCents / 100).toFixed(2)}
+                </span>
+              </div>
+            </li>
+          </ul>
+        )}
+      </Card>
 
       <div className="grid lg:grid-cols-2 gap-6 mb-8">
         {/* Plan breakdown */}
@@ -279,14 +379,16 @@ function Card({
   title,
   action,
   children,
+  className,
 }: {
   title: string;
   action?: React.ReactNode;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <section className="rounded-2xl border border-gray-200 bg-white p-5">
-      <div className="flex items-center justify-between mb-3">
+    <section className={`rounded-2xl border border-gray-200 bg-white p-5 ${className ?? ''}`}>
+      <div className="flex items-center justify-between mb-3 gap-3">
         <h2 className="font-bold">{title}</h2>
         {action}
       </div>

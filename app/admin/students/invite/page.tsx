@@ -32,13 +32,13 @@ export default async function InviteStudentPage({
   const [{ data: pending }, { data: recent }, { data: courses }] = await Promise.all([
     service
       .from('pending_invites')
-      .select('id, email, invited_at, notes, intended_plan, intended_course_id')
+      .select('id, email, invited_at, notes, intended_plan, intended_course_id, intended_paid_amount_cents')
       .is('accepted_at', null)
       .order('invited_at', { ascending: false })
       .limit(20),
     service
       .from('pending_invites')
-      .select('id, email, invited_at, accepted_at, intended_plan, intended_course_id, accepted_user_id')
+      .select('id, email, invited_at, accepted_at, intended_plan, intended_course_id, intended_paid_amount_cents, accepted_user_id')
       .not('accepted_at', 'is', null)
       .order('accepted_at', { ascending: false })
       .limit(10),
@@ -170,6 +170,30 @@ export default async function InviteStudentPage({
         </div>
 
         <div className="space-y-2">
+          <Label htmlFor="paid_amount_usd">المبلغ المدفوع (دولار) — اختياري</Label>
+          <div className="relative">
+            <span className="absolute inset-y-0 start-3 flex items-center text-sm text-gray-400 pointer-events-none">
+              $
+            </span>
+            <Input
+              id="paid_amount_usd"
+              name="paid_amount_usd"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="مثلاً 5 أو 40"
+              dir="ltr"
+              className="text-left ps-7"
+            />
+          </div>
+          <p className="text-xs text-gray-500">
+            لو الطالب دفع كاش/تحويل قبل ما تدعوه، اكتب المبلغ هنا. هيتسجّل في
+            الإيرادات لما يقبل الدعوة كـ <strong>عملية يدوية</strong> ويظهر في
+            لوحة الإيرادات. سيبه فاضي لو الدعوة مجانية.
+          </p>
+        </div>
+
+        <div className="space-y-2">
           <Label htmlFor="notes">ملاحظة داخلية (اختياري)</Label>
           <textarea
             id="notes"
@@ -221,7 +245,8 @@ export default async function InviteStudentPage({
                 <tr>
                   <th className="text-start px-4 py-2.5 font-semibold">الإيميل</th>
                   <th className="text-start px-4 py-2.5 font-semibold">الكورس</th>
-                  <th className="text-start px-4 py-2.5 font-semibold">الاشتراك المجاني</th>
+                  <th className="text-start px-4 py-2.5 font-semibold">الاشتراك</th>
+                  <th className="text-start px-4 py-2.5 font-semibold">المدفوع</th>
                   <th className="text-start px-4 py-2.5 font-semibold">تم الإرسال</th>
                   <th className="text-start px-4 py-2.5 font-semibold sr-only">إلغاء</th>
                 </tr>
@@ -243,6 +268,9 @@ export default async function InviteStudentPage({
                     </td>
                     <td className="px-4 py-3">
                       <PlanBadge plan={p.intended_plan} />
+                    </td>
+                    <td className="px-4 py-3 text-xs">
+                      <PaidBadge cents={p.intended_paid_amount_cents} />
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
                       {new Date(p.invited_at).toLocaleString('ar-EG')}
@@ -285,7 +313,8 @@ export default async function InviteStudentPage({
                 <tr>
                   <th className="text-start px-4 py-2.5 font-semibold">الإيميل</th>
                   <th className="text-start px-4 py-2.5 font-semibold">الكورس</th>
-                  <th className="text-start px-4 py-2.5 font-semibold">الاشتراك المجاني</th>
+                  <th className="text-start px-4 py-2.5 font-semibold">الاشتراك</th>
+                  <th className="text-start px-4 py-2.5 font-semibold">المدفوع</th>
                   <th className="text-start px-4 py-2.5 font-semibold">قُبلت في</th>
                   <th className="text-start px-4 py-2.5 font-semibold sr-only">انتقل للملف</th>
                 </tr>
@@ -308,6 +337,9 @@ export default async function InviteStudentPage({
                     <td className="px-4 py-3">
                       <PlanBadge plan={p.intended_plan} />
                     </td>
+                    <td className="px-4 py-3 text-xs">
+                      <PaidBadge cents={p.intended_paid_amount_cents} />
+                    </td>
                     <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
                       {p.accepted_at && new Date(p.accepted_at).toLocaleString('ar-EG')}
                     </td>
@@ -329,6 +361,20 @@ export default async function InviteStudentPage({
         </section>
       )}
     </div>
+  );
+}
+
+function PaidBadge({ cents }: { cents: number | null | undefined }) {
+  if (!cents || cents <= 0) {
+    return <span className="text-gray-400 text-xs">مجاني</span>;
+  }
+  return (
+    <span
+      dir="ltr"
+      className="inline-block px-2 py-0.5 rounded-full text-xs bg-amber-50 text-amber-700 font-mono"
+    >
+      ${(cents / 100).toFixed(2)}
+    </span>
   );
 }
 
