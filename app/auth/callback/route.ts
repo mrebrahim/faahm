@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { applyPendingInvitesForCurrentUser } from '@/lib/invites';
+import { resolveAppUrl } from '@/lib/app-url';
 
 /**
  * Handles auth callbacks (email confirmation, OAuth, invite acceptance).
@@ -21,7 +22,12 @@ import { applyPendingInvitesForCurrentUser } from '@/lib/invites';
  * so first-time hash-flow signins still get their grant applied.
  */
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
+  const { searchParams } = new URL(request.url);
+  // Behind Coolify/Traefik, `new URL(request.url).origin` returns the
+  // internal host (e.g. http://localhost:3000) because that's how
+  // Next.js sees the incoming request. Use resolveAppUrl() so emails
+  // and redirects always carry the public hostname.
+  const origin = resolveAppUrl();
   const code = searchParams.get('code');
   const next = searchParams.get('next') ?? '/dashboard';
 
