@@ -4,7 +4,8 @@ import { requireAdmin } from '@/lib/admin-guard';
 import { archetypeById } from '@/lib/career/archetypes';
 import { getType } from '@/lib/personality/personality-types';
 import { getBand } from '@/lib/ai-readiness/bands';
-import { Mail, MessageCircle, Inbox, Sparkles, Users2, Send, Bot } from 'lucide-react';
+import { getTheme as getSelfDiscoveryTheme } from '@/lib/self-discovery/themes';
+import { Mail, MessageCircle, Inbox, Sparkles, Users2, Send, Bot, Heart } from 'lucide-react';
 
 export const metadata = {
   title: 'العملاء المحتملين — إدارة فاهم!',
@@ -13,12 +14,13 @@ export const metadata = {
 
 export const dynamic = 'force-dynamic';
 
-type TestType = 'all' | 'career' | 'personality' | 'ai_readiness' | 'newsletter';
+type TestType = 'all' | 'career' | 'personality' | 'ai_readiness' | 'self_discovery' | 'newsletter';
 
 const TYPE_LABELS: Record<Exclude<TestType, 'all'>, string> = {
   career: 'التيست المهني',
   personality: 'اختبار الشخصية',
   ai_readiness: 'جاهزية الـ AI',
+  self_discovery: 'اكتشاف الذات',
   newsletter: 'النشرة البريدية',
 };
 
@@ -26,6 +28,7 @@ const TYPE_BADGE_CLASS: Record<Exclude<TestType, 'all'>, string> = {
   career: 'bg-brand-500/10 text-brand-700',
   personality: 'bg-indigo-500/10 text-indigo-700',
   ai_readiness: 'bg-cyan-500/10 text-cyan-700',
+  self_discovery: 'bg-rose-500/10 text-rose-700',
   newsletter: 'bg-amber-500/10 text-amber-700',
 };
 
@@ -33,6 +36,7 @@ const TYPE_ICON: Record<Exclude<TestType, 'all'>, React.ComponentType<{ classNam
   career: Sparkles,
   personality: Users2,
   ai_readiness: Bot,
+  self_discovery: Heart,
   newsletter: Send,
 };
 
@@ -51,6 +55,7 @@ export default async function LeadsPage({
     searchParams.type === 'career' ||
     searchParams.type === 'personality' ||
     searchParams.type === 'ai_readiness' ||
+    searchParams.type === 'self_discovery' ||
     searchParams.type === 'newsletter'
       ? searchParams.type
       : 'all';
@@ -128,6 +133,14 @@ export default async function LeadsPage({
           accent="cyan"
         />
         <TabLink
+          href="/admin/leads?type=self_discovery"
+          active={filter === 'self_discovery'}
+          label={TYPE_LABELS.self_discovery}
+          count={totalsByType.self_discovery || 0}
+          icon={TYPE_ICON.self_discovery}
+          accent="rose"
+        />
+        <TabLink
           href="/admin/leads?type=newsletter"
           active={filter === 'newsletter'}
           label={TYPE_LABELS.newsletter}
@@ -194,7 +207,7 @@ function TabLink({
   label: string;
   count: number;
   icon?: React.ComponentType<{ className?: string }>;
-  accent?: 'brand' | 'indigo' | 'cyan' | 'amber';
+  accent?: 'brand' | 'indigo' | 'cyan' | 'rose' | 'amber';
 }) {
   const activeClass =
     accent === 'brand'
@@ -203,9 +216,11 @@ function TabLink({
         ? 'border-indigo-500 bg-indigo-500/10 text-indigo-700'
         : accent === 'cyan'
           ? 'border-cyan-500 bg-cyan-500/10 text-cyan-700'
-          : accent === 'amber'
-            ? 'border-amber-500 bg-amber-500/10 text-amber-700'
-            : 'border-gray-700 bg-gray-100 text-gray-900';
+          : accent === 'rose'
+            ? 'border-rose-500 bg-rose-500/10 text-rose-700'
+            : accent === 'amber'
+              ? 'border-amber-500 bg-amber-500/10 text-amber-700'
+              : 'border-gray-700 bg-gray-100 text-gray-900';
   return (
     <Link
       href={href}
@@ -257,6 +272,14 @@ function LeadRow({ lead }: { lead: any }) {
     const band = getBand(lead.result_code as any);
     resultLabel = band.name_ar.split('—')[0].trim();
     resultEmoji = band.emoji;
+  } else if (testType === 'self_discovery' && lead.result_code) {
+    // result_code carries the top themes as 'theme1+theme2+theme3'.
+    const parts = (lead.result_code as string).split('+').filter(Boolean);
+    const top = parts.map((p) => getSelfDiscoveryTheme(p as any));
+    if (top.length) {
+      resultLabel = top.map((t) => t.name_ar).join(' + ');
+      resultEmoji = top[0].emoji;
+    }
   }
 
   const sourceLabel =
@@ -272,7 +295,9 @@ function LeadRow({ lead }: { lead: any }) {
         ? `أهلاً ${lead.name || ''}! نمط شخصيتك ${resultLabel} فيه نقط قوة قوية. الكورس اللي بيناسبك: ${lead.primary_course_slug || ''}`
         : testType === 'ai_readiness'
           ? `أهلاً ${lead.name || ''}! بناءً على نتيجة اختبار الجاهزية للـ AI (${resultLabel})، الخطوة الجاية: ${lead.primary_course_slug || ''}`
-          : `أهلاً!`;
+          : testType === 'self_discovery'
+            ? `أهلاً ${lead.name || ''}! بروفايل شغفك طلع: ${resultLabel}. الكورس اللي يبدأ منه رحلتك: ${lead.primary_course_slug || ''}`
+            : `أهلاً!`;
 
   return (
     <tr>

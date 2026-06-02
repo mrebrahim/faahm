@@ -399,6 +399,15 @@ async function Header() {
               جديد
             </span>
           </Link>
+          <Link
+            href="/self-discovery"
+            className="inline-flex items-center gap-1 text-rose-600 hover:text-rose-700 transition-colors font-bold"
+          >
+            اكتشاف الذات
+            <span className="text-[10px] font-bold bg-rose-500/15 text-rose-700 px-1.5 py-0.5 rounded-full">
+              جديد
+            </span>
+          </Link>
           <Link href="/about" className="hover:text-foreground transition-colors">
             عن فاهم
           </Link>
@@ -614,6 +623,17 @@ function Footer() {
                 >
                   هل الـ AI هياخد شغلك؟
                   <span className="text-[9px] font-bold bg-cyan-500/15 text-cyan-700 px-1.5 py-0.5 rounded-full">
+                    جديد
+                  </span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/self-discovery"
+                  className="inline-flex items-center gap-1.5 hover:text-rose-600"
+                >
+                  اكتشاف الذات
+                  <span className="text-[9px] font-bold bg-rose-500/15 text-rose-700 px-1.5 py-0.5 rounded-full">
                     جديد
                   </span>
                 </Link>
