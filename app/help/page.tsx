@@ -75,7 +75,7 @@ export default function HelpPage() {
               <ul className="space-y-1.5 text-sm text-gray-700">
                 <li>• <strong>الإيميل:</strong> خلال 24 ساعة عمل</li>
                 <li>• <strong>واتساب:</strong> خلال 2-4 ساعات في أيام العمل</li>
-                <li>• <strong>أيام العمل:</strong> السبت لـ الخميس، 10ص – 8م (توقيت القاهرة)</li>
+                <li>• <strong>أيام العمل:</strong> الأحد لـ الخميس، 10ص – 2م (توقيت القاهرة)</li>
               </ul>
             </div>
           </div>
