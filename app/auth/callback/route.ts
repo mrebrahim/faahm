@@ -25,6 +25,16 @@ export async function GET(request: Request) {
   const code = searchParams.get('code');
   const next = searchParams.get('next') ?? '/dashboard';
 
+  // Password-recovery flow: do NOT exchange the code here. The
+  // /reset-password page exchanges it itself via the client and then
+  // calls updateUser({password}); if we exchanged it now, the code
+  // would be burned and the form would land on a stale session.
+  if (next === '/reset-password' && code) {
+    const url = new URL(`${origin}/reset-password`);
+    url.searchParams.set('code', code);
+    return NextResponse.redirect(url.toString());
+  }
+
   if (code) {
     const supabase = createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);

@@ -21,8 +21,13 @@ export async function requestPasswordReset(formData: FormData) {
   const appUrl = resolveAppUrl();
 
   const { error } = await supabase.auth.resetPasswordForEmail(email!, {
-    // Supabase will append `?code=...` (PKCE) or `#access_token=...` to this URL.
-    redirectTo: `${appUrl}/reset-password`,
+    // Route through /auth/callback so we only need that one URL in the
+    // Supabase redirect allow list — many deploys forget to whitelist
+    // /reset-password and Supabase silently falls back to Site URL,
+    // landing the user on the homepage. The callback passes the `code`
+    // through to /reset-password without consuming it, so the client
+    // form can still exchange it for a recovery session.
+    redirectTo: `${appUrl}/auth/callback?next=/reset-password`,
   });
 
   // Log every attempt — successful or not — but never reveal whether the
