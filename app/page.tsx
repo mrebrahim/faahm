@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
+import { submitLead } from './leads/actions';
 import { Button } from '@/components/ui/button';
 import { ROUTES, APP_NAME, PLANS } from '@/lib/constants';
 import {
@@ -34,7 +35,12 @@ const CATEGORY_ICONS: Record<string, React.ComponentType<{ className?: string }>
 // ====================================================================
 // MAIN PAGE
 // ====================================================================
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: { lead?: string };
+}) {
+  const leadParam = searchParams.lead;
   const supabase = createClient();
 
   // Fetch categories
@@ -262,22 +268,41 @@ export default async function HomePage() {
 
           {/* Notify me CTA */}
           <div className="mt-12 p-6 rounded-2xl bg-white border-2 border-brand-500/20 max-w-2xl mx-auto">
-            <p className="text-sm text-gray-600 mb-3">
-              🔔 سجّل اهتمامك واكون أوّل من يجرّب ذكاء لايف
-            </p>
-            <form className="flex flex-col sm:flex-row gap-2">
-              <input
-                type="email"
-                placeholder="بريدك الإلكتروني"
-                required
-                dir="ltr"
-                className="flex-1 h-11 px-4 rounded-lg border border-gray-300 bg-white text-sm text-left focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
-              />
-              <Button type="submit">
-                سجّل اهتمامي
-                <ArrowLeft className="w-4 h-4" />
-              </Button>
-            </form>
+            {leadParam === 'ok' ? (
+              <p className="text-sm text-brand-700 font-medium text-center">
+                ✅ تم تسجيل اهتمامك! هنبعتلك أوّل ما ذكاء لايف يبقى متاح.
+              </p>
+            ) : (
+              <>
+                <p className="text-sm text-gray-600 mb-3">
+                  🔔 سجّل اهتمامك واكون أوّل من يجرّب ذكاء لايف
+                </p>
+                <form
+                  action={submitLead}
+                  className="flex flex-col sm:flex-row gap-2"
+                >
+                  <input type="hidden" name="source" value="homepage_zaka_live" />
+                  <input type="hidden" name="next" value="/?lead=ok#zaka-live" />
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="بريدك الإلكتروني"
+                    required
+                    dir="ltr"
+                    className="flex-1 h-11 px-4 rounded-lg border border-gray-300 bg-white text-sm text-left focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                  />
+                  <Button type="submit">
+                    سجّل اهتمامي
+                    <ArrowLeft className="w-4 h-4" />
+                  </Button>
+                </form>
+                {leadParam === 'invalid' && (
+                  <p className="text-xs text-red-600 mt-2 text-center">
+                    من فضلك أدخل بريداً إلكترونياً صحيحاً.
+                  </p>
+                )}
+              </>
+            )}
           </div>
         </div>
       </section>
