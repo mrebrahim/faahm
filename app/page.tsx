@@ -533,7 +533,6 @@ function Footer() {
             <ul className="space-y-2 text-sm text-gray-500">
               <li><Link href={ROUTES.courses} className="hover:text-brand-600">الكورسات</Link></li>
               <li><Link href={ROUTES.pricing} className="hover:text-brand-600">الأسعار</Link></li>
-              <li><Link href="/instructors" className="hover:text-brand-600">المدرّبين</Link></li>
             </ul>
           </div>
 
