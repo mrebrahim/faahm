@@ -47,10 +47,13 @@ export async function updateSession(request: NextRequest) {
 
   // Route categories
   // /course/[slug] is public (shows CTA to non-subscribers per PRD §6.3).
-  // /lesson/[id] requires auth + active sub or free-preview flag (enforced in page).
+  // /lesson/[id] is *also* public now — the page itself enforces access
+  // per-lesson so anyone can view a free-preview lesson without signing
+  // in. Non-preview lessons render the paywall block instead of
+  // redirecting (better SEO + better funnel: visitor lands on the
+  // content they were promised in the ad).
   const protectedPaths = [
     '/dashboard',
-    '/lesson/',
     '/quiz/',
     '/certificates',
     '/settings',

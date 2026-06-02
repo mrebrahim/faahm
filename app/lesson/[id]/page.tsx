@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
 import { ROUTES, APP_NAME } from '@/lib/constants';
@@ -26,10 +26,12 @@ export default async function LessonPage({ params }: { params: { id: string } })
   const supabase = createClient();
   const service = createServiceClient();
 
+  // Anonymous visitors are allowed in — the page enforces access per-lesson
+  // below so free-preview content shows even without a signup. Only the
+  // paywall block + progress tracking are gated on `user`.
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect(`/login?redirect=${encodeURIComponent(`/lesson/${params.id}`)}`);
 
   const { data: lesson } = await service
     .from('lessons')
@@ -48,9 +50,13 @@ export default async function LessonPage({ params }: { params: { id: string } })
   const course = Array.isArray(lesson.course) ? lesson.course[0] : lesson.course;
   if (!course || !course.is_published) notFound();
 
-  // Three paths to access: an active subscription, a per-course enrollment
-  // grant from an admin, or the lesson being marked as a free preview.
-  const { subscribed, enrolled } = await canAccessCourse(user.id, lesson.course_id);
+  // Three paths to access: free-preview lesson, or (for logged-in users)
+  // an active subscription / per-course enrollment. canAccessCourse
+  // returns false/false for null userId, so anonymous visitors only get
+  // free-preview lessons.
+  const { subscribed, enrolled } = user
+    ? await canAccessCourse(user.id, lesson.course_id)
+    : { subscribed: false, enrolled: false };
   const canAccess = subscribed || enrolled || lesson.is_free_preview;
 
   // Stored attachments are in a private bucket — generate short-lived
@@ -118,25 +124,30 @@ export default async function LessonPage({ params }: { params: { id: string } })
     ? flatLessons[currentIdx + 1]
     : null;
 
-  // Completed lessons set (for sidebar checkmarks).
-  const { data: progressRows } = await service
-    .from('progress')
-    .select('lesson_id, is_completed')
-    .eq('user_id', user.id)
-    .eq('course_id', course.id);
+  // Completed lessons set (for sidebar checkmarks). Empty for guests.
+  const { data: progressRows } = user
+    ? await service
+        .from('progress')
+        .select('lesson_id, is_completed')
+        .eq('user_id', user.id)
+        .eq('course_id', course.id)
+    : { data: null as any };
 
   const completed = new Set(
     (progressRows || []).filter((p: any) => p.is_completed).map((p: any) => p.lesson_id)
   );
 
   // Mark a quiz as "done" in the sidebar once the student has passed it
-  // at least once. Failed attempts don't mark it complete.
-  const { data: passedAttempts } = await service
-    .from('quiz_attempts')
-    .select('quiz_id')
-    .eq('user_id', user.id)
-    .eq('is_passed', true)
-    .in('quiz_id', (quizzesForCourse || []).map((q: any) => q.id) as any);
+  // at least once. Failed attempts don't mark it complete. Skipped for
+  // guests — they're not tracked.
+  const { data: passedAttempts } = user
+    ? await service
+        .from('quiz_attempts')
+        .select('quiz_id')
+        .eq('user_id', user.id)
+        .eq('is_passed', true)
+        .in('quiz_id', (quizzesForCourse || []).map((q: any) => q.id) as any)
+    : { data: null as any };
   const passedQuizzes = new Set((passedAttempts || []).map((a: any) => a.quiz_id));
 
   return (
@@ -161,9 +172,20 @@ export default async function LessonPage({ params }: { params: { id: string } })
             </Link>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <Button asChild variant="ghost" size="sm">
-              <Link href={ROUTES.dashboard}>لوحتي</Link>
-            </Button>
+            {user ? (
+              <Button asChild variant="ghost" size="sm">
+                <Link href={ROUTES.dashboard}>لوحتي</Link>
+              </Button>
+            ) : (
+              <>
+                <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
+                  <Link href={ROUTES.login}>دخول</Link>
+                </Button>
+                <Button asChild size="sm">
+                  <Link href={ROUTES.signup}>تسجيل</Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -178,16 +200,16 @@ export default async function LessonPage({ params }: { params: { id: string } })
                 embed={embed}
                 provider={(lesson as any).video_provider || 'bunny'}
                 title={lesson.title_ar}
-                watermark={user.email ?? user.id.slice(0, 8)}
+                watermark={user ? (user.email ?? user.id.slice(0, 8)) : null}
               />
             ) : (
               <UnplayableBlock />
             )
           ) : (
-            <PaywallBlock />
+            <PaywallBlock lessonId={lesson.id} loggedIn={!!user} />
           )}
 
-          {canAccess && (
+          {canAccess && user && (
             <LessonCompleteBar
               lessonId={lesson.id}
               isCompleted={completed.has(lesson.id)}
@@ -288,7 +310,10 @@ export default async function LessonPage({ params }: { params: { id: string } })
 
           <LessonNav
             lessonId={lesson.id}
-            isCompleted={completed.has(lesson.id)}
+            // Treat guests as 'already complete' so the next button
+            // navigates straight without prompting them to mark
+            // something they can't track anyway.
+            isCompleted={!user || completed.has(lesson.id)}
             prevHref={prevLesson ? ROUTES.lesson(prevLesson.id) : null}
             nextHref={nextLesson ? ROUTES.lesson(nextLesson.id) : null}
             nextTitle={nextLesson ? nextLesson.title_ar : null}
@@ -417,20 +442,33 @@ function UnplayableBlock() {
   );
 }
 
-function PaywallBlock() {
+function PaywallBlock({ lessonId, loggedIn }: { lessonId: string; loggedIn: boolean }) {
+  // Logged-in but unsubscribed users see a subscribe CTA. Anonymous
+  // visitors see a login CTA that carries the lesson URL forward via
+  // ?redirect= so they land back here straight after signing in.
+  const cta = loggedIn
+    ? { href: ROUTES.pricing, label: 'اشترك دلوقتي' }
+    : {
+        href: `${ROUTES.login}?redirect=${encodeURIComponent(`/lesson/${lessonId}`)}`,
+        label: 'سجّل دخول للمتابعة',
+      };
   return (
     <div className="aspect-video w-full rounded-2xl border border-gray-200 bg-gradient-to-br from-gray-900 to-gray-700 text-white flex items-center justify-center p-8">
       <div className="text-center max-w-md">
         <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur">
           <Lock className="w-8 h-8" />
         </div>
-        <h2 className="font-display text-2xl font-bold mb-2">الدرس ده للمشتركين فقط</h2>
+        <h2 className="font-display text-2xl font-bold mb-2">
+          {loggedIn ? 'الدرس ده للمشتركين فقط' : 'الدرس ده مش معاينة مجانية'}
+        </h2>
         <p className="text-sm text-gray-300 mb-6">
-          اشترك دلوقتي بـ $5/شهر واحصل على كل دروس الكورس + كل كورسات فاهم!
+          {loggedIn
+            ? 'اشترك دلوقتي بـ $5/شهر واحصل على كل دروس الكورس + كل كورسات فاهم!'
+            : 'سجّل حساب مجاني عشان تشوف الدروس المجانية، أو اشترك للوصول الكامل.'}
         </p>
         <Button asChild size="lg" className="bg-white text-gray-900 hover:bg-gray-100 shadow-none">
-          <Link href={ROUTES.pricing}>
-            اشترك دلوقتي
+          <Link href={cta.href}>
+            {cta.label}
             <ArrowLeft className="w-4 h-4" />
           </Link>
         </Button>
