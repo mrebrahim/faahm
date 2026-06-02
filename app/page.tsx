@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { submitLead } from './leads/actions';
 import { Button } from '@/components/ui/button';
+import { MainNav } from '@/components/main-nav';
 import { ROUTES, APP_NAME, PLANS } from '@/lib/constants';
 import {
   ArrowLeft,
@@ -355,95 +356,7 @@ async function Header() {
     isAdmin = profile?.role === 'admin';
   }
 
-  return (
-    <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur-xl">
-      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <Link href={ROUTES.home} className="flex items-center gap-2 group">
-          <div className="w-9 h-9 rounded-xl bg-brand-500 flex items-center justify-center font-display font-extrabold text-white text-lg shadow-lg shadow-brand-500/30">
-            ف
-          </div>
-          <span className="font-display font-extrabold text-xl">{APP_NAME}</span>
-        </Link>
-
-        <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-600">
-          <Link href={ROUTES.courses} className="hover:text-foreground transition-colors">
-            الكورسات
-          </Link>
-          <Link href={ROUTES.pricing} className="hover:text-foreground transition-colors">
-            الأسعار
-          </Link>
-          <Link
-            href="/career"
-            className="inline-flex items-center gap-1 text-brand-600 hover:text-brand-700 transition-colors font-bold"
-          >
-            تيست شغفك
-            <span className="text-[10px] font-bold bg-brand-500/15 text-brand-700 px-1.5 py-0.5 rounded-full">
-              جديد
-            </span>
-          </Link>
-          <Link
-            href="/personality"
-            className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-700 transition-colors font-bold"
-          >
-            اختبار الشخصية
-            <span className="text-[10px] font-bold bg-indigo-500/15 text-indigo-700 px-1.5 py-0.5 rounded-full">
-              جديد
-            </span>
-          </Link>
-          <Link
-            href="/ai-readiness"
-            className="inline-flex items-center gap-1 text-cyan-600 hover:text-cyan-700 transition-colors font-bold"
-          >
-            هل الـ AI هياخد شغلك؟
-            <span className="text-[10px] font-bold bg-cyan-500/15 text-cyan-700 px-1.5 py-0.5 rounded-full">
-              جديد
-            </span>
-          </Link>
-          <Link
-            href="/self-discovery"
-            className="inline-flex items-center gap-1 text-rose-600 hover:text-rose-700 transition-colors font-bold"
-          >
-            اكتشاف الذات
-            <span className="text-[10px] font-bold bg-rose-500/15 text-rose-700 px-1.5 py-0.5 rounded-full">
-              جديد
-            </span>
-          </Link>
-          <Link href="/about" className="hover:text-foreground transition-colors">
-            عن فاهم
-          </Link>
-        </nav>
-
-        <div className="flex items-center gap-2">
-          {user ? (
-            <>
-              {isAdmin && (
-                <Button asChild variant="outline" size="sm" className="hidden md:inline-flex">
-                  <Link href={ROUTES.admin}>لوحة الإدارة</Link>
-                </Button>
-              )}
-              <Button asChild variant="ghost" size="sm">
-                <Link href={ROUTES.dashboard}>لوحتي</Link>
-              </Button>
-              <form action="/auth/signout" method="POST">
-                <Button type="submit" variant="outline" size="sm">
-                  خروج
-                </Button>
-              </form>
-            </>
-          ) : (
-            <>
-              <Button asChild variant="ghost" size="sm">
-                <Link href={ROUTES.login}>دخول</Link>
-              </Button>
-              <Button asChild size="sm">
-                <Link href={ROUTES.signup}>تسجيل</Link>
-              </Button>
-            </>
-          )}
-        </div>
-      </div>
-    </header>
-  );
+  return <MainNav signedIn={!!user} isAdmin={isAdmin} />;
 }
 
 function StatBlock({
@@ -594,50 +507,10 @@ function Footer() {
             <ul className="space-y-2 text-sm text-gray-500">
               <li><Link href={ROUTES.courses} className="hover:text-brand-600">الكورسات</Link></li>
               <li><Link href={ROUTES.pricing} className="hover:text-brand-600">الأسعار</Link></li>
-              <li>
-                <Link
-                  href="/career"
-                  className="inline-flex items-center gap-1.5 hover:text-brand-600"
-                >
-                  تيست شغفك المهني
-                  <span className="text-[9px] font-bold bg-brand-500/15 text-brand-700 px-1.5 py-0.5 rounded-full">
-                    جديد
-                  </span>
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/personality"
-                  className="inline-flex items-center gap-1.5 hover:text-indigo-600"
-                >
-                  اختبار الشخصية
-                  <span className="text-[9px] font-bold bg-indigo-500/15 text-indigo-700 px-1.5 py-0.5 rounded-full">
-                    جديد
-                  </span>
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/ai-readiness"
-                  className="inline-flex items-center gap-1.5 hover:text-cyan-600"
-                >
-                  هل الـ AI هياخد شغلك؟
-                  <span className="text-[9px] font-bold bg-cyan-500/15 text-cyan-700 px-1.5 py-0.5 rounded-full">
-                    جديد
-                  </span>
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/self-discovery"
-                  className="inline-flex items-center gap-1.5 hover:text-rose-600"
-                >
-                  اكتشاف الذات
-                  <span className="text-[9px] font-bold bg-rose-500/15 text-rose-700 px-1.5 py-0.5 rounded-full">
-                    جديد
-                  </span>
-                </Link>
-              </li>
+              <li><Link href="/career" className="hover:text-brand-600">التيست المهني</Link></li>
+              <li><Link href="/personality" className="hover:text-brand-600">اختبار الشخصية</Link></li>
+              <li><Link href="/ai-readiness" className="hover:text-brand-600">جاهزية الـ AI</Link></li>
+              <li><Link href="/self-discovery" className="hover:text-brand-600">اكتشاف الذات</Link></li>
             </ul>
           </div>
 
