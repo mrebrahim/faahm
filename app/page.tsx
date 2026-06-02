@@ -512,6 +512,7 @@ function Footer() {
               <li><Link href="/ai-readiness" className="hover:text-brand-600">جاهزية الـ AI</Link></li>
               <li><Link href="/self-discovery" className="hover:text-brand-600">اكتشاف الذات</Link></li>
               <li><Link href="/ai-skills" className="hover:text-brand-600">سلّم الـ AI</Link></li>
+              <li><Link href="/productivity" className="hover:text-brand-600">ليه بتأجّل؟</Link></li>
             </ul>
           </div>
 

@@ -13,6 +13,7 @@ import {
   Bot,
   Heart,
   ListChecks,
+  Zap,
 } from 'lucide-react';
 
 /**
@@ -360,5 +361,13 @@ const TESTS = [
     icon: ListChecks,
     iconBg: 'bg-violet-500/10',
     iconColor: 'text-violet-600',
+  },
+  {
+    href: '/productivity',
+    title: 'ليه بتأجّل؟',
+    subtitle: 'حدد اللي بيوقّفك + أول حركة في 10 دقايق',
+    icon: Zap,
+    iconBg: 'bg-amber-500/10',
+    iconColor: 'text-amber-600',
   },
 ];

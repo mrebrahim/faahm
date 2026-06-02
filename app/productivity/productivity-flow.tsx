@@ -1,0 +1,509 @@
+'use client';
+
+import { useMemo, useState, useTransition } from 'react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle2,
+  Loader2,
+  MessageCircle,
+  PlayCircle,
+  Sparkles,
+  Zap,
+} from 'lucide-react';
+import { PRODUCTIVITY_QUESTIONS } from '@/lib/productivity/questions';
+import { tally } from '@/lib/productivity/scoring';
+import { getBlocker } from '@/lib/productivity/blockers';
+import {
+  matchCoursesForProductivity,
+  type ProductivityMatch,
+} from '@/lib/productivity/matching';
+import type { CatalogCourse } from '@/lib/career/matching';
+import type { ProductivityAnswer, ProductivityResult } from '@/lib/productivity/types';
+import { submitProductivityLead } from './actions';
+import { OFFLINE_PAYMENTS } from '@/lib/constants';
+
+type Stage = 'intro' | 'quiz' | 'calculating' | 'gate' | 'result';
+
+export function ProductivityFlow({ catalog }: { catalog: CatalogCourse[] }) {
+  const [stage, setStage] = useState<Stage>('intro');
+  const [answers, setAnswers] = useState<ProductivityAnswer[]>([]);
+  const [qIdx, setQIdx] = useState(0);
+  const [pending, startTransition] = useTransition();
+  const [confirmed, setConfirmed] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  const total = PRODUCTIVITY_QUESTIONS.length;
+  const currentQ = PRODUCTIVITY_QUESTIONS[qIdx];
+  const progress = (answers.length / total) * 100;
+
+  const preview = useMemo(() => {
+    if (answers.length < total) return null;
+    const result = tally(answers);
+    const match = matchCoursesForProductivity(catalog, result);
+    return { result, match };
+  }, [answers, catalog, total]);
+
+  function choose(optionIndex: number) {
+    const next: ProductivityAnswer[] = [
+      ...answers.filter((a) => a.questionId !== currentQ.id),
+      { questionId: currentQ.id, optionIndex },
+    ];
+    setAnswers(next);
+    if (qIdx + 1 < total) {
+      setQIdx(qIdx + 1);
+    } else {
+      setStage('calculating');
+      setTimeout(() => setStage('gate'), 1500);
+    }
+  }
+
+  function back() {
+    if (qIdx === 0) return setStage('intro');
+    setQIdx(qIdx - 1);
+  }
+
+  function onLeadSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setErr(null);
+    const fd = new FormData(e.currentTarget);
+    const name = String(fd.get('name') || '');
+    const whatsapp = String(fd.get('whatsapp') || '');
+    const email = String(fd.get('email') || '') || null;
+    startTransition(async () => {
+      const res = await submitProductivityLead({ name, whatsapp, email, answers });
+      if (!res.ok) {
+        setErr(res.error);
+        return;
+      }
+      setConfirmed(true);
+      setStage('result');
+    });
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-white to-orange-50">
+      <div className="container mx-auto px-4 py-8 sm:py-12 max-w-3xl">
+        {stage === 'intro' && <Intro onStart={() => setStage('quiz')} />}
+
+        {stage === 'quiz' && currentQ && (
+          <Quiz
+            idx={qIdx}
+            total={total}
+            progress={progress}
+            prompt={currentQ.prompt}
+            options={currentQ.options.map((o) => o.label)}
+            selected={
+              answers.find((a) => a.questionId === currentQ.id)?.optionIndex ?? null
+            }
+            onChoose={choose}
+            onBack={back}
+          />
+        )}
+
+        {stage === 'calculating' && <Calculating />}
+
+        {stage === 'gate' && preview && (
+          <Gate
+            result={preview.result}
+            pending={pending}
+            err={err}
+            onSubmit={onLeadSubmit}
+          />
+        )}
+
+        {stage === 'result' && preview && (
+          <Result
+            result={preview.result}
+            match={preview.match}
+            confirmed={confirmed}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================================ */
+
+function Intro({ onStart }: { onStart: () => void }) {
+  return (
+    <div className="text-center">
+      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 text-amber-700 text-xs font-medium mb-5">
+        <Zap className="w-3.5 h-3.5" />
+        14 سؤال · 4 دقايق
+      </span>
+      <h1 className="font-display text-4xl sm:text-5xl font-extrabold leading-tight mb-4">
+        ليه
+        <br />
+        <span className="text-amber-600">بتأجّل؟</span>
+      </h1>
+      <p className="text-gray-600 text-lg mb-8 max-w-xl mx-auto leading-relaxed">
+        تيست خفيف يحدد السبب الرئيسي اللي بيوقّفك من الإنجاز — وبيدّيك خطة
+        فيها أول حركة عملية تبدأ بيها في 10 دقايق.
+      </p>
+      <Button
+        size="lg"
+        onClick={onStart}
+        className="text-base px-8 py-6 bg-amber-600 hover:bg-amber-700"
+      >
+        <PlayCircle className="w-5 h-5" />
+        ابدأ التيست
+        <ArrowLeft className="w-4 h-4" />
+      </Button>
+      <p className="text-xs text-gray-400 mt-6">
+        مجاناً · بدون تسجيل · نتيجة فورية
+      </p>
+    </div>
+  );
+}
+
+function Quiz({
+  idx,
+  total,
+  progress,
+  prompt,
+  options,
+  selected,
+  onChoose,
+  onBack,
+}: {
+  idx: number;
+  total: number;
+  progress: number;
+  prompt: string;
+  options: string[];
+  selected: number | null;
+  onChoose: (i: number) => void;
+  onBack: () => void;
+}) {
+  return (
+    <div>
+      <div className="mb-6">
+        <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
+          <span>سؤال {idx + 1} من {total}</span>
+          <span>{Math.round(progress)}%</span>
+        </div>
+        <div className="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
+          <div
+            className="h-full bg-amber-500 transition-all duration-300"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
+
+      <div className="rounded-2xl bg-white border border-gray-200 p-6 sm:p-8 shadow-sm">
+        <h2 className="font-display text-xl sm:text-2xl font-bold mb-6 leading-relaxed">
+          {prompt}
+        </h2>
+        <div className="space-y-3">
+          {options.map((label, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => onChoose(i)}
+              className={`w-full text-right p-4 sm:p-5 rounded-xl border-2 transition-all text-sm sm:text-base leading-relaxed ${
+                selected === i
+                  ? 'border-amber-500 bg-amber-500/5 text-amber-700 font-medium'
+                  : 'border-gray-200 bg-white hover:border-amber-500/40 hover:bg-amber-500/5'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-5">
+        <button
+          type="button"
+          onClick={onBack}
+          className="text-sm text-gray-500 hover:text-foreground inline-flex items-center gap-1"
+        >
+          <ArrowRight className="w-4 h-4" />
+          {idx === 0 ? 'رجوع للبداية' : 'السؤال السابق'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Calculating() {
+  return (
+    <div className="text-center py-20">
+      <Loader2 className="w-12 h-12 text-amber-500 animate-spin mx-auto mb-6" />
+      <h2 className="font-display text-2xl font-bold mb-2">
+        بنحدد اللي بيوقّفك…
+      </h2>
+      <p className="text-sm text-gray-500">بنحلل إجاباتك على المحاور الأربعة</p>
+    </div>
+  );
+}
+
+function Gate({
+  result,
+  pending,
+  err,
+  onSubmit,
+}: {
+  result: ProductivityResult;
+  pending: boolean;
+  err: string | null;
+  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+}) {
+  const blocker = getBlocker(result.primary);
+  return (
+    <div>
+      <div className={`rounded-2xl p-6 sm:p-8 mb-6 text-white bg-gradient-to-br ${blocker.colorClass}`}>
+        <div className="text-5xl mb-3">{blocker.emoji}</div>
+        <p className="text-xs uppercase tracking-wider opacity-80 mb-1">
+          اللي بيوقّفك أكتر
+        </p>
+        <h2 className="font-display text-3xl sm:text-4xl font-extrabold mb-2">
+          {blocker.name_ar}
+        </h2>
+        <p className="text-sm opacity-90 leading-relaxed">{blocker.tagline_ar}</p>
+      </div>
+
+      <div className="rounded-2xl bg-white border border-gray-200 p-6 sm:p-8">
+        <h3 className="font-display text-xl font-bold mb-2">⚡ خطتك العملية جاهزة</h3>
+        <p className="text-sm text-gray-600 mb-5 leading-relaxed">
+          اكتب اسمك ورقم الواتساب نبعتلك التقرير + أول حركة عملية تبدأ بيها
+          في 10 دقايق فقط.
+        </p>
+
+        <form onSubmit={onSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">الاسم</Label>
+            <Input id="name" name="name" required autoComplete="name" placeholder="اسمك" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="whatsapp">رقم الواتساب</Label>
+            <Input
+              id="whatsapp"
+              name="whatsapp"
+              type="tel"
+              required
+              dir="ltr"
+              className="text-left"
+              placeholder="+20 1XXXXXXXXX"
+              autoComplete="tel"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="email">الإيميل (اختياري)</Label>
+            <Input
+              id="email"
+              name="email"
+              type="email"
+              dir="ltr"
+              className="text-left"
+              placeholder="you@example.com"
+              autoComplete="email"
+            />
+          </div>
+
+          {err && (
+            <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+              {err}
+            </div>
+          )}
+
+          <Button
+            type="submit"
+            size="lg"
+            className="w-full bg-amber-600 hover:bg-amber-700"
+            disabled={pending}
+          >
+            {pending ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                جاري التحضير…
+              </>
+            ) : (
+              <>
+                شوف خطتك الكاملة
+                <ArrowLeft className="w-4 h-4" />
+              </>
+            )}
+          </Button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function Result({
+  result,
+  match,
+  confirmed,
+}: {
+  result: ProductivityResult;
+  match: ProductivityMatch;
+  confirmed: boolean;
+}) {
+  const primary = getBlocker(result.primary);
+  const secondary = result.secondary ? getBlocker(result.secondary) : null;
+  const waMsg = `اللي بيوقّفني عن الإنجاز: ${primary.name_ar} ${primary.emoji}. عاوز أعرف أكتر عن كورس ${match.primary?.title_ar ?? ''}`;
+  const waHref = `https://wa.me/${OFFLINE_PAYMENTS.confirmationWhatsApp}?text=${encodeURIComponent(waMsg)}`;
+
+  return (
+    <div className="space-y-6">
+      {confirmed && (
+        <div className="rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 p-3 text-sm flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+          تم حفظ نتيجتك! هنبعتلك التفاصيل على واتساب.
+        </div>
+      )}
+
+      {/* Primary blocker card */}
+      <div className={`rounded-2xl p-6 sm:p-8 text-white bg-gradient-to-br ${primary.colorClass}`}>
+        <div className="text-6xl mb-3">{primary.emoji}</div>
+        <p className="text-xs uppercase tracking-wider opacity-80 mb-1">
+          اللي بيوقّفك أكتر
+        </p>
+        <h1 className="font-display text-3xl sm:text-4xl font-extrabold mb-2">
+          {primary.name_ar}
+        </h1>
+        <p className="text-sm opacity-90 leading-relaxed">{primary.description_ar}</p>
+        {secondary && (
+          <div className="mt-4 pt-4 border-t border-white/20">
+            <p className="text-[11px] uppercase tracking-wider opacity-70 mb-1">
+              عامل تاني قوي بردو
+            </p>
+            <div className="flex items-center gap-2 text-sm">
+              <span className="text-xl">{secondary.emoji}</span>
+              <span className="font-bold">{secondary.name_ar}</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* First 10-min action — the shareable hook */}
+      <div className="rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 text-white p-6 sm:p-8">
+        <div className="flex items-center gap-2 mb-2">
+          <Zap className="w-5 h-5" />
+          <p className="text-xs uppercase tracking-wider opacity-90 font-bold">
+            أول 10 دقايق
+          </p>
+        </div>
+        <p className="font-display text-lg sm:text-xl font-extrabold leading-relaxed">
+          {primary.first_10_min_ar}
+        </p>
+      </div>
+
+      {/* Tactics */}
+      <div className="rounded-2xl bg-white border border-gray-200 p-5 sm:p-6">
+        <h3 className="font-display text-lg font-bold mb-3">عادات تبني بيها على الطويل</h3>
+        <ul className="space-y-2 text-sm">
+          {primary.tactics_ar.map((t) => (
+            <li key={t} className="flex items-start gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+              <span>{t}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Primary course */}
+      {match.primary && (
+        <div className="rounded-2xl bg-white border-2 border-amber-500/30 p-6 sm:p-8">
+          {match.routedToPassion && (
+            <p className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg p-2 mb-3">
+              مش "وضوح الهدف" بيتبني بـ tactics بس — لو هدفك مش واضح، ابدأ
+              بكورس اكتشاف الشغف الأول.
+            </p>
+          )}
+          <p className="text-xs text-amber-700 font-medium mb-1">الكورس اللي يبني لك النظام</p>
+          <h3 className="font-display text-xl font-bold mb-2">{match.primary.title_ar}</h3>
+          {match.primary.short_description_ar && (
+            <p className="text-sm text-gray-600 mb-5 leading-relaxed">
+              {match.primary.short_description_ar}
+            </p>
+          )}
+          <Button asChild size="lg" className="w-full bg-amber-600 hover:bg-amber-700">
+            <Link href={`/course/${match.primary.slug}`}>
+              <PlayCircle className="w-5 h-5" />
+              ابدأ الكورس
+              <ArrowLeft className="w-4 h-4" />
+            </Link>
+          </Button>
+        </div>
+      )}
+
+      {(match.alsoExplore.length > 0 || match.addOn) && (
+        <div>
+          <h3 className="font-display text-lg font-bold mb-3">كمل بـ</h3>
+          <div className="grid sm:grid-cols-2 gap-3">
+            {match.alsoExplore.map((c) => (
+              <CourseChip key={c.id} slug={c.slug} title={c.title_ar} />
+            ))}
+            {match.addOn && (
+              <CourseChip
+                slug={match.addOn.slug}
+                title={match.addOn.title_ar}
+                badge="استخدم AI يخلّصلك أسرع"
+              />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Cross-sell */}
+      <div className="rounded-2xl bg-gradient-to-br from-cyan-500/10 to-sky-500/10 border border-cyan-500/30 p-5 sm:p-6">
+        <h3 className="font-display text-lg font-bold mb-1">عرفت اللي بيوقّفك…</h3>
+        <p className="text-sm text-gray-600 mb-3">
+          تعرف وضعك في الـ AI؟ خد تيست الجاهزية اللي يعرّفك إنت فين والمنحدر فين.
+        </p>
+        <Button asChild variant="outline" className="w-full sm:w-auto">
+          <Link href="/ai-readiness">
+            <Sparkles className="w-4 h-4" />
+            خد تيست الجاهزية
+            <ArrowLeft className="w-4 h-4" />
+          </Link>
+        </Button>
+      </div>
+
+      <a
+        href={waHref}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-[#25D366] hover:bg-[#1ebe5b] text-white font-bold text-sm transition-colors"
+      >
+        <MessageCircle className="w-5 h-5" />
+        كلّم فريق فاهم على واتساب
+      </a>
+    </div>
+  );
+}
+
+function CourseChip({
+  slug,
+  title,
+  badge,
+}: {
+  slug: string;
+  title: string;
+  badge?: string;
+}) {
+  return (
+    <Link
+      href={`/course/${slug}`}
+      className="group flex items-center justify-between gap-3 p-4 rounded-xl border border-gray-200 bg-white hover:border-amber-500/40 hover:bg-amber-500/5 transition-colors"
+    >
+      <div className="min-w-0">
+        {badge && (
+          <span className="inline-block text-[10px] font-bold bg-amber-500/10 text-amber-700 px-1.5 py-0.5 rounded mb-1">
+            {badge}
+          </span>
+        )}
+        <div className="font-medium text-sm truncate">{title}</div>
+      </div>
+      <ArrowLeft className="w-4 h-4 text-gray-300 group-hover:text-amber-500 flex-shrink-0" />
+    </Link>
+  );
+}

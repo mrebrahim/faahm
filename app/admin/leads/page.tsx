@@ -6,7 +6,8 @@ import { getType } from '@/lib/personality/personality-types';
 import { getBand } from '@/lib/ai-readiness/bands';
 import { getTheme as getSelfDiscoveryTheme } from '@/lib/self-discovery/themes';
 import { getLevel as getSkillLevel } from '@/lib/ai-skills/levels';
-import { Mail, MessageCircle, Inbox, Sparkles, Users2, Send, Bot, Heart, ListChecks } from 'lucide-react';
+import { getBlocker } from '@/lib/productivity/blockers';
+import { Mail, MessageCircle, Inbox, Sparkles, Users2, Send, Bot, Heart, ListChecks, Zap } from 'lucide-react';
 
 export const metadata = {
   title: 'العملاء المحتملين — إدارة فاهم!',
@@ -22,6 +23,7 @@ type TestType =
   | 'ai_readiness'
   | 'self_discovery'
   | 'ai_skills'
+  | 'productivity'
   | 'newsletter';
 
 const TYPE_LABELS: Record<Exclude<TestType, 'all'>, string> = {
@@ -30,6 +32,7 @@ const TYPE_LABELS: Record<Exclude<TestType, 'all'>, string> = {
   ai_readiness: 'جاهزية الـ AI',
   self_discovery: 'اكتشاف الذات',
   ai_skills: 'مستوى الـ AI',
+  productivity: 'الإنتاجية',
   newsletter: 'النشرة البريدية',
 };
 
@@ -39,7 +42,8 @@ const TYPE_BADGE_CLASS: Record<Exclude<TestType, 'all'>, string> = {
   ai_readiness: 'bg-cyan-500/10 text-cyan-700',
   self_discovery: 'bg-rose-500/10 text-rose-700',
   ai_skills: 'bg-violet-500/10 text-violet-700',
-  newsletter: 'bg-amber-500/10 text-amber-700',
+  productivity: 'bg-amber-500/10 text-amber-700',
+  newsletter: 'bg-orange-500/10 text-orange-700',
 };
 
 const TYPE_ICON: Record<Exclude<TestType, 'all'>, React.ComponentType<{ className?: string }>> = {
@@ -48,6 +52,7 @@ const TYPE_ICON: Record<Exclude<TestType, 'all'>, React.ComponentType<{ classNam
   ai_readiness: Bot,
   self_discovery: Heart,
   ai_skills: ListChecks,
+  productivity: Zap,
   newsletter: Send,
 };
 
@@ -68,6 +73,7 @@ export default async function LeadsPage({
     searchParams.type === 'ai_readiness' ||
     searchParams.type === 'self_discovery' ||
     searchParams.type === 'ai_skills' ||
+    searchParams.type === 'productivity' ||
     searchParams.type === 'newsletter'
       ? searchParams.type
       : 'all';
@@ -161,12 +167,20 @@ export default async function LeadsPage({
           accent="violet"
         />
         <TabLink
+          href="/admin/leads?type=productivity"
+          active={filter === 'productivity'}
+          label={TYPE_LABELS.productivity}
+          count={totalsByType.productivity || 0}
+          icon={TYPE_ICON.productivity}
+          accent="amber"
+        />
+        <TabLink
           href="/admin/leads?type=newsletter"
           active={filter === 'newsletter'}
           label={TYPE_LABELS.newsletter}
           count={totalsByType.newsletter || 0}
           icon={TYPE_ICON.newsletter}
-          accent="amber"
+          accent="orange"
         />
       </div>
 
@@ -227,7 +241,7 @@ function TabLink({
   label: string;
   count: number;
   icon?: React.ComponentType<{ className?: string }>;
-  accent?: 'brand' | 'indigo' | 'cyan' | 'rose' | 'violet' | 'amber';
+  accent?: 'brand' | 'indigo' | 'cyan' | 'rose' | 'violet' | 'amber' | 'orange';
 }) {
   const activeClass =
     accent === 'brand'
@@ -242,7 +256,9 @@ function TabLink({
               ? 'border-violet-500 bg-violet-500/10 text-violet-700'
               : accent === 'amber'
                 ? 'border-amber-500 bg-amber-500/10 text-amber-700'
-                : 'border-gray-700 bg-gray-100 text-gray-900';
+                : accent === 'orange'
+                  ? 'border-orange-500 bg-orange-500/10 text-orange-700'
+                  : 'border-gray-700 bg-gray-100 text-gray-900';
   return (
     <Link
       href={href}
@@ -306,6 +322,10 @@ function LeadRow({ lead }: { lead: any }) {
     const lv = getSkillLevel(lead.result_code as any);
     resultLabel = `Level ${lv.number} · ${lv.name_ar}`;
     resultEmoji = lv.emoji;
+  } else if (testType === 'productivity' && lead.result_code) {
+    const b = getBlocker(lead.result_code as any);
+    resultLabel = b.name_ar;
+    resultEmoji = b.emoji;
   }
 
   const sourceLabel =
@@ -325,7 +345,9 @@ function LeadRow({ lead }: { lead: any }) {
             ? `أهلاً ${lead.name || ''}! بروفايل شغفك طلع: ${resultLabel}. الكورس اللي يبدأ منه رحلتك: ${lead.primary_course_slug || ''}`
             : testType === 'ai_skills'
               ? `أهلاً ${lead.name || ''}! مستواك في الـ AI: ${resultLabel}. الكورس اللي تبدأ بيه: ${lead.primary_course_slug || ''}`
-              : `أهلاً!`;
+              : testType === 'productivity'
+                ? `أهلاً ${lead.name || ''}! اللي بيوقّفك أكتر: ${resultLabel}. عندنا كورس مخصص يحل ده: ${lead.primary_course_slug || ''}`
+                : `أهلاً!`;
 
   return (
     <tr>
