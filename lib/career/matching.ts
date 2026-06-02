@@ -1,8 +1,11 @@
-import { createServiceClient } from '@/lib/supabase/server';
 import type { AssessmentResult, RiasecCode } from './types';
 import { isUndecided } from './scoring';
 
-/** A course as needed by the matcher — fetched once at request time. */
+/**
+ * A course as the matcher sees it — pure data, no DB. The fetch lives
+ * in lib/career/catalog.server.ts so we can import this module from
+ * client components without dragging next/headers along.
+ */
 export type CatalogCourse = {
   id: string;
   slug: string;
@@ -13,20 +16,6 @@ export type CatalogCourse = {
   primary_driver: string | null;
   is_published: boolean;
 };
-
-/**
- * Pull every published course with its RIASEC tags. Filtered on the
- * server because RLS isn't configured for anon access on this column
- * set yet, and the matcher needs the full catalog anyway.
- */
-export async function loadCatalog(): Promise<CatalogCourse[]> {
-  const service = createServiceClient();
-  const { data } = await service
-    .from('courses')
-    .select('id, slug, title_ar, short_description_ar, thumbnail_url, riasec, primary_driver, is_published')
-    .eq('is_published', true);
-  return (data || []) as CatalogCourse[];
-}
 
 const DRIVER_BONUS = 3;
 const PROMPT_FUNDAMENTALS_SLUG = 'prompt-fundamentals';

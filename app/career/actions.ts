@@ -4,7 +4,8 @@ import { headers, cookies } from 'next/headers';
 import { createServiceClient } from '@/lib/supabase/server';
 import { tally } from '@/lib/career/scoring';
 import { matchArchetype } from '@/lib/career/archetypes';
-import { loadCatalog, matchCourses } from '@/lib/career/matching';
+import { matchCourses } from '@/lib/career/matching';
+import { loadCatalog } from '@/lib/career/catalog.server';
 import type { Answer } from '@/lib/career/types';
 
 export type SubmitCareerLeadInput = {

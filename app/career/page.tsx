@@ -1,4 +1,4 @@
-import { loadCatalog } from '@/lib/career/matching';
+import { loadCatalog } from '@/lib/career/catalog.server';
 import { CareerFlow } from './career-flow';
 
 export const metadata = {
@@ -13,9 +13,11 @@ export const metadata = {
   },
 };
 
-// Server-render with revalidate so the catalog refreshes hourly without
-// hitting Supabase on every visit.
-export const revalidate = 3600;
+// Server-render dynamically so build environments without Supabase
+// env vars don't fail to prerender. Coolify production has the keys,
+// but keeping this dynamic also lets the catalog reflect admin edits
+// instantly without waiting for ISR to expire.
+export const dynamic = 'force-dynamic';
 
 export default async function CareerPage() {
   const catalog = await loadCatalog();
