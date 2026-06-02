@@ -372,6 +372,15 @@ async function Header() {
           <Link href={ROUTES.pricing} className="hover:text-foreground transition-colors">
             الأسعار
           </Link>
+          <Link
+            href="/career"
+            className="inline-flex items-center gap-1 text-brand-600 hover:text-brand-700 transition-colors font-bold"
+          >
+            تيست شغفك
+            <span className="text-[10px] font-bold bg-brand-500/15 text-brand-700 px-1.5 py-0.5 rounded-full">
+              جديد
+            </span>
+          </Link>
           <Link href="/about" className="hover:text-foreground transition-colors">
             عن فاهم
           </Link>
@@ -558,6 +567,17 @@ function Footer() {
             <ul className="space-y-2 text-sm text-gray-500">
               <li><Link href={ROUTES.courses} className="hover:text-brand-600">الكورسات</Link></li>
               <li><Link href={ROUTES.pricing} className="hover:text-brand-600">الأسعار</Link></li>
+              <li>
+                <Link
+                  href="/career"
+                  className="inline-flex items-center gap-1.5 hover:text-brand-600"
+                >
+                  تيست شغفك المهني
+                  <span className="text-[9px] font-bold bg-brand-500/15 text-brand-700 px-1.5 py-0.5 rounded-full">
+                    جديد
+                  </span>
+                </Link>
+              </li>
             </ul>
           </div>
 
