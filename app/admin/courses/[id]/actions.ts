@@ -46,10 +46,30 @@ export async function updateCourse(formData: FormData) {
         // parseVideoInput extracted (will be null for a GUID-only paste).
         const libraryOverride =
           (formData.get('trailer_video_library_id') as string | null)?.trim() || null;
+        let libraryId = libraryOverride || parsed.video_library_id;
+        // Last-resort fallback: pasting just a GUID with no library means
+        // we'd default to the project-wide Bunny library at render time,
+        // which is almost never right for new courses. Sniff the library
+        // from any existing lesson in this course — if they all share
+        // one, the trailer almost certainly belongs there too.
+        if (!libraryId && trailerProvider === 'bunny') {
+          const { data: lessonLibs } = await service
+            .from('lessons')
+            .select('video_library_id')
+            .eq('course_id', id)
+            .not('video_library_id', 'is', null)
+            .limit(50);
+          const unique = new Set(
+            (lessonLibs || [])
+              .map((r: { video_library_id: string | null }) => r.video_library_id)
+              .filter(Boolean) as string[]
+          );
+          if (unique.size === 1) libraryId = [...unique][0];
+        }
         trailerFields = {
           trailer_video_provider: trailerProvider,
           trailer_video_id: parsed.video_id,
-          trailer_video_library_id: libraryOverride || parsed.video_library_id,
+          trailer_video_library_id: libraryId,
         };
       }
 
