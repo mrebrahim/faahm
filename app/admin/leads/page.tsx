@@ -5,7 +5,8 @@ import { archetypeById } from '@/lib/career/archetypes';
 import { getType } from '@/lib/personality/personality-types';
 import { getBand } from '@/lib/ai-readiness/bands';
 import { getTheme as getSelfDiscoveryTheme } from '@/lib/self-discovery/themes';
-import { Mail, MessageCircle, Inbox, Sparkles, Users2, Send, Bot, Heart } from 'lucide-react';
+import { getLevel as getSkillLevel } from '@/lib/ai-skills/levels';
+import { Mail, MessageCircle, Inbox, Sparkles, Users2, Send, Bot, Heart, ListChecks } from 'lucide-react';
 
 export const metadata = {
   title: 'العملاء المحتملين — إدارة فاهم!',
@@ -14,13 +15,21 @@ export const metadata = {
 
 export const dynamic = 'force-dynamic';
 
-type TestType = 'all' | 'career' | 'personality' | 'ai_readiness' | 'self_discovery' | 'newsletter';
+type TestType =
+  | 'all'
+  | 'career'
+  | 'personality'
+  | 'ai_readiness'
+  | 'self_discovery'
+  | 'ai_skills'
+  | 'newsletter';
 
 const TYPE_LABELS: Record<Exclude<TestType, 'all'>, string> = {
   career: 'التيست المهني',
   personality: 'اختبار الشخصية',
   ai_readiness: 'جاهزية الـ AI',
   self_discovery: 'اكتشاف الذات',
+  ai_skills: 'مستوى الـ AI',
   newsletter: 'النشرة البريدية',
 };
 
@@ -29,6 +38,7 @@ const TYPE_BADGE_CLASS: Record<Exclude<TestType, 'all'>, string> = {
   personality: 'bg-indigo-500/10 text-indigo-700',
   ai_readiness: 'bg-cyan-500/10 text-cyan-700',
   self_discovery: 'bg-rose-500/10 text-rose-700',
+  ai_skills: 'bg-violet-500/10 text-violet-700',
   newsletter: 'bg-amber-500/10 text-amber-700',
 };
 
@@ -37,6 +47,7 @@ const TYPE_ICON: Record<Exclude<TestType, 'all'>, React.ComponentType<{ classNam
   personality: Users2,
   ai_readiness: Bot,
   self_discovery: Heart,
+  ai_skills: ListChecks,
   newsletter: Send,
 };
 
@@ -56,6 +67,7 @@ export default async function LeadsPage({
     searchParams.type === 'personality' ||
     searchParams.type === 'ai_readiness' ||
     searchParams.type === 'self_discovery' ||
+    searchParams.type === 'ai_skills' ||
     searchParams.type === 'newsletter'
       ? searchParams.type
       : 'all';
@@ -141,6 +153,14 @@ export default async function LeadsPage({
           accent="rose"
         />
         <TabLink
+          href="/admin/leads?type=ai_skills"
+          active={filter === 'ai_skills'}
+          label={TYPE_LABELS.ai_skills}
+          count={totalsByType.ai_skills || 0}
+          icon={TYPE_ICON.ai_skills}
+          accent="violet"
+        />
+        <TabLink
           href="/admin/leads?type=newsletter"
           active={filter === 'newsletter'}
           label={TYPE_LABELS.newsletter}
@@ -207,7 +227,7 @@ function TabLink({
   label: string;
   count: number;
   icon?: React.ComponentType<{ className?: string }>;
-  accent?: 'brand' | 'indigo' | 'cyan' | 'rose' | 'amber';
+  accent?: 'brand' | 'indigo' | 'cyan' | 'rose' | 'violet' | 'amber';
 }) {
   const activeClass =
     accent === 'brand'
@@ -218,9 +238,11 @@ function TabLink({
           ? 'border-cyan-500 bg-cyan-500/10 text-cyan-700'
           : accent === 'rose'
             ? 'border-rose-500 bg-rose-500/10 text-rose-700'
-            : accent === 'amber'
-              ? 'border-amber-500 bg-amber-500/10 text-amber-700'
-              : 'border-gray-700 bg-gray-100 text-gray-900';
+            : accent === 'violet'
+              ? 'border-violet-500 bg-violet-500/10 text-violet-700'
+              : accent === 'amber'
+                ? 'border-amber-500 bg-amber-500/10 text-amber-700'
+                : 'border-gray-700 bg-gray-100 text-gray-900';
   return (
     <Link
       href={href}
@@ -280,6 +302,10 @@ function LeadRow({ lead }: { lead: any }) {
       resultLabel = top.map((t) => t.name_ar).join(' + ');
       resultEmoji = top[0].emoji;
     }
+  } else if (testType === 'ai_skills' && lead.result_code) {
+    const lv = getSkillLevel(lead.result_code as any);
+    resultLabel = `Level ${lv.number} · ${lv.name_ar}`;
+    resultEmoji = lv.emoji;
   }
 
   const sourceLabel =
@@ -297,7 +323,9 @@ function LeadRow({ lead }: { lead: any }) {
           ? `أهلاً ${lead.name || ''}! بناءً على نتيجة اختبار الجاهزية للـ AI (${resultLabel})، الخطوة الجاية: ${lead.primary_course_slug || ''}`
           : testType === 'self_discovery'
             ? `أهلاً ${lead.name || ''}! بروفايل شغفك طلع: ${resultLabel}. الكورس اللي يبدأ منه رحلتك: ${lead.primary_course_slug || ''}`
-            : `أهلاً!`;
+            : testType === 'ai_skills'
+              ? `أهلاً ${lead.name || ''}! مستواك في الـ AI: ${resultLabel}. الكورس اللي تبدأ بيه: ${lead.primary_course_slug || ''}`
+              : `أهلاً!`;
 
   return (
     <tr>

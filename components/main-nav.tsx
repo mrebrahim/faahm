@@ -12,6 +12,7 @@ import {
   Users2,
   Bot,
   Heart,
+  ListChecks,
 } from 'lucide-react';
 
 /**
@@ -351,5 +352,13 @@ const TESTS = [
     icon: Heart,
     iconBg: 'bg-rose-500/10',
     iconColor: 'text-rose-600',
+  },
+  {
+    href: '/ai-skills',
+    title: 'إنت فين على سلّم الـ AI؟',
+    subtitle: 'تحديد مستواك من 1 لـ 4 + الكورس اللي تبدأ بيه',
+    icon: ListChecks,
+    iconBg: 'bg-violet-500/10',
+    iconColor: 'text-violet-600',
   },
 ];
