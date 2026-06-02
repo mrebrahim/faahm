@@ -8,6 +8,43 @@ import { loggedAction, formDataForLog } from '@/lib/admin-audit';
 import { parseVideoInput, type VideoProvider } from '@/lib/video';
 import { uploadCourseThumbnail } from '@/lib/storage';
 
+/**
+ * Resolve a Bunny library id when the admin only pasted a GUID.
+ * Order of preference:
+ *   1. The library id parsed out of the pasted input (full URL form).
+ *   2. The single library id used by other lessons in the same course.
+ *   3. null — let the renderer fall back to NEXT_PUBLIC_BUNNY_LIBRARY_ID.
+ *
+ * Step 2 means admins can paste a bare GUID and we still pin it to
+ * the right library when the rest of the course agrees.
+ */
+async function resolveBunnyLibraryId({
+  service,
+  courseId,
+  provider,
+  parsedLibrary,
+}: {
+  service: ReturnType<typeof createServiceClient>;
+  courseId: string;
+  provider: string;
+  parsedLibrary: string | null | undefined;
+}): Promise<string | null> {
+  if (parsedLibrary) return parsedLibrary;
+  if (provider !== 'bunny') return null;
+  const { data } = await service
+    .from('lessons')
+    .select('video_library_id')
+    .eq('course_id', courseId)
+    .not('video_library_id', 'is', null)
+    .limit(50);
+  const unique = new Set(
+    (data || [])
+      .map((r: { video_library_id: string | null }) => r.video_library_id)
+      .filter(Boolean) as string[]
+  );
+  return unique.size === 1 ? [...unique][0] : null;
+}
+
 // ============================================================================
 // COURSE
 // ============================================================================
@@ -46,26 +83,12 @@ export async function updateCourse(formData: FormData) {
         // parseVideoInput extracted (will be null for a GUID-only paste).
         const libraryOverride =
           (formData.get('trailer_video_library_id') as string | null)?.trim() || null;
-        let libraryId = libraryOverride || parsed.video_library_id;
-        // Last-resort fallback: pasting just a GUID with no library means
-        // we'd default to the project-wide Bunny library at render time,
-        // which is almost never right for new courses. Sniff the library
-        // from any existing lesson in this course — if they all share
-        // one, the trailer almost certainly belongs there too.
-        if (!libraryId && trailerProvider === 'bunny') {
-          const { data: lessonLibs } = await service
-            .from('lessons')
-            .select('video_library_id')
-            .eq('course_id', id)
-            .not('video_library_id', 'is', null)
-            .limit(50);
-          const unique = new Set(
-            (lessonLibs || [])
-              .map((r: { video_library_id: string | null }) => r.video_library_id)
-              .filter(Boolean) as string[]
-          );
-          if (unique.size === 1) libraryId = [...unique][0];
-        }
+        const libraryId = await resolveBunnyLibraryId({
+          service,
+          courseId: id,
+          provider: trailerProvider,
+          parsedLibrary: libraryOverride || parsed.video_library_id,
+        });
         trailerFields = {
           trailer_video_provider: trailerProvider,
           trailer_video_id: parsed.video_id,
@@ -289,13 +312,24 @@ export async function createLesson(formData: FormData) {
         .select('*', { count: 'exact', head: true })
         .eq('chapter_id', chapter_id);
 
+      // Fall back to a sibling lesson's library when the admin pasted a
+      // bare GUID — otherwise we'd default to the project-wide library
+      // at render time and the iframe would 404. Same logic the trailer
+      // path uses; centralise later if a third caller turns up.
+      const libraryId = await resolveBunnyLibraryId({
+        service,
+        courseId: course_id,
+        provider,
+        parsedLibrary: parsed!.video_library_id,
+      });
+
       await service.from('lessons').insert({
         chapter_id,
         course_id,
         title_ar,
         video_provider: provider,
         video_id: parsed!.video_id,
-        video_library_id: parsed!.video_library_id,
+        video_library_id: libraryId,
         duration_sec,
         is_free_preview,
         sort_order: count || 0,

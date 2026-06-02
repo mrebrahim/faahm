@@ -48,7 +48,28 @@ export async function updateLesson(formData: FormData) {
     }
     updates.video_provider = provider;
     updates.video_id = parsed!.video_id;
-    updates.video_library_id = parsed!.video_library_id;
+    // If the admin pasted just a GUID, copy the library id from the
+    // course's other lessons (or leave null for non-Bunny providers).
+    if (parsed!.video_library_id) {
+      updates.video_library_id = parsed!.video_library_id;
+    } else if (provider === 'bunny') {
+      const service = createServiceClient();
+      const { data: lessonLibs } = await service
+        .from('lessons')
+        .select('video_library_id')
+        .eq('course_id', courseId)
+        .not('video_library_id', 'is', null)
+        .neq('id', lessonId)
+        .limit(50);
+      const unique = new Set(
+        (lessonLibs || [])
+          .map((r: { video_library_id: string | null }) => r.video_library_id)
+          .filter(Boolean) as string[]
+      );
+      updates.video_library_id = unique.size === 1 ? [...unique][0] : null;
+    } else {
+      updates.video_library_id = null;
+    }
   }
 
   await loggedAction(
