@@ -64,3 +64,26 @@ export const SUPPORT = {
   email: 'hello@faahm.com',
   whatsapp: process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || '',
 } as const;
+
+/**
+ * Manual / off-platform payment endpoints used by /checkout. Stripe stays
+ * the default for cards & Apple Pay; the three below are admin-verified
+ * channels where the student pays externally and we grant access after a
+ * WhatsApp screenshot confirmation.
+ */
+export const OFFLINE_PAYMENTS = {
+  paypal: {
+    monthly: 'https://www.paypal.com/ncp/payment/C3JVXJJ4BFT3U',
+    yearly: 'https://www.paypal.com/ncp/payment/M4RVPG4TEWKN6',
+  },
+  instapay: {
+    link: 'https://ipn.eg/S/ibrahimkhalil01/instapay/9I3KGq',
+    handle: 'ibrahimkhalil01@instapay',
+  },
+  vodafoneCash: {
+    phone: '01050858819',
+  },
+  // International E.164 (no +) for wa.me. Admins receive payment
+  // screenshots here.
+  confirmationWhatsApp: '201050858834',
+} as const;

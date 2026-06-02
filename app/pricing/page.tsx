@@ -130,12 +130,14 @@ function PlanCard({
         className="w-full"
       >
         {user ? (
-          <Link href={`/api/checkout?plan=${plan.id}`}>
+          <Link href={`/checkout?plan=${plan.id}`}>
             اشترك دلوقتي
             <ArrowLeft className="w-4 h-4" />
           </Link>
         ) : (
-          <Link href={`${ROUTES.signup}?plan=${plan.id}`}>
+          <Link
+            href={`${ROUTES.signup}?redirect=${encodeURIComponent(`/checkout?plan=${plan.id}`)}&plan=${plan.id}`}
+          >
             ابدأ — سجّل أولاً
             <ArrowLeft className="w-4 h-4" />
           </Link>
