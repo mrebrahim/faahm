@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
-import { ROUTES, APP_NAME } from '@/lib/constants';
+import { MainNav } from '@/components/main-nav';
+import { ROUTES } from '@/lib/constants';
 import { formatDuration } from '@/lib/utils';
 import { resolveVideoEmbed } from '@/lib/video';
 import { canAccessCourse } from '@/lib/access';
@@ -54,6 +55,19 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
   const supabase = createClient();
   const service = createServiceClient();
   const { data: { user } } = await supabase.auth.getUser();
+
+  // Cheap admin-role lookup so the shared MainNav can show the
+  // 'لوحة الإدارة' shortcut to admins. Non-admins / guests get the
+  // identical HTML they had before — no /admin link is leaked.
+  let isAdmin = false;
+  if (user) {
+    const { data: profile } = await service
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+    isAdmin = profile?.role === 'admin';
+  }
 
   // Course must be published (we use service to avoid relying solely on RLS for SEO pages).
   const { data: course } = await service
@@ -150,40 +164,11 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur-xl">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href={ROUTES.home} className="flex items-center gap-2">
-            <div className="w-9 h-9 rounded-xl bg-brand-500 flex items-center justify-center font-display font-extrabold text-white text-lg">
-              ف
-            </div>
-            <span className="font-display font-extrabold text-xl">{APP_NAME}</span>
-          </Link>
-          <nav className="hidden md:flex items-center gap-6 text-sm">
-            <Link href={ROUTES.courses} className="text-gray-600 hover:text-foreground">الكورسات</Link>
-            <Link href={ROUTES.pricing} className="text-gray-600 hover:text-foreground">الأسعار</Link>
-          </nav>
-          <div className="flex items-center gap-2">
-            {user ? (
-              <Button asChild variant="ghost" size="sm">
-                <Link href={ROUTES.dashboard}>لوحتي</Link>
-              </Button>
-            ) : (
-              <>
-                <Button asChild variant="ghost" size="sm">
-                  <Link href={ROUTES.login}>دخول</Link>
-                </Button>
-                <Button asChild size="sm">
-                  <Link href={ROUTES.signup}>تسجيل</Link>
-                </Button>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
+      <MainNav signedIn={!!user} isAdmin={isAdmin} />
 
       {/* HERO */}
       <section className="relative border-b border-gray-200 bg-white">
-        <div className="container mx-auto px-4 py-10 max-w-6xl grid lg:grid-cols-5 gap-10 items-start">
+        <div className="container mx-auto px-4 py-6 sm:py-10 max-w-6xl grid lg:grid-cols-5 gap-6 lg:gap-10 items-start">
           {/* Left: meta */}
           <div className="lg:col-span-3">
             <div className="flex flex-wrap items-center gap-2 mb-4 text-xs">
@@ -205,12 +190,12 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
               )}
             </div>
 
-            <h1 className="font-display text-3xl md:text-5xl font-extrabold mb-4 leading-tight">
+            <h1 className="font-display text-2xl sm:text-3xl md:text-5xl font-extrabold mb-3 sm:mb-4 leading-tight">
               {course.title_ar}
             </h1>
 
             {course.short_description_ar && (
-              <p className="text-lg text-gray-600 mb-6 leading-relaxed">
+              <p className="text-base sm:text-lg text-gray-600 mb-5 sm:mb-6 leading-relaxed">
                 {course.short_description_ar}
               </p>
             )}
@@ -247,7 +232,7 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3">
-              <Button asChild size="lg" className="min-w-[200px]">
+              <Button asChild size="lg" className="w-full sm:w-auto sm:min-w-[200px]">
                 <Link href={ctaHref}>
                   {subscribed && resumeLessonId ? null : <Play className="w-4 h-4" />}
                   {ctaLabel}
@@ -255,7 +240,7 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
                 </Link>
               </Button>
               {!subscribed && firstPreviewLesson && (
-                <Button asChild size="lg" variant="outline">
+                <Button asChild size="lg" variant="outline" className="w-full sm:w-auto">
                   <Link href={ROUTES.lesson(firstPreviewLesson.id)}>
                     <Play className="w-4 h-4" />
                     شوف عينة مجانية
@@ -297,12 +282,12 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
       </section>
 
       {/* BODY: syllabus + sidebar */}
-      <main className="container mx-auto px-4 py-12 max-w-6xl grid lg:grid-cols-5 gap-10">
-        <div className="lg:col-span-3 space-y-10">
+      <main className="container mx-auto px-4 py-6 sm:py-12 max-w-6xl grid lg:grid-cols-5 gap-6 lg:gap-10">
+        <div className="lg:col-span-3 space-y-6 sm:space-y-10">
           {/* What you'll learn */}
           {(course as any).what_you_learn?.length > 0 && (
-            <section className="p-6 rounded-2xl bg-white border border-gray-200">
-              <h2 className="font-display text-2xl font-bold mb-4">اللي هتتعلّمه</h2>
+            <section className="p-5 sm:p-5 sm:p-6 rounded-2xl bg-white border border-gray-200">
+              <h2 className="font-display text-xl sm:text-2xl font-bold mb-3 sm:mb-4">اللي هتتعلّمه</h2>
               <ul className="grid md:grid-cols-2 gap-x-6 gap-y-3">
                 {((course as any).what_you_learn as string[]).map((point, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm text-gray-700 leading-relaxed">
@@ -317,7 +302,7 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
           {/* Requirements */}
           {(course as any).requirements?.length > 0 && (
             <section>
-              <h2 className="font-display text-2xl font-bold mb-4">المتطلبات</h2>
+              <h2 className="font-display text-xl sm:text-2xl font-bold mb-3 sm:mb-4">المتطلبات</h2>
               <ul className="space-y-2 text-sm text-gray-700 leading-relaxed">
                 {((course as any).requirements as string[]).map((point, i) => (
                   <li key={i} className="flex items-start gap-2">
@@ -332,7 +317,7 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
           {/* Description */}
           {course.description_ar && (
             <section>
-              <h2 className="font-display text-2xl font-bold mb-4">نظرة عامة</h2>
+              <h2 className="font-display text-xl sm:text-2xl font-bold mb-3 sm:mb-4">نظرة عامة</h2>
               <div className="prose prose-gray max-w-none text-gray-700 leading-relaxed whitespace-pre-line">
                 {course.description_ar}
               </div>
@@ -341,7 +326,7 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
 
           {/* Syllabus */}
           <section>
-            <h2 className="font-display text-2xl font-bold mb-4">المنهج</h2>
+            <h2 className="font-display text-xl sm:text-2xl font-bold mb-3 sm:mb-4">المنهج</h2>
             {chapters.length === 0 ? (
               <div className="p-8 rounded-2xl bg-white border border-gray-200 text-center text-sm text-gray-500">
                 لسه ما فيش دروس مضافة للكورس ده
@@ -431,8 +416,8 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
           {/* Instructor */}
           {instructor && (
             <section>
-              <h2 className="font-display text-2xl font-bold mb-4">المُحاضر</h2>
-              <div className="p-6 rounded-2xl bg-white border border-gray-200 flex gap-4 items-start">
+              <h2 className="font-display text-xl sm:text-2xl font-bold mb-3 sm:mb-4">المُحاضر</h2>
+              <div className="p-5 sm:p-6 rounded-2xl bg-white border border-gray-200 flex gap-4 items-start">
                 <div className="w-16 h-16 rounded-full overflow-hidden bg-brand-500/10 flex-shrink-0 flex items-center justify-center">
                   {instructor.avatar_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -464,7 +449,7 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
         {/* Right rail */}
         <aside className="lg:col-span-2 space-y-4">
           {!subscribed && (
-            <div className="p-6 rounded-2xl bg-gradient-to-br from-brand-500/10 to-white border border-brand-500/30">
+            <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-brand-500/10 to-white border border-brand-500/30">
               <h3 className="font-display text-xl font-bold mb-2">
                 اشترك واحصل على كل الكورسات
               </h3>
@@ -495,7 +480,7 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
           )}
 
           {subscribed && (
-            <div className="p-6 rounded-2xl bg-white border border-gray-200">
+            <div className="p-5 sm:p-6 rounded-2xl bg-white border border-gray-200">
               <div className="flex items-center gap-2 mb-3 text-sm text-brand-600 font-medium">
                 <CheckCircle2 className="w-5 h-5" />
                 {enrolledOnly ? 'تم تسجيلك في هذا الكورس' : 'اشتراكك مفعّل'}
