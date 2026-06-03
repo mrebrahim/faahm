@@ -14,20 +14,24 @@ import {
   PlayCircle,
   Bot,
   Sparkles,
+  Shield,
+  Activity,
+  Brain,
+  Clock,
 } from 'lucide-react';
 import { AI_READINESS_QUESTIONS } from '@/lib/ai-readiness/questions';
 import { tally } from '@/lib/ai-readiness/scoring';
-import { getBand } from '@/lib/ai-readiness/bands';
+import { getBand, DIMENSION_META } from '@/lib/ai-readiness/bands';
 import {
   matchCoursesForReadiness,
   type AIReadinessMatch,
 } from '@/lib/ai-readiness/matching';
 import type { CatalogCourse } from '@/lib/career/matching';
+import { DIMENSIONS } from '@/lib/ai-readiness/types';
 import type {
   AIReadinessAnswer,
   AIReadinessResult,
-  LikertAnswer,
-  WorkType,
+  AnswerValue,
 } from '@/lib/ai-readiness/types';
 import { submitAIReadinessLead } from './actions';
 import { OFFLINE_PAYMENTS } from '@/lib/constants';
@@ -54,7 +58,7 @@ export function AIReadinessFlow({ catalog }: { catalog: CatalogCourse[] }) {
     return { result, band, match };
   }, [answers, catalog, total]);
 
-  function choose(value: LikertAnswer | WorkType) {
+  function choose(value: AnswerValue) {
     const next: AIReadinessAnswer[] = [
       ...answers.filter((a) => a.questionId !== currentQ.id),
       { questionId: currentQ.id, value },
@@ -64,7 +68,7 @@ export function AIReadinessFlow({ catalog }: { catalog: CatalogCourse[] }) {
       setQIdx(qIdx + 1);
     } else {
       setStage('calculating');
-      setTimeout(() => setStage('gate'), 1600);
+      setTimeout(() => setStage('gate'), 1800);
     }
   }
 
@@ -101,7 +105,8 @@ export function AIReadinessFlow({ catalog }: { catalog: CatalogCourse[] }) {
             idx={qIdx}
             total={total}
             progress={progress}
-            question={currentQ}
+            prompt={currentQ.prompt}
+            options={currentQ.options}
             selected={
               answers.find((a) => a.questionId === currentQ.id)?.value ?? null
             }
@@ -139,32 +144,99 @@ export function AIReadinessFlow({ catalog }: { catalog: CatalogCourse[] }) {
 
 function Intro({ onStart }: { onStart: () => void }) {
   return (
-    <div className="text-center">
-      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-700 text-xs font-medium mb-5">
-        <Bot className="w-3.5 h-3.5" />
-        15 سؤال · 3 دقايق
-      </span>
-      <h1 className="font-display text-4xl sm:text-5xl font-extrabold leading-tight mb-4">
-        هل الـ AI
-        <br />
-        <span className="text-cyan-600">هياخد شغلك؟</span>
-      </h1>
-      <p className="text-gray-600 text-lg mb-8 max-w-xl mx-auto leading-relaxed">
-        اختبار سريع يقيس جاهزيتك للـ AI من 0 لـ 100، ويقولك بصراحة وضعك الحالي،
-        وإيه أحسن خطوة تعملها دلوقتي.
-      </p>
-      <Button
-        size="lg"
-        onClick={onStart}
-        className="text-base px-8 py-6 bg-cyan-600 hover:bg-cyan-700"
-      >
-        <PlayCircle className="w-5 h-5" />
-        ابدأ الاختبار
-        <ArrowLeft className="w-4 h-4" />
-      </Button>
-      <p className="text-xs text-gray-400 mt-6">
-        مجاناً · بدون تسجيل · نتيجة فورية
-      </p>
+    <div>
+      <div className="text-center mb-8">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-700 text-xs font-medium mb-5">
+          <Bot className="w-3.5 h-3.5" />
+          اختبار مبني بالذكاء الاصطناعي
+        </span>
+        <h1 className="font-display text-4xl sm:text-5xl font-extrabold leading-tight mb-4">
+          هل الـ AI
+          <br />
+          <span className="text-cyan-600">هياخد شغلك؟</span>
+        </h1>
+        <p className="text-gray-600 text-lg mb-2 max-w-xl mx-auto leading-relaxed">
+          اختبار عميق مبني بالـ AI لقياس قدراتك الحقيقية في الذكاء الاصطناعي.
+        </p>
+        <p className="text-sm text-gray-500 max-w-xl mx-auto leading-relaxed">
+          مش بنقيس "بتعرف AI ولا لأ" — بنقيس <strong>الخطر الحقيقي</strong>:
+          طبيعة مهامك، موقعك الاقتصادي، وسرعة تكيّفك. حد بيعرف ChatGPT ممكن
+          يكون في خطر أكبر من حد عمره ما فتحه — لو شغل التاني مبني على علاقات
+          وثقة ومسؤولية.
+        </p>
+      </div>
+
+      {/* What it measures */}
+      <div className="rounded-2xl bg-white border border-gray-200 p-5 mb-6">
+        <p className="text-xs uppercase tracking-wider text-gray-400 font-bold mb-3">
+          الـ 6 محاور اللي بنقيسها
+        </p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <DimChip icon={Activity} label="طبيعة المهام" weight="25%" />
+          <DimChip icon={Activity} label="التعرّض الرقمي" weight="15%" />
+          <DimChip icon={Bot} label="استخدام الـ AI" weight="20%" />
+          <DimChip icon={Shield} label="الموقع الاقتصادي" weight="20%" />
+          <DimChip icon={Brain} label="سرعة التكيّف" weight="15%" />
+          <DimChip icon={Sparkles} label="العقلية" weight="5%" />
+        </div>
+      </div>
+
+      {/* Stats strip */}
+      <div className="grid grid-cols-3 gap-3 mb-8">
+        <Stat icon={Activity} label="30 سؤال" />
+        <Stat icon={Clock} label="6-8 دقايق" />
+        <Stat icon={Sparkles} label="نتيجة فورية" />
+      </div>
+
+      <div className="text-center">
+        <Button
+          size="lg"
+          onClick={onStart}
+          className="text-base px-8 py-6 bg-cyan-600 hover:bg-cyan-700"
+        >
+          <PlayCircle className="w-5 h-5" />
+          ابدأ الاختبار
+          <ArrowLeft className="w-4 h-4" />
+        </Button>
+        <p className="text-xs text-gray-400 mt-6">
+          مجاناً · بدون تسجيل · 30 سؤال مدروسين
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function DimChip({
+  icon: Icon,
+  label,
+  weight,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  weight: string;
+}) {
+  return (
+    <div className="flex items-center gap-2 p-2 rounded-lg bg-cyan-50/50 border border-cyan-100">
+      <Icon className="w-3.5 h-3.5 text-cyan-600 flex-shrink-0" />
+      <div className="min-w-0">
+        <div className="text-xs font-bold truncate">{label}</div>
+        <div className="text-[10px] text-cyan-700 font-mono" dir="ltr">{weight}</div>
+      </div>
+    </div>
+  );
+}
+
+function Stat({
+  icon: Icon,
+  label,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+}) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-3 text-center">
+      <Icon className="w-4 h-4 mx-auto mb-1 text-cyan-600" />
+      <div className="text-xs font-bold">{label}</div>
     </div>
   );
 }
@@ -173,7 +245,8 @@ function Quiz({
   idx,
   total,
   progress,
-  question,
+  prompt,
+  options,
   selected,
   onChoose,
   onBack,
@@ -181,9 +254,10 @@ function Quiz({
   idx: number;
   total: number;
   progress: number;
-  question: (typeof AI_READINESS_QUESTIONS)[number];
-  selected: LikertAnswer | WorkType | null;
-  onChoose: (v: LikertAnswer | WorkType) => void;
+  prompt: string;
+  options: { label: string; value: AnswerValue }[];
+  selected: AnswerValue | null;
+  onChoose: (v: AnswerValue) => void;
   onBack: () => void;
 }) {
   return (
@@ -201,28 +275,25 @@ function Quiz({
         </div>
       </div>
 
-      <div className="rounded-2xl bg-white border border-gray-200 p-6 sm:p-8 shadow-sm">
-        <h2 className="font-display text-xl sm:text-2xl font-bold mb-6 leading-relaxed">
-          {question.prompt}
+      <div className="rounded-2xl bg-white border border-gray-200 p-5 sm:p-8 shadow-sm">
+        <h2 className="font-display text-lg sm:text-2xl font-bold mb-6 leading-relaxed">
+          {prompt}
         </h2>
         <div className="space-y-2">
-          {question.options.map((opt, i) => {
-            const isSelected = selected === (opt as any).value;
-            return (
-              <button
-                key={i}
-                type="button"
-                onClick={() => onChoose((opt as any).value)}
-                className={`w-full text-right p-4 rounded-xl border-2 transition-all text-sm sm:text-base leading-relaxed ${
-                  isSelected
-                    ? 'border-cyan-500 bg-cyan-500/5 text-cyan-700 font-medium'
-                    : 'border-gray-200 bg-white hover:border-cyan-500/40 hover:bg-cyan-500/5'
-                }`}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
+          {options.map((opt, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => onChoose(opt.value)}
+              className={`w-full text-right p-4 rounded-xl border-2 transition-all text-sm sm:text-base leading-relaxed ${
+                selected === opt.value
+                  ? 'border-cyan-500 bg-cyan-500/5 text-cyan-700 font-medium'
+                  : 'border-gray-200 bg-white hover:border-cyan-500/40 hover:bg-cyan-500/5'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -245,10 +316,10 @@ function Calculating() {
     <div className="text-center py-20">
       <Loader2 className="w-12 h-12 text-cyan-500 animate-spin mx-auto mb-6" />
       <h2 className="font-display text-2xl font-bold mb-2">
-        بنحسب جاهزيتك للـ AI…
+        الـ AI بيحلّل إجاباتك على المحاور الـ 6…
       </h2>
       <p className="text-sm text-gray-500">
-        بنحلل إجاباتك على المحاور الثلاثة
+        بنحسب الخطر الحقيقي مش المعرفة السطحية
       </p>
     </div>
   );
@@ -290,10 +361,10 @@ function Gate({
       </div>
 
       <div className="rounded-2xl bg-white border border-gray-200 p-6 sm:p-8">
-        <h3 className="font-display text-xl font-bold mb-2">🎉 نتيجتك جاهزة!</h3>
+        <h3 className="font-display text-xl font-bold mb-2">🎯 تقريرك جاهز</h3>
         <p className="text-sm text-gray-600 mb-5 leading-relaxed">
-          اكتب اسمك ورقم الواتساب نبعتلك التقرير الكامل + الـ catch-up plan
-          المخصص ليك.
+          اكتب اسمك ورقم الواتساب نبعتلك التحليل الكامل للـ 6 محاور + الكورس
+          اللي تبدأ بيه مساره.
         </p>
 
         <form onSubmit={onSubmit} className="space-y-4">
@@ -346,7 +417,7 @@ function Gate({
               </>
             ) : (
               <>
-                شوف الـ catch-up plan
+                شوف تحليلك الكامل
                 <ArrowLeft className="w-4 h-4" />
               </>
             )}
@@ -368,7 +439,9 @@ function Result({
   match: AIReadinessMatch;
   confirmed: boolean;
 }) {
-  const waMsg = `نقطي في تيست الجاهزية للـ AI: ${result.score}/100 (${band.name_ar.split('—')[0].trim()}). عاوز أعرف أكتر عن كورس ${match.primary?.title_ar ?? ''}`;
+  const weakMeta = DIMENSION_META[result.weakest];
+  const strongMeta = DIMENSION_META[result.strongest];
+  const waMsg = `نقطي في تيست الجاهزية للـ AI: ${result.score}/100 (${band.name_ar}). أقوى محور: ${strongMeta.name_ar}. عاوز أعرف أكتر عن كورس ${match.primary?.title_ar ?? ''}`;
   const waHref = `https://wa.me/${OFFLINE_PAYMENTS.confirmationWhatsApp}?text=${encodeURIComponent(waMsg)}`;
 
   return (
@@ -380,7 +453,7 @@ function Result({
         </div>
       )}
 
-      {/* Score + band card */}
+      {/* Score + band */}
       <div className={`rounded-2xl p-6 sm:p-8 text-white bg-gradient-to-br ${band.colorClass}`}>
         <div className="flex items-center justify-between mb-3">
           <div className="text-6xl">{band.emoji}</div>
@@ -388,58 +461,91 @@ function Result({
             <p className="text-xs uppercase tracking-wider opacity-80 mb-0.5">
               نقطك
             </p>
-            <div className="font-display text-6xl font-extrabold leading-none">
+            <div className="font-display text-7xl font-extrabold leading-none">
               {result.score}
               <span className="text-3xl opacity-70">/100</span>
             </div>
           </div>
         </div>
         <p className="text-xs uppercase tracking-wider opacity-80 mb-1">جاهزيتك للـ AI</p>
-        <h1 className="font-display text-2xl sm:text-3xl font-extrabold mb-2 leading-tight">
+        <h1 className="font-display text-3xl sm:text-4xl font-extrabold mb-2">
           {band.name_ar}
         </h1>
         <p className="text-sm opacity-90 leading-relaxed">{band.description_ar}</p>
       </div>
 
-      {/* Dimensions */}
+      {/* 6 dimensions */}
       <div className="rounded-2xl bg-white border border-gray-200 p-5 sm:p-6">
-        <h3 className="font-display text-lg font-bold mb-4">المحاور التلاتة</h3>
+        <h3 className="font-display text-lg font-bold mb-1">المحاور الـ 6</h3>
+        <p className="text-xs text-gray-500 mb-4">
+          كل محور بيقيس جزء من الخطر الحقيقي — مش المعرفة السطحية.
+        </p>
         <div className="space-y-4">
-          <DimBar
-            label="الاستخدام الفعلي (Adoption)"
-            sublabel="قد إيه بتستخدم AI tools دلوقتي"
-            value={result.dimensions.adoption}
-          />
-          <DimBar
-            label="المهارة (Skill)"
-            sublabel="قد إيه تعرف تستخرج اللي عايزه من الـ AI"
-            value={result.dimensions.skill}
-          />
-          <DimBar
-            label="التعرّض (Exposure)"
-            sublabel="قد إيه شغلك ممكن يتأتمت"
-            value={result.dimensions.exposure}
-            inverse
-          />
+          {DIMENSIONS.map((d) => {
+            const score = result.dimensions[d];
+            const meta = DIMENSION_META[d];
+            const isWeak = d === result.weakest;
+            const isStrong = d === result.strongest;
+            const color =
+              score.pct >= 70
+                ? 'bg-emerald-500'
+                : score.pct >= 40
+                  ? 'bg-amber-500'
+                  : 'bg-rose-500';
+            return (
+              <div key={d}>
+                <div className="flex items-center justify-between mb-1.5 gap-3">
+                  <div className="min-w-0 flex items-center gap-2">
+                    <span className="text-sm font-medium truncate">{meta.name_ar}</span>
+                    {isStrong && (
+                      <span className="text-[9px] font-bold bg-emerald-500 text-white px-1.5 py-0.5 rounded-full">
+                        أقوى نقطة
+                      </span>
+                    )}
+                    {isWeak && (
+                      <span className="text-[9px] font-bold bg-amber-500 text-white px-1.5 py-0.5 rounded-full">
+                        نقطة ضعف
+                      </span>
+                    )}
+                  </div>
+                  <div className="font-display text-sm font-bold whitespace-nowrap" dir="ltr">
+                    {score.pct}%
+                  </div>
+                </div>
+                <div className="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
+                  <div className={`h-full ${color} transition-all`} style={{ width: `${score.pct}%` }} />
+                </div>
+                <p className="text-[11px] text-gray-500 mt-1">{meta.short_ar}</p>
+              </div>
+            );
+          })}
         </div>
       </div>
+
+      {/* Weakest dimension callout */}
+      {result.strongest !== result.weakest && (
+        <div className="rounded-2xl bg-amber-50 border-2 border-amber-300 p-5 sm:p-6">
+          <p className="text-xs text-amber-800 font-bold uppercase tracking-wider mb-1">
+            أهم نقطة تشتغل عليها
+          </p>
+          <h3 className="font-display text-xl font-bold text-amber-900 mb-2">
+            {weakMeta.name_ar}
+          </h3>
+          <p className="text-sm text-amber-800 leading-relaxed">
+            {weakMeta.growth_advice_ar}
+          </p>
+        </div>
+      )}
 
       {/* Catch-up plan */}
       {match.primary && (
         <div className="rounded-2xl bg-white border-2 border-cyan-500/30 p-6 sm:p-8">
-          {match.unclearWork && (
-            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 mb-3">
-              لسه شغلك مش محدد بوضوح — ابدأ بكورس اكتشاف الشغف ومنه نبني خطة فعلية.
-            </p>
-          )}
           <p className="text-xs text-cyan-700 font-medium mb-1">خطتك المخصصة</p>
           <h3 className="font-display text-xl font-bold mb-2">
             {band.catch_up_plan_intro}
           </h3>
           <div className="mt-4 rounded-xl bg-cyan-500/5 border border-cyan-500/20 p-4">
-            <p className="text-xs text-cyan-700 font-medium mb-2">
-              ابدأ بـ:
-            </p>
+            <p className="text-xs text-cyan-700 font-medium mb-2">ابدأ بـ:</p>
             <h4 className="font-display text-lg font-bold mb-1">
               {match.primary.title_ar}
             </h4>
@@ -451,7 +557,7 @@ function Result({
             <Button asChild size="lg" className="w-full bg-cyan-600 hover:bg-cyan-700">
               <Link href={`/course/${match.primary.slug}`}>
                 <PlayCircle className="w-5 h-5" />
-                ابدأ الكورس
+                ابدأ الكورس دلوقتي
                 <ArrowLeft className="w-4 h-4" />
               </Link>
             </Button>
@@ -477,7 +583,7 @@ function Result({
         </div>
       )}
 
-      {/* Cross-sell */}
+      {/* Cross-sell to career test */}
       <div className="rounded-2xl bg-gradient-to-br from-brand-500/10 to-indigo-500/10 border border-brand-500/30 p-5 sm:p-6">
         <h3 className="font-display text-lg font-bold mb-1">عرفت وضعك في الـ AI…</h3>
         <p className="text-sm text-gray-600 mb-3">
@@ -501,48 +607,6 @@ function Result({
         <MessageCircle className="w-5 h-5" />
         كلّم فريق فاهم على واتساب
       </a>
-    </div>
-  );
-}
-
-function DimBar({
-  label,
-  sublabel,
-  value,
-  inverse = false,
-}: {
-  label: string;
-  sublabel: string;
-  value: number;
-  /** When true, the bar's color flips: a high value is BAD (more exposed). */
-  inverse?: boolean;
-}) {
-  const pct = Math.max(0, Math.min(100, value));
-  const color = inverse
-    ? pct > 60
-      ? 'bg-rose-500'
-      : pct > 30
-        ? 'bg-amber-500'
-        : 'bg-emerald-500'
-    : pct > 60
-      ? 'bg-emerald-500'
-      : pct > 30
-        ? 'bg-amber-500'
-        : 'bg-rose-500';
-  return (
-    <div>
-      <div className="flex items-start justify-between gap-3 mb-1.5">
-        <div className="min-w-0">
-          <div className="text-sm font-medium">{label}</div>
-          <div className="text-xs text-gray-400 mt-0.5">{sublabel}</div>
-        </div>
-        <div className="font-display text-lg font-bold whitespace-nowrap" dir="ltr">
-          {pct}%
-        </div>
-      </div>
-      <div className="w-full h-2 rounded-full bg-gray-100 overflow-hidden">
-        <div className={`h-full ${color} transition-all`} style={{ width: `${pct}%` }} />
-      </div>
     </div>
   );
 }

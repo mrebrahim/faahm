@@ -56,13 +56,16 @@ export async function submitAIReadinessLead(
   const utmCampaign = input.utm?.campaign ?? c.get('utm_campaign')?.value ?? null;
 
   const service = createServiceClient();
+  // work_type column kept on the table for back-compat (the old test
+  // captured it). The depth rebuild dropped that signal — store the
+  // weakest dimension there so the column stays useful for filtering.
   const { error } = await service.from('ai_readiness_leads').insert({
     name,
     whatsapp,
     email,
     band: result.band,
     score: result.score,
-    work_type: result.workType,
+    work_type: result.weakest,
     dimension_scores: result.dimensions,
     primary_course_slug: match.primary?.slug ?? null,
     also_explore_slugs: match.alsoExplore.map((c) => c.slug),

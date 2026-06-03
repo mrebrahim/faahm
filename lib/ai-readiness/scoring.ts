@@ -2,71 +2,67 @@ import type {
   AIReadinessAnswer,
   AIReadinessResult,
   BandId,
+  Dimension,
   DimensionScores,
-  LikertAnswer,
-  WorkType,
 } from './types';
+import { DIMENSIONS, DIMENSION_WEIGHTS } from './types';
 import { AI_READINESS_QUESTIONS } from './questions';
 
 /**
- * Score breakdown (totals to 100):
- *   Adoption  : 5 questions × 4 pts × 2.0 weight = 40 pts max
- *   Skill     : 5 questions × 4 pts × 2.0 weight = 40 pts max
- *   Exposure  : 4 questions × 4 pts inverted    × 1.25 = 20 pts max
+ * Compute per-dimension averages, then weight per PRD §3:
+ *   25% task · 15% digital · 20% AI use · 20% moat · 15% adapt · 5% mindset
  *
- * Exposure is INVERTED so a person with highly automatable work
- * loses 'readiness' points — high exposure = the AI takes the work.
+ * Weights mean every dimension counts proportionally regardless of how
+ * many questions sit underneath it — so we can add depth questions to
+ * any dimension later without rebalancing the final score.
  */
-const ADOPTION_QUESTIONS = 5;
-const SKILL_QUESTIONS = 5;
-const EXPOSURE_QUESTIONS = 4;
-const ADOPTION_MAX = ADOPTION_QUESTIONS * 4; // 20
-const SKILL_MAX = SKILL_QUESTIONS * 4; // 20
-const EXPOSURE_MAX = EXPOSURE_QUESTIONS * 4; // 16
-
 export function tally(answers: AIReadinessAnswer[]): AIReadinessResult {
   const byId = new Map(AI_READINESS_QUESTIONS.map((q) => [q.id, q]));
-  const raw: DimensionScores = { adoption: 0, skill: 0, exposure: 0 };
-  let workType: WorkType = 'unclear';
+  const totals: Record<Dimension, { raw: number; max: number }> = {
+    task_composition: { raw: 0, max: 0 },
+    digital_exposure: { raw: 0, max: 0 },
+    ai_leverage: { raw: 0, max: 0 },
+    economic_moat: { raw: 0, max: 0 },
+    adaptation: { raw: 0, max: 0 },
+    mindset: { raw: 0, max: 0 },
+  };
+  for (const q of AI_READINESS_QUESTIONS) totals[q.dimension].max += 3;
 
   for (const a of answers) {
     const q = byId.get(a.questionId);
     if (!q) continue;
-    if (q.kind === 'scored') {
-      const v = a.value as LikertAnswer;
-      if (typeof v === 'number' && v >= 0 && v <= 4) {
-        raw[q.dimension] += v;
-      }
-    } else if (q.kind === 'work_type') {
-      const v = a.value as WorkType;
-      if (
-        v === 'office' ||
-        v === 'tech' ||
-        v === 'marketing' ||
-        v === 'educator' ||
-        v === 'unclear'
-      ) {
-        workType = v;
-      }
-    }
+    if (a.value < 0 || a.value > 3) continue;
+    totals[q.dimension].raw += a.value;
   }
 
-  // Normalised dimension scores (each 0..100) for the result card.
-  const dimensions: DimensionScores = {
-    adoption: Math.round((raw.adoption / ADOPTION_MAX) * 100),
-    skill: Math.round((raw.skill / SKILL_MAX) * 100),
-    // Exposure is reported as-given (higher = more exposed) so the UI
-    // can show 'kam exposed' rather than 'how immune' — easier to read.
-    exposure: Math.round((raw.exposure / EXPOSURE_MAX) * 100),
-  };
+  const dimensions = {} as DimensionScores;
+  let weightedSum = 0;
+  for (const d of DIMENSIONS) {
+    const { raw, max } = totals[d];
+    const pct = max > 0 ? raw / max : 0;
+    dimensions[d] = { raw, max, pct: Math.round(pct * 100) };
+    weightedSum += pct * DIMENSION_WEIGHTS[d];
+  }
+  const score = Math.round(weightedSum * 100);
 
-  const adoptionPts = (raw.adoption / ADOPTION_MAX) * 40;
-  const skillPts = (raw.skill / SKILL_MAX) * 40;
-  // Inverted exposure: 1 − (exposure / max) gives 0..1 with 'low exposure' = 1.
-  const exposurePts = (1 - raw.exposure / EXPOSURE_MAX) * 20;
-  const score = Math.round(adoptionPts + skillPts + exposurePts);
+  const band: BandId =
+    score <= 35
+      ? 'danger'
+      : score <= 60
+        ? 'transitioning'
+        : score <= 80
+          ? 'strong'
+          : 'leading';
 
-  const band: BandId = score < 40 ? 'high_exposure' : score < 70 ? 'safe' : 'ahead';
+  // Stable strongest/weakest — DIMENSIONS order breaks ties.
+  const strongest = DIMENSIONS.reduce(
+    (top, d) => (dimensions[d].pct > dimensions[top].pct ? d : top),
+    DIMENSIONS[0]
+  );
+  const weakest = DIMENSIONS.reduce(
+    (low, d) => (dimensions[d].pct < dimensions[low].pct ? d : low),
+    DIMENSIONS[0]
+  );
 
-  return { score, band, workType, dimensions };
+  return { score, band, dimensions, weakest, strongest };
 }
