@@ -171,12 +171,12 @@ export default async function CheckoutPage({
             subtitle="تحويل فوري من أي بنك مصري"
           />
 
-          {/* Vodafone Cash */}
+          {/* Vodafone Cash / Barq */}
           <PaymentMethod
             href={`/offline/vodafone?plan=${planParam}`}
             icon={Smartphone}
-            title="Vodafone Cash"
-            subtitle="فودافون كاش / محفظة إلكترونية"
+            title="Vodafone Cash أو Barq"
+            subtitle="فودافون كاش / تحويل دولي من السعودية عبر Barq"
           />
         </div>
 
