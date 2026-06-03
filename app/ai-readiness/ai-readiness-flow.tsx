@@ -150,15 +150,15 @@ function Intro({ onStart }: { onStart: () => void }) {
           <Bot className="w-3.5 h-3.5" />
           اختبار مبني بالذكاء الاصطناعي
         </span>
-        <h1 className="font-display text-4xl sm:text-5xl font-extrabold leading-tight mb-4">
+        <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight mb-4">
           هل الـ AI
           <br />
           <span className="text-cyan-600">هياخد شغلك؟</span>
         </h1>
-        <p className="text-gray-600 text-lg mb-2 max-w-xl mx-auto leading-relaxed">
+        <p className="text-gray-600 text-base sm:text-lg mb-2 max-w-xl mx-auto leading-relaxed">
           اختبار عميق مبني بالـ AI لقياس قدراتك الحقيقية في الذكاء الاصطناعي.
         </p>
-        <p className="text-sm text-gray-500 max-w-xl mx-auto leading-relaxed">
+        <p className="text-xs sm:text-sm text-gray-500 max-w-xl mx-auto leading-relaxed">
           مش بنقيس "بتعرف AI ولا لأ" — بنقيس <strong>الخطر الحقيقي</strong>:
           طبيعة مهامك، موقعك الاقتصادي، وسرعة تكيّفك. حد بيعرف ChatGPT ممكن
           يكون في خطر أكبر من حد عمره ما فتحه — لو شغل التاني مبني على علاقات
@@ -216,10 +216,10 @@ function DimChip({
   weight: string;
 }) {
   return (
-    <div className="flex items-center gap-2 p-2 rounded-lg bg-cyan-50/50 border border-cyan-100">
+    <div className="flex items-center gap-2 p-2 sm:p-2.5 rounded-lg bg-cyan-50/50 border border-cyan-100">
       <Icon className="w-3.5 h-3.5 text-cyan-600 flex-shrink-0" />
-      <div className="min-w-0">
-        <div className="text-xs font-bold truncate">{label}</div>
+      <div className="min-w-0 flex-1">
+        <div className="text-[11px] sm:text-xs font-bold truncate">{label}</div>
         <div className="text-[10px] text-cyan-700 font-mono" dir="ltr">{weight}</div>
       </div>
     </div>
@@ -313,9 +313,9 @@ function Quiz({
 
 function Calculating() {
   return (
-    <div className="text-center py-20">
+    <div className="text-center py-16 sm:py-20 px-4">
       <Loader2 className="w-12 h-12 text-cyan-500 animate-spin mx-auto mb-6" />
-      <h2 className="font-display text-2xl font-bold mb-2">
+      <h2 className="font-display text-lg sm:text-2xl font-bold mb-2 leading-relaxed">
         الـ AI بيحلّل إجاباتك على المحاور الـ 6…
       </h2>
       <p className="text-sm text-gray-500">
@@ -340,28 +340,28 @@ function Gate({
 }) {
   return (
     <div>
-      <div className={`rounded-2xl p-6 sm:p-8 mb-6 text-white bg-gradient-to-br ${band.colorClass}`}>
-        <div className="flex items-center justify-between mb-3">
-          <div className="text-5xl">{band.emoji}</div>
-          <div className="text-right">
-            <p className="text-xs uppercase tracking-wider opacity-80 mb-0.5">
+      <div className={`rounded-2xl p-5 sm:p-8 mb-6 text-white bg-gradient-to-br ${band.colorClass}`}>
+        <div className="flex items-center justify-between mb-3 gap-3">
+          <div className="text-4xl sm:text-5xl flex-shrink-0">{band.emoji}</div>
+          <div className="text-right min-w-0">
+            <p className="text-[10px] sm:text-xs uppercase tracking-wider opacity-80 mb-0.5">
               نقطك
             </p>
-            <div className="font-display text-5xl font-extrabold leading-none">
+            <div className="font-display text-4xl sm:text-5xl font-extrabold leading-none">
               {score}
-              <span className="text-2xl opacity-70">/100</span>
+              <span className="text-xl sm:text-2xl opacity-70">/100</span>
             </div>
           </div>
         </div>
-        <p className="text-xs uppercase tracking-wider opacity-80 mb-1">جاهزيتك للـ AI</p>
-        <h2 className="font-display text-2xl sm:text-3xl font-extrabold mb-2 leading-tight">
+        <p className="text-[10px] sm:text-xs uppercase tracking-wider opacity-80 mb-1">جاهزيتك للـ AI</p>
+        <h2 className="font-display text-xl sm:text-3xl font-extrabold mb-2 leading-tight">
           {band.name_ar}
         </h2>
         <p className="text-sm opacity-90 leading-relaxed">{band.tagline_ar}</p>
       </div>
 
-      <div className="rounded-2xl bg-white border border-gray-200 p-6 sm:p-8">
-        <h3 className="font-display text-xl font-bold mb-2">🎯 تقريرك جاهز</h3>
+      <div className="rounded-2xl bg-white border border-gray-200 p-5 sm:p-8">
+        <h3 className="font-display text-lg sm:text-xl font-bold mb-2">🎯 تقريرك جاهز</h3>
         <p className="text-sm text-gray-600 mb-5 leading-relaxed">
           اكتب اسمك ورقم الواتساب نبعتلك التحليل الكامل للـ 6 محاور + الكورس
           اللي تبدأ بيه مساره.
@@ -454,21 +454,21 @@ function Result({
       )}
 
       {/* Score + band */}
-      <div className={`rounded-2xl p-6 sm:p-8 text-white bg-gradient-to-br ${band.colorClass}`}>
-        <div className="flex items-center justify-between mb-3">
-          <div className="text-6xl">{band.emoji}</div>
-          <div className="text-right">
-            <p className="text-xs uppercase tracking-wider opacity-80 mb-0.5">
+      <div className={`rounded-2xl p-5 sm:p-8 text-white bg-gradient-to-br ${band.colorClass}`}>
+        <div className="flex items-center justify-between mb-3 gap-3">
+          <div className="text-5xl sm:text-6xl flex-shrink-0">{band.emoji}</div>
+          <div className="text-right min-w-0">
+            <p className="text-[10px] sm:text-xs uppercase tracking-wider opacity-80 mb-0.5">
               نقطك
             </p>
-            <div className="font-display text-7xl font-extrabold leading-none">
+            <div className="font-display text-5xl sm:text-7xl font-extrabold leading-none">
               {result.score}
-              <span className="text-3xl opacity-70">/100</span>
+              <span className="text-2xl sm:text-3xl opacity-70">/100</span>
             </div>
           </div>
         </div>
-        <p className="text-xs uppercase tracking-wider opacity-80 mb-1">جاهزيتك للـ AI</p>
-        <h1 className="font-display text-3xl sm:text-4xl font-extrabold mb-2">
+        <p className="text-[10px] sm:text-xs uppercase tracking-wider opacity-80 mb-1">جاهزيتك للـ AI</p>
+        <h1 className="font-display text-2xl sm:text-4xl font-extrabold mb-2 leading-tight">
           {band.name_ar}
         </h1>
         <p className="text-sm opacity-90 leading-relaxed">{band.description_ar}</p>
@@ -539,9 +539,9 @@ function Result({
 
       {/* Catch-up plan */}
       {match.primary && (
-        <div className="rounded-2xl bg-white border-2 border-cyan-500/30 p-6 sm:p-8">
+        <div className="rounded-2xl bg-white border-2 border-cyan-500/30 p-5 sm:p-8">
           <p className="text-xs text-cyan-700 font-medium mb-1">خطتك المخصصة</p>
-          <h3 className="font-display text-xl font-bold mb-2">
+          <h3 className="font-display text-base sm:text-xl font-bold mb-2 leading-relaxed">
             {band.catch_up_plan_intro}
           </h3>
           <div className="mt-4 rounded-xl bg-cyan-500/5 border border-cyan-500/20 p-4">
