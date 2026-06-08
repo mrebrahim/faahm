@@ -96,3 +96,24 @@ export const OFFLINE_PAYMENTS = {
   // screenshots here.
   confirmationWhatsApp: '201050858834',
 } as const;
+
+/**
+ * PayPal subscription configuration. Replaces the legacy one-shot NCP
+ * links above with PayPal's recurring subscription plans — same monthly
+ * / yearly pricing but auto-renews and we get a real subscription ID
+ * we can reconcile via webhooks.
+ *
+ * Plan IDs are taken from the PayPal Subscriptions dashboard. The
+ * client ID is public (it appears in the loaded SDK URL anyway), but
+ * the secret stays server-only and is required for the activation
+ * verification flow.
+ */
+export const PAYPAL = {
+  clientId:
+    process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ||
+    'Aa2JYhQE0BrpujlmTjeAnBOj8ZbbaV43lwMgJWpE-nAg0X2wED_nUCoLJvK-sP-wn1I-ewF6F-_FRZ3s',
+  plans: {
+    monthly: 'P-41703329EL039891VNITKHGQ',
+    yearly: 'P-81768794T3699470VNITKGCY',
+  },
+} as const;

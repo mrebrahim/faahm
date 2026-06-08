@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
 import { CheckoutTracker } from '@/components/checkout-tracker';
-import { APP_NAME, PLANS, ROUTES, OFFLINE_PAYMENTS, type PlanId } from '@/lib/constants';
+import { APP_NAME, PLANS, ROUTES, type PlanId } from '@/lib/constants';
 import {
   ArrowLeft,
   CreditCard,
@@ -154,13 +154,12 @@ export default async function CheckoutPage({
             recommended
           />
 
-          {/* PayPal */}
+          {/* PayPal — subscription with recurring billing */}
           <PaymentMethod
-            href={OFFLINE_PAYMENTS.paypal[planParam]}
-            external
+            href={`/checkout/paypal?plan=${planParam}`}
             icon={Wallet}
             title="PayPal"
-            subtitle="ادفع بحسابك في باي بال"
+            subtitle="اشتراك متجدّد تلقائياً — إلغاء في أي وقت"
           />
 
           {/* InstaPay */}

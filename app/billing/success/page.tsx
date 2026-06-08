@@ -25,7 +25,7 @@ export const dynamic = 'force-dynamic';
 export default async function BillingSuccessPage({
   searchParams,
 }: {
-  searchParams: { session_id?: string };
+  searchParams: { session_id?: string; gateway?: string };
 }) {
   const supabase = createClient();
   const {
@@ -47,7 +47,7 @@ export default async function BillingSuccessPage({
   const service = createServiceClient();
   const { data: subscription } = await service
     .from('subscriptions')
-    .select('plan, current_period_end')
+    .select('plan, current_period_end, gateway, stripe_subscription_id')
     .eq('user_id', user.id)
     .in('status', ['active', 'trialing'])
     .gt('current_period_end', new Date().toISOString())
@@ -69,10 +69,22 @@ export default async function BillingSuccessPage({
     contentIds: string[];
   } | null = null;
 
-  if (ready && subscription && searchParams.session_id) {
+  // Compose an eventId that's unique per checkout attempt regardless of
+  // gateway — Stripe uses session_id, PayPal uses its subscription id,
+  // and so the same eventId both client (PurchaseTracker) and server
+  // (trackServerEvent) fire with, letting Meta/TikTok deduplicate.
+  const txnId =
+    searchParams.session_id ||
+    (subscription?.gateway === 'paypal'
+      ? subscription?.stripe_subscription_id
+      : null);
+  if (ready && subscription && txnId) {
     const plan = subscription.plan as 'monthly' | 'yearly';
     const planInfo = PLANS[plan];
-    const eventId = `purchase-${searchParams.session_id}`;
+    const eventId =
+      subscription.gateway === 'paypal'
+        ? `purchase-paypal-${txnId}`
+        : `purchase-${txnId}`;
 
     purchaseProps = {
       eventId,
