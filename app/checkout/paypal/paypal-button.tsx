@@ -23,7 +23,7 @@ export function PayPalButton({ plan }: { plan: PlanId }) {
       <input
         type="image"
         src="https://www.paypalobjects.com/en_US/i/btn/btn_subscribe_LG.gif"
-        border={0}
+        style={{ border: 0 }}
         name="submit"
         title="PayPal - The safer, easier way to pay online!"
         alt="Subscribe"
