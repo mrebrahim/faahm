@@ -98,22 +98,18 @@ export const OFFLINE_PAYMENTS = {
 } as const;
 
 /**
- * PayPal subscription configuration. Replaces the legacy one-shot NCP
- * links above with PayPal's recurring subscription plans — same monthly
- * / yearly pricing but auto-renews and we get a real subscription ID
- * we can reconcile via webhooks.
- *
- * Plan IDs are taken from the PayPal Subscriptions dashboard. The
- * client ID is public (it appears in the loaded SDK URL anyway), but
- * the secret stays server-only and is required for the activation
- * verification flow.
+ * PayPal subscription configuration — uses PayPal Hosted Buttons. The
+ * subscribe button is a plain HTML form that POSTs `hosted_button_id`
+ * to PayPal's webscr endpoint; PayPal handles the entire checkout and
+ * recurring billing. There's no SDK callback with a subscription id,
+ * so activation runs through the same manual WhatsApp-confirmation
+ * flow as InstaPay / Vodafone Cash — the user lands on
+ * /billing/success and, if the subscription row isn't there yet,
+ * sees the 'confirm via WhatsApp' CTA.
  */
 export const PAYPAL = {
-  clientId:
-    process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ||
-    'Aa2JYhQE0BrpujlmTjeAnBOj8ZbbaV43lwMgJWpE-nAg0X2wED_nUCoLJvK-sP-wn1I-ewF6F-_FRZ3s',
-  plans: {
-    monthly: 'P-41703329EL039891VNITKHGQ',
-    yearly: 'P-81768794T3699470VNITKGCY',
+  hostedButtons: {
+    monthly: 'DJWE2F2CEXKP6',
+    yearly: 'VX7RG9E6LTV58',
   },
 } as const;

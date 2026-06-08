@@ -180,8 +180,8 @@ export default async function CheckoutPage({
         </div>
 
         <p className="text-xs text-gray-500 text-center mt-8 leading-relaxed">
-          الدفع بالبطاقة و PayPal بيفعّل اشتراكك تلقائياً. للـ InstaPay و
-          Vodafone Cash، نأكّد الدفع يدوياً بعد ما تبعت سكرين شوت على واتساب.
+          الدفع بالبطاقة بيفعّل اشتراكك تلقائياً. الـ PayPal و InstaPay و
+          Vodafone Cash بنأكّدهم يدوياً بعد ما تبعت سكرين شوت على واتساب.
         </p>
       </main>
     </div>

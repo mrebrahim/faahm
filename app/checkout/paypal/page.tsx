@@ -82,7 +82,7 @@ export default async function PayPalCheckoutPage({
           <div className="p-5 border-b border-gray-100">
             <p className="text-xs text-gray-500 mb-3 leading-relaxed">
               هتدفع عبر PayPal مباشرة. الاشتراك بيتجدّد تلقائياً وتقدر تلغيه
-              في أي وقت من حسابك في PayPal أو من إعدادات حسابك على فاهم.
+              في أي وقت من حسابك في PayPal.
             </p>
             <PayPalButton plan={planParam} />
           </div>
@@ -90,8 +90,8 @@ export default async function PayPalCheckoutPage({
           {/* Footnote */}
           <div className="p-5 bg-gray-50">
             <p className="text-[11px] text-gray-500 leading-relaxed">
-              بعد ما تأكّد الدفع في نافذة PayPal، اشتراكك هيتفعّل فوراً وهتترحّل
-              لصفحة التأكيد. لو حصلت مشكلة، كلّمنا على واتساب.
+              بعد ما تخلّص الدفع في PayPal، ابعتلنا سكرين شوت للتأكيد على
+              واتساب وهنفعّل اشتراكك خلال دقايق.
             </p>
           </div>
         </div>
