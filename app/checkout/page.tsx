@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { createClient, createServiceClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
 import { CheckoutTracker } from '@/components/checkout-tracker';
 import { APP_NAME, PLANS, ROUTES, type PlanId } from '@/lib/constants';
@@ -41,63 +41,6 @@ export default async function CheckoutPage({
   if (!user) {
     redirect(
       `${ROUTES.login}?redirect=${encodeURIComponent(`/checkout?plan=${planParam}`)}`
-    );
-  }
-
-  // Already subscribed? Don't tease payment options that just bounce
-  // through /api/checkout → /api/billing/portal. Show a clear
-  // already-subscribed state with a single CTA to the dashboard.
-  const service = createServiceClient();
-  const { data: activeSub } = await service
-    .from('subscriptions')
-    .select('plan, current_period_end, gateway')
-    .eq('user_id', user.id)
-    .in('status', ['active', 'trialing'])
-    .gt('current_period_end', new Date().toISOString())
-    .order('current_period_end', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (activeSub) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-16">
-        <div className="max-w-md w-full text-center">
-          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-brand-500/15 flex items-center justify-center">
-            <CheckCircle2 className="w-10 h-10 text-brand-500" />
-          </div>
-          <h1 className="font-display text-2xl md:text-3xl font-extrabold mb-3">
-            أنت مشترك بالفعل 🎉
-          </h1>
-          <p className="text-gray-600 mb-2">
-            عندك اشتراك {activeSub.plan === 'yearly' ? 'سنوي' : 'شهري'} شغّال
-            على {APP_NAME} حتى{' '}
-            <span dir="ltr" className="font-medium">
-              {new Date(activeSub.current_period_end).toLocaleDateString('ar-EG')}
-            </span>
-            .
-          </p>
-          <p className="text-sm text-gray-500 mb-8">
-            مش محتاج تدفع تاني. روح لكورساتك على طول.
-          </p>
-          <div className="flex flex-col gap-3">
-            <Button asChild size="lg" className="w-full">
-              <Link href={ROUTES.courses}>
-                ابدأ التعلم دلوقتي
-                <ArrowLeft className="w-4 h-4" />
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline" className="w-full">
-              <Link href={ROUTES.dashboard}>روح للوحتي</Link>
-            </Button>
-            {activeSub.gateway === 'manual' && (
-              <p className="text-[11px] text-gray-400 mt-2">
-                اشتراكك مفعّل يدوياً من فريق فاهم. لأي استفسار عن الاشتراك،
-                كلّمنا.
-              </p>
-            )}
-          </div>
-        </div>
-      </div>
     );
   }
 

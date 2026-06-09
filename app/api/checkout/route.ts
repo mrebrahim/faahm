@@ -55,20 +55,6 @@ export async function GET(request: NextRequest) {
     await service.from('profiles').update({ stripe_customer_id: customerId }).eq('id', user.id);
   }
 
-  // Don't double-subscribe.
-  const { data: activeSub } = await service
-    .from('subscriptions')
-    .select('id, status, current_period_end')
-    .eq('user_id', user.id)
-    .in('status', ['active', 'trialing'])
-    .gt('current_period_end', new Date().toISOString())
-    .maybeSingle();
-
-  if (activeSub) {
-    // Send them to the billing portal to manage instead of starting a new sub.
-    return NextResponse.redirect(`${origin}/api/billing/portal`);
-  }
-
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
     customer: customerId,
