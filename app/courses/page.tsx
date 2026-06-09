@@ -119,43 +119,47 @@ export default async function CoursesPage({
           </div>
         </form>
 
-        {/* Filters */}
-        <div className="mb-8 flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 text-xs text-gray-500 ms-1">
-            <Filter className="w-3.5 h-3.5" /> فلترة:
-          </span>
-
-          {/* Category chips */}
-          <FilterChip
-            label="كل التصنيفات"
-            active={!searchParams.category}
-            href={buildHref(searchParams, { category: undefined })}
-          />
-          {categories?.map((cat) => (
+        {/* Filters. Two horizontally-scrollable rows on mobile (categories,
+            then levels) so the chip set never wraps into a noisy multi-row
+            mess. Tailwind's `-mx-4 px-4` lets the row scroll edge-to-edge
+            inside the container. */}
+        <div className="mb-8 space-y-2">
+          <div className="flex items-center gap-2 -mx-4 px-4 overflow-x-auto md:flex-wrap md:mx-0 md:px-0 md:overflow-visible">
+            <span className="inline-flex items-center gap-1.5 text-xs text-gray-500 flex-shrink-0">
+              <Filter className="w-3.5 h-3.5" /> التصنيف
+            </span>
             <FilterChip
-              key={cat.id}
-              label={cat.name_ar}
-              active={searchParams.category === cat.slug}
-              href={buildHref(searchParams, { category: cat.slug })}
+              label="الكل"
+              active={!searchParams.category}
+              href={buildHref(searchParams, { category: undefined })}
             />
-          ))}
-
-          <div className="w-px h-5 bg-gray-200 mx-1" />
-
-          {/* Level chips */}
-          <FilterChip
-            label="كل المستويات"
-            active={!searchParams.level}
-            href={buildHref(searchParams, { level: undefined })}
-          />
-          {(['beginner', 'intermediate', 'advanced'] as const).map((lvl) => (
+            {categories?.map((cat) => (
+              <FilterChip
+                key={cat.id}
+                label={cat.name_ar}
+                active={searchParams.category === cat.slug}
+                href={buildHref(searchParams, { category: cat.slug })}
+              />
+            ))}
+          </div>
+          <div className="flex items-center gap-2 -mx-4 px-4 overflow-x-auto md:flex-wrap md:mx-0 md:px-0 md:overflow-visible">
+            <span className="inline-flex items-center gap-1.5 text-xs text-gray-500 flex-shrink-0">
+              المستوى
+            </span>
             <FilterChip
-              key={lvl}
-              label={LEVEL_LABELS[lvl]}
-              active={searchParams.level === lvl}
-              href={buildHref(searchParams, { level: lvl })}
+              label="الكل"
+              active={!searchParams.level}
+              href={buildHref(searchParams, { level: undefined })}
             />
-          ))}
+            {(['beginner', 'intermediate', 'advanced'] as const).map((lvl) => (
+              <FilterChip
+                key={lvl}
+                label={LEVEL_LABELS[lvl]}
+                active={searchParams.level === lvl}
+                href={buildHref(searchParams, { level: lvl })}
+              />
+            ))}
+          </div>
         </div>
 
         {/* Grid */}
@@ -215,7 +219,7 @@ function FilterChip({
   return (
     <Link
       href={href}
-      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors flex-shrink-0 whitespace-nowrap ${
         active
           ? 'bg-brand-500 text-white border-brand-500'
           : 'bg-white text-gray-600 border-gray-200 hover:border-brand-500/40 hover:text-brand-600'
