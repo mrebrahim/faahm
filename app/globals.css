@@ -47,22 +47,39 @@
     @apply border-border;
   }
 
+  /* Hard guard against horizontal overflow on every page.
+     Mobile (360px) is the default target; any decorative orb,
+     wide table, long English word, or run-away iframe must not
+     create a phantom horizontal scrollbar that shifts the layout
+     and clips the right edge of the page. `overflow-x: clip`
+     differs from `hidden`: it doesn't create a new scroll
+     container, so `position: sticky` keeps working inside. */
   html {
     direction: rtl;
+    overflow-x: clip;
+    max-width: 100vw;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: 'rlig' 1, 'calt' 1, 'ss01' 1;
-    /* Decorative orbs (login/signup/welcome/reset hero gradients) are
-       absolute-positioned with fixed pixel widths that exceed narrow
-       viewports. Clip horizontal overflow at the document root so
-       phones don't get a phantom horizontal scrollbar. */
-    overflow-x: hidden;
+    overflow-x: clip;
+    max-width: 100vw;
   }
 
+  /* Long Arabic strings containing inline English runs (ChatGPT,
+     Claude, URLs) used to force headings wider than 360px. Allow
+     mid-word breaks as a last resort so the layout never overflows. */
   h1, h2, h3, h4, h5, h6 {
     @apply font-display tracking-tight;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  /* Media never exceeds its container — Bunny/Vimeo embeds and
+     thumbnails sometimes try to render at their intrinsic width. */
+  img, video, iframe {
+    max-width: 100%;
   }
 
   html {

@@ -38,6 +38,16 @@ phone width. The following patterns are required:
 - **RTL safety**. Use `start`/`end` logical sides (`ms-2`, `pe-4`,
   `text-start`) instead of `left`/`right` wherever possible — the whole
   site is `dir="rtl"`.
+- **Nothing escapes the viewport horizontally**. `globals.css` clips
+  `html` + `body` with `overflow-x: clip; max-width: 100vw;` as a
+  safety net, but don't rely on it — any new decorative orb,
+  off-canvas drawer, wide table, or animated background must live
+  inside a `relative overflow-hidden` (or `overflow-clip`) parent so
+  positioning math can't leak past the page edge. Test at 360px and
+  side-scroll: there should be zero side-scroll on any page.
+- **Wide tables wrap in `overflow-x-auto`**. Admin tables and any
+  multi-column data view sit inside a `<div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">`
+  on mobile so the table itself scrolls, not the whole page.
 
 When introducing a new page or section: run through this checklist
 before commit. When fixing a layout, fix it for 360px first and let the
