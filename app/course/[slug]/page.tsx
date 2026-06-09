@@ -315,11 +315,13 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
             </section>
           )}
 
-          {/* Description */}
+          {/* Description. Plain text, not prose — Typography's prose can
+              inject min-widths via its inline-code / pre rules that push
+              the container past the viewport on phones. */}
           {course.description_ar && (
             <section>
               <h2 className="font-display text-xl sm:text-2xl font-bold mb-3 sm:mb-4">نظرة عامة</h2>
-              <div className="prose prose-gray max-w-none text-gray-700 leading-relaxed whitespace-pre-line">
+              <div className="text-sm sm:text-base text-gray-700 leading-relaxed whitespace-pre-line break-words">
                 {course.description_ar}
               </div>
             </section>
@@ -340,19 +342,19 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
                     open={idx === 0}
                     className="group rounded-2xl bg-white border border-gray-200 overflow-hidden"
                   >
-                    <summary className="flex items-center justify-between p-4 cursor-pointer list-none hover:bg-gray-50">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-brand-500/10 text-brand-600 flex items-center justify-center text-sm font-bold">
+                    <summary className="flex items-center justify-between gap-3 p-4 cursor-pointer list-none hover:bg-gray-50">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="w-8 h-8 rounded-lg bg-brand-500/10 text-brand-600 flex items-center justify-center text-sm font-bold flex-shrink-0">
                           {idx + 1}
                         </div>
-                        <div>
-                          <div className="font-bold">{chapter.title_ar}</div>
+                        <div className="min-w-0 flex-1">
+                          <div className="font-bold truncate">{chapter.title_ar}</div>
                           <div className="text-xs text-gray-500">
                             {chapter.lessons?.length || 0} درس
                           </div>
                         </div>
                       </div>
-                      <ArrowLeft className="w-4 h-4 text-gray-400 group-open:rotate-90 transition-transform" />
+                      <ArrowLeft className="w-4 h-4 text-gray-400 group-open:rotate-90 transition-transform flex-shrink-0" />
                     </summary>
 
                     {chapter.lessons && chapter.lessons.length > 0 && (
@@ -369,38 +371,38 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
                             <li key={lesson.id}>
                               <Wrapper
                                 {...wrapperProps}
-                                className={`flex items-center justify-between px-4 py-3 text-sm ${
+                                className={`flex items-center justify-between gap-3 px-4 py-3 text-sm ${
                                   canAccess
                                     ? 'hover:bg-brand-500/5 hover:text-brand-600 cursor-pointer'
                                     : 'text-gray-500'
                                 }`}
                               >
-                                <div className="flex items-center gap-3 min-w-0">
+                                <div className="flex items-center gap-3 min-w-0 flex-1">
                                   {canAccess ? (
                                     <Play className="w-4 h-4 text-brand-500 flex-shrink-0" />
                                   ) : (
                                     <Lock className="w-4 h-4 text-gray-400 flex-shrink-0" />
                                   )}
-                                  <span className="truncate">
+                                  <span className="truncate min-w-0 flex-1">
                                     {lIdx + 1}. {lesson.title_ar}
                                   </span>
                                   {lesson.is_free_preview && (
-                                    <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 flex-shrink-0">
+                                    <span className="hidden sm:inline px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-700 flex-shrink-0">
                                       مجاني
                                     </span>
                                   )}
                                 </div>
-                                <div className="flex items-center gap-3 flex-shrink-0 ms-3">
+                                <div className="flex items-center gap-3 flex-shrink-0">
                                   {lesson.is_free_preview && (
-                                    <span className="text-xs text-brand-600 underline decoration-dotted underline-offset-2 font-medium">
+                                    <span className="hidden sm:inline text-xs text-brand-600 underline decoration-dotted underline-offset-2 font-medium">
                                       معاينة
                                     </span>
                                   )}
-                                  <span className="text-xs text-gray-400">
-                                    {lesson.duration_sec > 0
-                                      ? formatDuration(lesson.duration_sec)
-                                      : ''}
-                                  </span>
+                                  {lesson.duration_sec > 0 && (
+                                    <span className="text-xs text-gray-400 whitespace-nowrap">
+                                      {formatDuration(lesson.duration_sec)}
+                                    </span>
+                                  )}
                                 </div>
                               </Wrapper>
                             </li>
