@@ -129,10 +129,17 @@ export default async function StudentDetailPage({
                 {student.email || '—'}
               </span>
               {student.phone && (
-                <span className="flex items-center gap-1" dir="ltr">
+                <a
+                  href={`https://wa.me/${student.phone.replace(/[^\d]/g, '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 hover:text-foreground"
+                  dir="ltr"
+                  title="فتح واتساب"
+                >
                   <Phone className="w-3.5 h-3.5" />
-                  {maskPhone(student.phone)}
-                </span>
+                  {student.phone}
+                </a>
               )}
               {student.country && (
                 <span className="flex items-center gap-1">
@@ -934,7 +941,3 @@ function SuccessBanner({ code }: { code: string }) {
   );
 }
 
-function maskPhone(phone: string): string {
-  if (phone.length <= 4) return phone;
-  return phone.slice(0, 4) + ' ××× ××× ' + phone.slice(-4);
-}
