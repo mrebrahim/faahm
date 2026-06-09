@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { stripe, getStripePriceId } from '@/lib/stripe';
 import { ROUTES, PLANS, type PlanId } from '@/lib/constants';
+import { resolveAppUrl } from '@/lib/app-url';
 
 /**
  * Creates a Stripe Checkout session for a logged-in user and redirects them to it.
@@ -14,8 +15,13 @@ export async function GET(request: NextRequest) {
   const planParam = url.searchParams.get('plan');
   const redirectParam = url.searchParams.get('redirect') || ROUTES.dashboard;
 
+  // All redirects below go through the proxy-aware origin so they carry
+  // the public hostname instead of the internal localhost request.url
+  // falls back to behind Coolify/Traefik.
+  const origin = resolveAppUrl();
+
   if (planParam !== 'monthly' && planParam !== 'yearly') {
-    return NextResponse.redirect(new URL(ROUTES.pricing, request.url));
+    return NextResponse.redirect(`${origin}${ROUTES.pricing}`);
   }
   const plan = planParam as PlanId;
 
@@ -25,7 +31,7 @@ export async function GET(request: NextRequest) {
   } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.redirect(
-      new URL(`${ROUTES.login}?redirect=${encodeURIComponent(`/api/checkout?plan=${plan}`)}`, request.url)
+      `${origin}${ROUTES.login}?redirect=${encodeURIComponent(`/api/checkout?plan=${plan}`)}`
     );
   }
 
@@ -60,19 +66,8 @@ export async function GET(request: NextRequest) {
 
   if (activeSub) {
     // Send them to the billing portal to manage instead of starting a new sub.
-    return NextResponse.redirect(new URL('/api/billing/portal', request.url));
+    return NextResponse.redirect(`${origin}/api/billing/portal`);
   }
-
-  // Build the absolute URL Stripe will redirect back to. Prefer the
-  // reverse-proxy's forwarded host so we follow the domain the user is
-  // actually on (Coolify/Traefik, sslip.io, custom domain). NEXT_PUBLIC_*
-  // is inlined at build time, so falling back to it can freeze localhost
-  // into prod if the build-arg wasn't passed — only use it as a last resort.
-  const forwardedHost = request.headers.get('x-forwarded-host');
-  const forwardedProto = request.headers.get('x-forwarded-proto');
-  const appUrl = forwardedHost
-    ? `${forwardedProto || 'https'}://${forwardedHost}`
-    : (process.env.NEXT_PUBLIC_APP_URL || url.origin).replace(/\/$/, '');
 
   const session = await stripe.checkout.sessions.create({
     mode: 'subscription',
@@ -87,8 +82,8 @@ export async function GET(request: NextRequest) {
     // Stripe Checkout doesn't support 'ar' as a locale; fall back to the
     // browser default so users in the MENA region get English at worst.
     locale: 'auto',
-    success_url: `${appUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${appUrl}/billing/cancel`,
+    success_url: `${origin}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${origin}/billing/cancel`,
     subscription_data: {
       metadata: {
         supabase_user_id: user.id,
