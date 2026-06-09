@@ -187,7 +187,7 @@ export default async function HomePage({
             subtitle="مفيش شراء كورسات منفصلة. اشتراك واحد بيفتحلك كل المحتوى."
           />
 
-          <div className="grid md:grid-cols-2 gap-6 mt-12 max-w-3xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12 max-w-3xl mx-auto">
             <PricingCard plan={PLANS.monthly} />
             <PricingCard plan={PLANS.yearly} featured />
           </div>
@@ -489,7 +489,7 @@ function Footer() {
   return (
     <footer className="relative border-t border-gray-200 bg-gray-100">
       <div className="container mx-auto px-4 py-12">
-        <div className="grid md:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
             <div className="flex items-center gap-2 mb-4">
               <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center font-display font-extrabold text-white">

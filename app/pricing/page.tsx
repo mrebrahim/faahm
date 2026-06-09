@@ -54,7 +54,7 @@ export default async function PricingPage() {
         </div>
 
         {/* Plans */}
-        <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
           <PlanCard plan={PLANS.monthly} user={user} />
           <PlanCard plan={PLANS.yearly} user={user} featured />
         </div>

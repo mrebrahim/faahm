@@ -377,7 +377,7 @@ function Result({
       <Section title="جوهرك">{type.report.essence}</Section>
 
       <Section title="نقاط قوتك">
-        <ul className="grid sm:grid-cols-2 gap-2 text-sm">
+        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
           {type.report.strengths.map((s) => (
             <li key={s} className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
@@ -428,7 +428,7 @@ function Result({
       {(match.alsoExplore.length > 0 || match.addOn) && (
         <div>
           <h3 className="font-display text-lg font-bold mb-3">كمان ممكن تحب</h3>
-          <div className="grid sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {match.alsoExplore.map((c) => (
               <CourseChip key={c.id} slug={c.slug} title={c.title_ar} />
             ))}
@@ -444,7 +444,7 @@ function Result({
       )}
 
       {/* Cross-sell — career + AI readiness */}
-      <div className="grid sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="rounded-2xl bg-gradient-to-br from-brand-500/10 to-emerald-500/10 border border-brand-500/30 p-5">
           <h3 className="font-display text-base font-bold mb-1">التيست المهني</h3>
           <p className="text-xs text-gray-600 mb-3">

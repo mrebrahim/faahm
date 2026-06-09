@@ -513,7 +513,7 @@ function Result({
       {(match.alsoExplore.length > 0 || match.addOn) && (
         <div>
           <h3 className="font-display text-lg font-bold mb-3">كورسات مكمّلة</h3>
-          <div className="grid sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {match.alsoExplore.map((c) => (
               <CourseChip key={c.id} slug={c.slug} title={c.title_ar} />
             ))}
@@ -534,7 +534,7 @@ function Result({
         <p className="text-sm text-gray-500 mb-4">
           التيستات دي بتكمّل صورتك — كل واحد منهم بيقولك على مسار محدد:
         </p>
-        <div className="grid sm:grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <CrossSell
             href="/personality"
             icon={Users2}

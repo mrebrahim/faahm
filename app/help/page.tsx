@@ -43,7 +43,7 @@ export default function HelpPage() {
           </p>
         </div>
 
-        <div className="grid sm:grid-cols-2 gap-4 mb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
           <ContactCard
             icon={Mail}
             title="البريد الإلكتروني"

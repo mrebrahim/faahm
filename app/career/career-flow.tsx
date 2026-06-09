@@ -405,7 +405,7 @@ function Result({
       </Section>
 
       <Section title="مجالات مناسبة ليك">
-        <ul className="grid sm:grid-cols-2 gap-2 text-sm">
+        <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
           {archetype.report.careers.map((c) => (
             <li key={c} className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-brand-500 flex-shrink-0" />
@@ -453,7 +453,7 @@ function Result({
           <h3 className="font-display text-lg font-bold mb-3">
             ممكن كمان يعجبك
           </h3>
-          <div className="grid sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {match.alsoExplore.map((c) => (
               <CourseChip key={c.id} slug={c.slug} title={c.title_ar} />
             ))}
@@ -470,7 +470,7 @@ function Result({
       )}
 
       {/* Cross-sell — personality + AI readiness */}
-      <div className="grid sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="rounded-2xl bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border border-indigo-500/30 p-5">
           <h3 className="font-display text-base font-bold mb-1">اختبار الشخصية</h3>
           <p className="text-xs text-gray-600 mb-3">

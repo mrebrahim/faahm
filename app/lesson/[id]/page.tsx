@@ -190,7 +190,7 @@ export default async function LessonPage({ params }: { params: { id: string } })
         </div>
       </header>
 
-      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-7xl grid lg:grid-cols-10 gap-4 sm:gap-6">
+      <main className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-7xl grid grid-cols-1 lg:grid-cols-10 gap-4 sm:gap-6">
         {/* Player + content */}
         <div className="lg:col-span-7 space-y-4 sm:space-y-6 min-w-0">
           {canAccess ? (

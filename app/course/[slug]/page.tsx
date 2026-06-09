@@ -168,7 +168,7 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
 
       {/* HERO */}
       <section className="relative border-b border-gray-200 bg-white">
-        <div className="container mx-auto px-4 py-6 sm:py-10 max-w-6xl grid lg:grid-cols-5 gap-6 lg:gap-10 items-start">
+        <div className="container mx-auto px-4 py-6 sm:py-10 max-w-6xl grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-10 items-start">
           {/* Left on desktop, BELOW the trailer on mobile — the visual
               hook lands first on phones, then the meta. */}
           <div className="lg:col-span-3 order-2 lg:order-1">
@@ -283,13 +283,13 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
       </section>
 
       {/* BODY: syllabus + sidebar */}
-      <main className="container mx-auto px-4 py-6 sm:py-12 max-w-6xl grid lg:grid-cols-5 gap-6 lg:gap-10">
+      <main className="container mx-auto px-4 py-6 sm:py-12 max-w-6xl grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-10">
         <div className="lg:col-span-3 space-y-6 sm:space-y-10">
           {/* What you'll learn */}
           {(course as any).what_you_learn?.length > 0 && (
             <section className="p-5 sm:p-6 rounded-2xl bg-white border border-gray-200">
               <h2 className="font-display text-xl sm:text-2xl font-bold mb-3 sm:mb-4">اللي هتتعلّمه</h2>
-              <ul className="grid md:grid-cols-2 gap-x-6 gap-y-3">
+              <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
                 {((course as any).what_you_learn as string[]).map((point, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm text-gray-700 leading-relaxed">
                     <CheckCircle2 className="w-4 h-4 text-brand-500 mt-0.5 flex-shrink-0" />

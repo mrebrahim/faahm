@@ -59,7 +59,7 @@ export default function AboutPage() {
 
       {/* Mission */}
       <section className="container mx-auto px-4 py-16 max-w-4xl">
-        <div className="grid md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <Card icon={Target} title="رسالتنا">
             نخلّي المعرفة المتقدمة في الذكاء الاصطناعي والأتمتة متاحة لأي
             متعلم عربي — بلغته، بأمثلة بتمسّ شغله الحقيقي، وبأسعار تناسب السوق

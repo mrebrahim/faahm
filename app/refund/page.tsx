@@ -56,7 +56,7 @@ export default function RefundPage() {
           </div>
         </div>
 
-        <div className="grid sm:grid-cols-2 gap-4 mb-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
           <Card icon={CheckCircle2} tone="brand" title="بيشمل الاسترداد">
             <ul className="space-y-1.5 text-sm text-gray-600 list-disc ps-5">
               <li>الاشتراك الشهري الجديد</li>

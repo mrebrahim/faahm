@@ -12,7 +12,11 @@ phone width. The following patterns are required:
 
 - **Single-column by default**. Use `grid-cols-1` / `flex-col` as the base
   and add `sm:`, `md:`, `lg:` only to widen layouts. Never start with a
-  multi-column grid and then try to collapse it.
+  multi-column grid and then try to collapse it. ALWAYS write
+  `grid grid-cols-1 md:grid-cols-2` — never `grid md:grid-cols-2` on
+  its own. A bare `grid` lets implicit columns size to min-content,
+  and a single long Arabic+English line (ChatGPT, Claude, URLs) will
+  expand the column past the viewport and visually clip the page.
 - **Type that scales**. Headings start small and scale up:
   `text-2xl sm:text-3xl md:text-5xl`, not `text-5xl` with a mobile
   override. Same for emojis/score numbers — `text-5xl sm:text-7xl`.
