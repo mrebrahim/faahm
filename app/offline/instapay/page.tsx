@@ -1,10 +1,13 @@
 import Link from 'next/link';
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { APP_NAME, PLANS, ROUTES, OFFLINE_PAYMENTS, type PlanId } from '@/lib/constants';
 import { ArrowRight, ExternalLink, Smartphone, Copy } from 'lucide-react';
 import { CheckoutTracker } from '@/components/checkout-tracker';
 import { WhatsAppConfirmButton } from '../_components/whatsapp-confirm';
+
+const GUEST_EMAIL_COOKIE = 'guest_checkout_email';
 
 export const metadata = {
   title: `الدفع بـ InstaPay — ${APP_NAME}`,
@@ -22,15 +25,19 @@ export default async function InstapayOfflinePage({
   if (!isPlan(planParam)) redirect(ROUTES.pricing);
   const plan = PLANS[planParam];
 
+  // Guest checkout: accept visitors with just an email in the cookie.
+  // Admins still confirm the payment manually after the WhatsApp
+  // screenshot lands — the email is what they'll use to provision the
+  // account later.
   const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) {
-    redirect(
-      `${ROUTES.login}?redirect=${encodeURIComponent(`/offline/instapay?plan=${planParam}`)}`
-    );
+  const guestEmail = user ? null : cookies().get(GUEST_EMAIL_COOKIE)?.value || null;
+  if (!user && !guestEmail) {
+    redirect(`/checkout?plan=${planParam}`);
   }
+  const ownerEmail = user?.email ?? guestEmail ?? '';
 
   const link = OFFLINE_PAYMENTS.instapay.link;
   // External QR generator: encodes the InstaPay deep link so users can
@@ -40,7 +47,7 @@ export default async function InstapayOfflinePage({
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <CheckoutTracker
-        eventId={`checkout-instapay-${user.id}-${planParam}`}
+        eventId={`checkout-instapay-${user?.id ?? ownerEmail ?? 'guest'}-${planParam}`}
         value={plan.price}
         currency={plan.currency}
         contentName={plan.name}
@@ -139,7 +146,7 @@ export default async function InstapayOfflinePage({
               نفعّل اشتراكك خلال ساعات قليلة.
             </p>
             <WhatsAppConfirmButton
-              email={user.email || ''}
+              email={ownerEmail}
               plan={planParam}
               amountUsd={plan.price}
               channel="InstaPay"

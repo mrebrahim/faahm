@@ -1,12 +1,12 @@
 import Link from 'next/link';
-import { redirect } from 'next/navigation';
 import { headers, cookies } from 'next/headers';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
 import { ROUTES, APP_NAME, PLANS, OFFLINE_PAYMENTS } from '@/lib/constants';
-import { reconcileCheckoutSession } from '@/lib/billing';
+import { ensureUserForEmail, reconcileCheckoutSession } from '@/lib/billing';
 import { trackServerEvent } from '@/lib/tracking';
 import { PurchaseTracker } from '@/components/purchase-tracker';
+import { ClaimAccountForm } from './claim-account-form';
 import {
   CheckCircle2,
   ArrowLeft,
@@ -31,24 +31,79 @@ export default async function BillingSuccessPage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect(ROUTES.login);
 
-  // Reconcile the Stripe session server-side so courses unlock the instant
-  // the user lands here, regardless of webhook timing. Idempotent — the
-  // webhook keys on stripe_subscription_id, so the eventual webhook either
-  // finds the same row and updates in place or is a no-op.
-  if (searchParams.session_id) {
-    await reconcileCheckoutSession(searchParams.session_id);
+  // Guest checkout: a visitor may land here without an auth cookie
+  // because they paid before signing up. reconcileCheckoutSession both
+  // writes the subscription row AND, for guests, provisions a Supabase
+  // user from the Stripe session's email so the ClaimAccountForm below
+  // has a real user to set a password on.
+  const reconciled = searchParams.session_id
+    ? await reconcileCheckoutSession(searchParams.session_id)
+    : null;
+
+  // PayPal hosted buttons / offline channels don't give us a Stripe
+  // session_id, so reconcile can't help. Fall back to the email we
+  // stashed on /checkout so the guest can still claim their account
+  // — admins confirm the actual subscription manually for these
+  // channels (existing WhatsApp flow), but the user account itself can
+  // and should be provisioned now.
+  const guestEmailCookie = !user
+    ? cookies().get('guest_checkout_email')?.value || null
+    : null;
+  let fallbackOwner: { userId: string; email: string } | null = null;
+  if (!user && !reconciled?.userId && guestEmailCookie) {
+    const created = await ensureUserForEmail(guestEmailCookie);
+    if (created?.userId) {
+      fallbackOwner = { userId: created.userId, email: guestEmailCookie };
+    }
   }
 
-  // Confirm an active subscription is now visible. If reconcile failed (e.g.
-  // missing session_id, weird redirect), the webhook will still write it
-  // shortly — show the thank-you page anyway with a softer subtitle.
+  // Resolve which Supabase user this success page is for: the signed-in
+  // viewer if there's one, otherwise the user we just provisioned from
+  // the Stripe session (or the guest cookie).
+  const ownerUserId = user?.id ?? reconciled?.userId ?? fallbackOwner?.userId ?? null;
+  const ownerEmail =
+    user?.email ?? reconciled?.email ?? fallbackOwner?.email ?? null;
+
+  // If we still can't figure out who this payment belongs to, the visitor
+  // got here without a session_id (malformed link, refresh, etc.).
+  // There's nothing useful we can show — bounce them to /login so they
+  // can sign in if they already have an account.
+  if (!ownerUserId) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-16">
+        <div className="max-w-md w-full text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
+            <CheckCircle2 className="w-8 h-8 text-gray-400" />
+          </div>
+          <h1 className="font-display text-2xl font-bold mb-2">
+            مش لاقي تفاصيل الدفع
+          </h1>
+          <p className="text-sm text-gray-500 mb-6">
+            لو دفعت لتوّك، استنّى دقيقة وحدّث الصفحة. أو سجّل دخول لو عندك
+            حساب.
+          </p>
+          <div className="flex flex-col gap-2">
+            <Button asChild>
+              <Link href={ROUTES.login}>تسجيل الدخول</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href={ROUTES.pricing}>ارجع للأسعار</Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Confirm an active subscription is now visible on the owner's row.
+  // If the webhook hasn't caught up yet we'll still show the thank-you
+  // page but with the softer 'حنا بنفعّل اشتراكك' subtitle.
   const service = createServiceClient();
   const { data: subscription } = await service
     .from('subscriptions')
     .select('plan, current_period_end, gateway, stripe_subscription_id')
-    .eq('user_id', user.id)
+    .eq('user_id', ownerUserId)
     .in('status', ['active', 'trialing'])
     .gt('current_period_end', new Date().toISOString())
     .order('current_period_end', { ascending: false })
@@ -56,6 +111,12 @@ export default async function BillingSuccessPage({
     .maybeSingle();
 
   const ready = !!subscription;
+  // 'Guest claim' covers two cases: the visitor came from Stripe with a
+  // session_id we just reconciled, OR they came from PayPal / offline
+  // with only the guest_email cookie. In both, they're not signed in
+  // but we've already provisioned their account — they need to pick a
+  // password.
+  const isGuestClaim = !user && (!!searchParams.session_id || !!fallbackOwner);
 
   // Purchase tracking. Tie everything to the Stripe session_id so client
   // refreshes and server-side CAPI/Events share one event_id and the ad
@@ -69,10 +130,6 @@ export default async function BillingSuccessPage({
     contentIds: string[];
   } | null = null;
 
-  // Compose an eventId that's unique per checkout attempt regardless of
-  // gateway — Stripe uses session_id, PayPal uses its subscription id,
-  // and so the same eventId both client (PurchaseTracker) and server
-  // (trackServerEvent) fire with, letting Meta/TikTok deduplicate.
   const txnId =
     searchParams.session_id ||
     (subscription?.gateway === 'paypal'
@@ -94,9 +151,6 @@ export default async function BillingSuccessPage({
       contentIds: [plan],
     };
 
-    // Fire server-side to Meta CAPI + TikTok Events API. Same event_id as
-    // the client-side firing → both networks dedupe. Email + IP + UA +
-    // fbp/fbc/ttp cookies improve match quality.
     const h = headers();
     const c = cookies();
     const ipChain = h.get('x-forwarded-for') ?? '';
@@ -105,8 +159,8 @@ export default async function BillingSuccessPage({
       eventName: 'Purchase',
       eventId,
       user: {
-        email: user.email,
-        externalId: user.id,
+        email: ownerEmail,
+        externalId: ownerUserId,
         ipAddress,
         userAgent: h.get('user-agent'),
         fbp: c.get('_fbp')?.value,
@@ -138,43 +192,62 @@ export default async function BillingSuccessPage({
           أهلاً بيك في <span className="font-bold text-foreground">{APP_NAME}</span>
         </p>
         <p className="text-sm text-gray-500 mb-8">
-          {ready
+          {isGuestClaim
+            ? 'الدفع وصلنا. خطوة أخيرة: اختار كلمة سر للحساب وادخل على كورساتك.'
+            : ready
             ? 'اشتراكك مفعّل وكل الكورسات مفتوحة لك دلوقتي. يلا نبدأ.'
             : 'استلمنا دفعتك وبنفعّل اشتراكك دلوقتي. لو الكورسات مظهرتش مفتوحة خلال دقيقة، حدّث الصفحة.'}
         </p>
 
-        <div className="flex flex-col gap-3 mb-8">
-          {!ready && (
-            <a
-              href={(() => {
-                const msg = [
-                  'لقد اشتركت وهذه اسكرين شوت من التحويل',
-                  `الإيميل: ${user.email ?? ''}`,
-                ].join('\n');
-                return `https://wa.me/${OFFLINE_PAYMENTS.confirmationWhatsApp}?text=${encodeURIComponent(msg)}`;
-              })()}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-[#25D366] hover:bg-[#1ebe5b] text-white font-bold text-sm transition-colors"
-            >
-              <MessageCircle className="w-5 h-5" />
-              اضغط لتأكيد الدفع عبر واتساب
-            </a>
-          )}
-          <Button asChild size="lg" className="w-full">
-            <Link href={ROUTES.courses}>
-              <PlayCircle className="w-5 h-5" />
-              ابدأ التعلم دلوقتي
-              <ArrowLeft className="w-4 h-4" />
-            </Link>
-          </Button>
-          <Button asChild size="lg" variant="outline" className="w-full">
-            <Link href={ROUTES.dashboard}>
-              <Sparkles className="w-4 h-4" />
-              روح للوحتي
-            </Link>
-          </Button>
-        </div>
+        {/* Guest claim: show the password form so the visitor finishes
+            creating the account they just paid for. Stripe path passes
+            the session_id so the server action can verify the payment
+            against Stripe; PayPal / offline paths fall through to the
+            cookie-based claim. Once submitted, the server action signs
+            them in and redirects to courses. */}
+        {isGuestClaim && ownerEmail && (
+          <div className="rounded-2xl border border-brand-500/40 bg-white p-5 sm:p-6 mb-6 text-start">
+            <ClaimAccountForm
+              sessionId={searchParams.session_id ?? null}
+              email={ownerEmail}
+            />
+          </div>
+        )}
+
+        {!isGuestClaim && (
+          <div className="flex flex-col gap-3 mb-8">
+            {!ready && (
+              <a
+                href={(() => {
+                  const msg = [
+                    'لقد اشتركت وهذه اسكرين شوت من التحويل',
+                    `الإيميل: ${ownerEmail ?? ''}`,
+                  ].join('\n');
+                  return `https://wa.me/${OFFLINE_PAYMENTS.confirmationWhatsApp}?text=${encodeURIComponent(msg)}`;
+                })()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-[#25D366] hover:bg-[#1ebe5b] text-white font-bold text-sm transition-colors"
+              >
+                <MessageCircle className="w-5 h-5" />
+                اضغط لتأكيد الدفع عبر واتساب
+              </a>
+            )}
+            <Button asChild size="lg" className="w-full">
+              <Link href={ROUTES.courses}>
+                <PlayCircle className="w-5 h-5" />
+                ابدأ التعلم دلوقتي
+                <ArrowLeft className="w-4 h-4" />
+              </Link>
+            </Button>
+            <Button asChild size="lg" variant="outline" className="w-full">
+              <Link href={ROUTES.dashboard}>
+                <Sparkles className="w-4 h-4" />
+                روح للوحتي
+              </Link>
+            </Button>
+          </div>
+        )}
 
         {ready && subscription && (
           <p className="text-xs text-gray-400 mb-2">

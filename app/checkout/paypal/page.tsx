@@ -1,9 +1,12 @@
 import Link from 'next/link';
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { APP_NAME, PLANS, ROUTES, type PlanId } from '@/lib/constants';
 import { ArrowRight, CheckCircle2, Wallet } from 'lucide-react';
 import { PayPalButton } from './paypal-button';
+
+const GUEST_EMAIL_COOKIE = 'guest_checkout_email';
 
 export const metadata = {
   title: `الدفع بـ PayPal — ${APP_NAME}`,
@@ -21,15 +24,19 @@ export default async function PayPalCheckoutPage({
   if (!isPlan(planParam)) redirect(ROUTES.pricing);
   const plan = PLANS[planParam];
 
+  // Guest checkout: a visitor without an account can still get here —
+  // /checkout will have stashed their email in the cookie. If neither
+  // is present we bounce back to /checkout to collect the email rather
+  // than forcing a signup.
   const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) {
-    redirect(
-      `${ROUTES.login}?redirect=${encodeURIComponent(`/checkout/paypal?plan=${planParam}`)}`
-    );
+  const guestEmail = user ? null : cookies().get(GUEST_EMAIL_COOKIE)?.value || null;
+  if (!user && !guestEmail) {
+    redirect(`/checkout?plan=${planParam}`);
   }
+  const checkoutEmail = user?.email ?? guestEmail ?? '';
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">

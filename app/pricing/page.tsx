@@ -146,9 +146,11 @@ function YearlyCard({
   savings: number;
   savingsPct: number;
 }) {
-  const href = user
-    ? `/checkout?plan=yearly`
-    : `${ROUTES.signup}?redirect=${encodeURIComponent(`/checkout?plan=yearly`)}&plan=yearly`;
+  // Guest checkout: send everyone straight to /checkout. The page itself
+  // collects an email if there's no session, and the account is
+  // provisioned on the success page after the payment lands.
+  void user;
+  const href = `/checkout?plan=yearly`;
 
   return (
     <div className="relative rounded-2xl overflow-hidden border-2 border-brand-500 bg-white shadow-2xl shadow-brand-500/20 md:scale-[1.03] md:order-1">
@@ -223,9 +225,8 @@ function YearlyCard({
 }
 
 function MonthlyCard({ user, price }: { user: any; price: number }) {
-  const href = user
-    ? `/checkout?plan=monthly`
-    : `${ROUTES.signup}?redirect=${encodeURIComponent(`/checkout?plan=monthly`)}&plan=monthly`;
+  void user;
+  const href = `/checkout?plan=monthly`;
 
   return (
     <div className="relative rounded-2xl overflow-hidden border border-gray-200 bg-white md:order-2">

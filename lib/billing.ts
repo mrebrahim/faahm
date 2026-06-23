@@ -138,7 +138,15 @@ export async function upsertSubscriptionFromStripe(
  */
 export async function reconcileCheckoutSession(
   sessionId: string
-): Promise<{ ok: boolean; paid: boolean; reason?: string }> {
+): Promise<{
+  ok: boolean;
+  paid: boolean;
+  reason?: string;
+  userId?: string | null;
+  email?: string | null;
+  /** True when the user was provisioned just now (guest checkout). */
+  newAccount?: boolean;
+}> {
   let session: Stripe.Checkout.Session;
   try {
     session = await stripe.checkout.sessions.retrieve(sessionId, {
@@ -161,20 +169,40 @@ export async function reconcileCheckoutSession(
 
   const sub = await stripe.subscriptions.retrieve(subId);
 
-  // Make sure the subscription metadata carries the user id so future webhook
-  // events can be linked back even if the customer mapping is missing.
-  if (!sub.metadata?.supabase_user_id && session.metadata?.supabase_user_id) {
+  // Guest checkout: the session may not yet carry a supabase_user_id
+  // (the visitor paid before signing up). Provision the user here from
+  // the email Stripe captured so the success page can land them with a
+  // working account; the webhook does the same thing idempotently a
+  // few seconds later.
+  let resolvedUserId = session.metadata?.supabase_user_id || null;
+  let provisionedNow = false;
+  const sessionEmail =
+    (session.metadata?.guest_email as string | undefined) ||
+    session.customer_email ||
+    session.customer_details?.email ||
+    null;
+  if (!resolvedUserId && sessionEmail) {
+    const created = await ensureUserForEmail(sessionEmail);
+    if (created?.userId) {
+      resolvedUserId = created.userId;
+      provisionedNow = created.isNew;
+    }
+  }
+
+  // Stamp the subscription's metadata so future webhook events can link
+  // back without re-doing the email lookup.
+  if (resolvedUserId && !sub.metadata?.supabase_user_id) {
     try {
       await stripe.subscriptions.update(subId, {
         metadata: {
           ...sub.metadata,
-          supabase_user_id: session.metadata.supabase_user_id,
-          plan: session.metadata.plan || sub.metadata?.plan || '',
+          supabase_user_id: resolvedUserId,
+          plan: session.metadata?.plan || sub.metadata?.plan || '',
         },
       });
       sub.metadata = {
         ...sub.metadata,
-        supabase_user_id: session.metadata.supabase_user_id,
+        supabase_user_id: resolvedUserId,
       };
     } catch {
       // best-effort
@@ -183,5 +211,64 @@ export async function reconcileCheckoutSession(
 
   const service = createServiceClient();
   await upsertSubscriptionFromStripe(service, sub);
-  return { ok: true, paid: true };
+  return {
+    ok: true,
+    paid: true,
+    userId: resolvedUserId,
+    email: sessionEmail,
+    newAccount: provisionedNow,
+  };
+}
+
+/**
+ * Find the Supabase user that owns `email`, or create a fresh one if it
+ * doesn't exist yet. Used by the guest checkout flow: a visitor pays
+ * before signing up, so the payment webhook / success-page reconcile
+ * has to provision the account so the subscription has a user to hang
+ * off.
+ *
+ * The created user starts with a random password the caller doesn't
+ * know — `/billing/success` then prompts the guest to set their own
+ * password via auth.admin.updateUserById (see app/billing/success/actions.ts).
+ *
+ * Returns `{ userId, isNew }` so the caller can show the appropriate
+ * post-payment UI (claim password vs. just sign in).
+ */
+export async function ensureUserForEmail(
+  email: string
+): Promise<{ userId: string; isNew: boolean } | null> {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized || !normalized.includes('@')) return null;
+
+  const service = createServiceClient();
+
+  // Look up an existing auth user by email. listUsers paginates, but we
+  // expect the email to be unique so the first match is enough.
+  const { data: existing } = await service.auth.admin.listUsers({
+    page: 1,
+    perPage: 200,
+  });
+  const match = existing?.users.find(
+    (u) => u.email?.toLowerCase() === normalized
+  );
+  if (match?.id) {
+    return { userId: match.id, isNew: false };
+  }
+
+  // Generate a random throwaway password — the user will set their real
+  // one on the success page. We mark the email as confirmed so they can
+  // sign in immediately after setting a password (no verification email
+  // gating the flow they just paid for).
+  const randomPassword = `tmp_${crypto.randomUUID()}_${Date.now().toString(36)}`;
+  const { data: created, error } = await service.auth.admin.createUser({
+    email: normalized,
+    password: randomPassword,
+    email_confirm: true,
+    user_metadata: { provisioned_by: 'guest_checkout' },
+  });
+  if (error || !created?.user?.id) {
+    console.error('[billing] ensureUserForEmail createUser failed', error);
+    return null;
+  }
+  return { userId: created.user.id, isNew: true };
 }

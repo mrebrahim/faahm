@@ -1,9 +1,11 @@
 import Link from 'next/link';
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
 import { CheckoutTracker } from '@/components/checkout-tracker';
 import { APP_NAME, PLANS, ROUTES, type PlanId } from '@/lib/constants';
+import { clearGuestEmail } from './actions';
 import {
   ArrowLeft,
   CreditCard,
@@ -13,11 +15,20 @@ import {
   CheckCircle2,
   Ticket,
 } from 'lucide-react';
+import { GuestEmailForm } from './guest-email-form';
 
 export const metadata = {
   title: `الدفع — ${APP_NAME}`,
   robots: { index: false, follow: false },
 };
+
+/**
+ * Cookie that carries the guest email between the picker, the payment
+ * provider (Stripe/PayPal/offline), and the post-payment claim page so a
+ * visitor can pay before signing up. Short-lived; cleared once the user
+ * actually has an account.
+ */
+const GUEST_EMAIL_COOKIE = 'guest_checkout_email';
 
 const isPlan = (v: unknown): v is PlanId => v === 'monthly' || v === 'yearly';
 
@@ -32,17 +43,17 @@ export default async function CheckoutPage({
   }
   const plan = PLANS[planParam];
 
-  // Require auth so we know who's paying — offline channels need the
-  // user's email in the WhatsApp confirmation message.
+  // Guest checkout: we no longer redirect anonymous visitors to /signup.
+  // Logged-in users still get their email baked into all the payment
+  // links; guests enter an email here and we carry it forward via the
+  // GUEST_EMAIL_COOKIE so each gateway can stamp it on the order.
   const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) {
-    redirect(
-      `${ROUTES.login}?redirect=${encodeURIComponent(`/checkout?plan=${planParam}`)}`
-    );
-  }
+  const guestEmail = user ? null : cookies().get(GUEST_EMAIL_COOKIE)?.value || null;
+  const checkoutEmail = user?.email ?? guestEmail ?? null;
+  const emailQs = checkoutEmail ? `&email=${encodeURIComponent(checkoutEmail)}` : '';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -66,7 +77,7 @@ export default async function CheckoutPage({
 
       <main className="container mx-auto px-4 py-10 max-w-2xl">
         <CheckoutTracker
-          eventId={`checkout-picker-${user.id}-${planParam}`}
+          eventId={`checkout-picker-${user?.id ?? checkoutEmail ?? 'guest'}-${planParam}`}
           value={plan.price}
           currency={plan.currency}
           contentName={plan.name}
@@ -107,9 +118,7 @@ export default async function CheckoutPage({
           </ul>
         </div>
 
-        {/* Coupon — placeholder UX showing the standing 33% off the yearly
-            plan as a 'pre-applied' code. Visual only for now; a real coupon
-            engine plugs into /api/checkout later. */}
+        {/* Coupon — visual only; SAVE33 maps to the standing yearly discount. */}
         {planParam === 'yearly' && (
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 mb-6">
             <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -142,47 +151,88 @@ export default async function CheckoutPage({
           </div>
         )}
 
-        <h2 className="font-display text-lg font-bold mb-3">اختر طريقة الدفع:</h2>
+        {/* Guest gate: collect an email before any payment buttons are
+            shown, so every gateway link can stamp it on the order and the
+            success page knows who to provision an account for. Once
+            captured, we show the payment options like normal. */}
+        {!user && !guestEmail && (
+          <div className="rounded-2xl border border-gray-200 bg-white p-5 mb-6">
+            <h2 className="font-display text-lg font-bold mb-1">
+              اكتب إيميلك للمتابعة
+            </h2>
+            <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+              مش محتاج تعمل حساب دلوقتي. ابعت إيميلك، ادفع، وبعد الدفع
+              تختار كلمة سرّك وتدخل على الكورسات على طول.
+            </p>
+            <GuestEmailForm plan={planParam} />
+          </div>
+        )}
 
-        <div className="space-y-3">
-          {/* Cards / wallets / Apple Pay → Stripe */}
-          <PaymentMethod
-            href={`/api/checkout?plan=${planParam}`}
-            icon={CreditCard}
-            title="البطاقات البنكية والمحافظ"
-            subtitle="Visa · Mastercard · Apple Pay"
-            recommended
-          />
+        {(user || guestEmail) && (
+          <>
+            {!user && guestEmail && (
+              <div className="rounded-xl bg-gray-50 border border-gray-200 px-4 py-3 mb-4 flex items-center justify-between gap-3">
+                <div className="text-xs text-gray-600 min-w-0">
+                  <div className="text-[11px] text-gray-400">إيميلك للحساب</div>
+                  <div className="truncate font-medium" dir="ltr">
+                    {guestEmail}
+                  </div>
+                </div>
+                <form action={clearGuestEmail}>
+                  <input type="hidden" name="plan" value={planParam} />
+                  <button
+                    type="submit"
+                    className="text-[11px] text-gray-500 hover:text-foreground underline"
+                  >
+                    تغيير
+                  </button>
+                </form>
+              </div>
+            )}
 
-          {/* PayPal — subscription with recurring billing */}
-          <PaymentMethod
-            href={`/checkout/paypal?plan=${planParam}`}
-            icon={Wallet}
-            title="PayPal"
-            subtitle="اشتراك متجدّد تلقائياً — إلغاء في أي وقت"
-          />
+            <h2 className="font-display text-lg font-bold mb-3">اختر طريقة الدفع:</h2>
 
-          {/* InstaPay */}
-          <PaymentMethod
-            href={`/offline/instapay?plan=${planParam}`}
-            icon={Smartphone}
-            title="InstaPay"
-            subtitle="تحويل فوري من أي بنك مصري"
-          />
+            <div className="space-y-3">
+              {/* Cards / wallets / Apple Pay → Stripe */}
+              <PaymentMethod
+                href={`/api/checkout?plan=${planParam}${emailQs}`}
+                icon={CreditCard}
+                title="البطاقات البنكية والمحافظ"
+                subtitle="Visa · Mastercard · Apple Pay"
+                recommended
+              />
 
-          {/* Vodafone Cash / Barq */}
-          <PaymentMethod
-            href={`/offline/vodafone?plan=${planParam}`}
-            icon={Smartphone}
-            title="Vodafone Cash أو Barq"
-            subtitle="فودافون كاش / تحويل دولي من السعودية عبر Barq"
-          />
-        </div>
+              {/* PayPal — subscription with recurring billing */}
+              <PaymentMethod
+                href={`/checkout/paypal?plan=${planParam}${emailQs}`}
+                icon={Wallet}
+                title="PayPal"
+                subtitle="اشتراك متجدّد تلقائياً — إلغاء في أي وقت"
+              />
 
-        <p className="text-xs text-gray-500 text-center mt-8 leading-relaxed">
-          الدفع بالبطاقة بيفعّل اشتراكك تلقائياً. الـ PayPal و InstaPay و
-          Vodafone Cash بنأكّدهم يدوياً بعد ما تبعت سكرين شوت على واتساب.
-        </p>
+              {/* InstaPay */}
+              <PaymentMethod
+                href={`/offline/instapay?plan=${planParam}${emailQs}`}
+                icon={Smartphone}
+                title="InstaPay"
+                subtitle="تحويل فوري من أي بنك مصري"
+              />
+
+              {/* Vodafone Cash / Barq */}
+              <PaymentMethod
+                href={`/offline/vodafone?plan=${planParam}${emailQs}`}
+                icon={Smartphone}
+                title="Vodafone Cash أو Barq"
+                subtitle="فودافون كاش / تحويل دولي من السعودية عبر Barq"
+              />
+            </div>
+
+            <p className="text-xs text-gray-500 text-center mt-8 leading-relaxed">
+              الدفع بالبطاقة بيفعّل اشتراكك تلقائياً. الـ PayPal و InstaPay و
+              Vodafone Cash بنأكّدهم يدوياً بعد ما تبعت سكرين شوت على واتساب.
+            </p>
+          </>
+        )}
       </main>
     </div>
   );

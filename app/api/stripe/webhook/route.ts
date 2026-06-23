@@ -2,7 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import type Stripe from 'stripe';
 import { stripe } from '@/lib/stripe';
 import { createServiceClient } from '@/lib/supabase/server';
-import { resolveUserIdFromCustomer, upsertSubscriptionFromStripe } from '@/lib/billing';
+import {
+  ensureUserForEmail,
+  resolveUserIdFromCustomer,
+  upsertSubscriptionFromStripe,
+} from '@/lib/billing';
 
 // Stripe requires the raw body for signature verification.
 export const runtime = 'nodejs';
@@ -105,18 +109,41 @@ export async function POST(request: NextRequest) {
               : session.subscription.id;
           const sub = await stripe.subscriptions.retrieve(subId);
 
-          // Stamp the user id from the session if missing.
-          if (!sub.metadata?.supabase_user_id && session.metadata?.supabase_user_id) {
+          // Guest checkout path: the session may not carry a
+          // supabase_user_id yet because the visitor hadn't signed up.
+          // Provision a Supabase user from the captured email so the
+          // subscription has somewhere to land — the /billing/success
+          // claim form will then let them set a password and sign in.
+          let userIdFromSession = session.metadata?.supabase_user_id || null;
+          if (!userIdFromSession) {
+            const guestEmail =
+              (session.metadata?.guest_email as string | undefined) ||
+              session.customer_email ||
+              session.customer_details?.email ||
+              null;
+            if (guestEmail) {
+              const created = await ensureUserForEmail(guestEmail);
+              if (created?.userId) {
+                userIdFromSession = created.userId;
+              }
+            }
+          }
+
+          // Stamp the resolved user id on the subscription so future
+          // webhook events (renewals, cancellations) link straight to
+          // the right Supabase user without re-running the email
+          // lookup.
+          if (userIdFromSession && !sub.metadata?.supabase_user_id) {
             await stripe.subscriptions.update(subId, {
               metadata: {
                 ...sub.metadata,
-                supabase_user_id: session.metadata.supabase_user_id,
-                plan: session.metadata.plan || sub.metadata?.plan || '',
+                supabase_user_id: userIdFromSession,
+                plan: session.metadata?.plan || sub.metadata?.plan || '',
               },
             });
             sub.metadata = {
               ...sub.metadata,
-              supabase_user_id: session.metadata.supabase_user_id,
+              supabase_user_id: userIdFromSession,
             };
           }
           await upsertSubscriptionFromStripe(service, sub);

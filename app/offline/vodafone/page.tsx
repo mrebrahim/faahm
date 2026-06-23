@@ -1,10 +1,13 @@
 import Link from 'next/link';
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { APP_NAME, PLANS, ROUTES, OFFLINE_PAYMENTS, type PlanId } from '@/lib/constants';
 import { ArrowRight, Smartphone, Globe2 } from 'lucide-react';
 import { CheckoutTracker } from '@/components/checkout-tracker';
 import { WhatsAppConfirmButton } from '../_components/whatsapp-confirm';
+
+const GUEST_EMAIL_COOKIE = 'guest_checkout_email';
 
 export const metadata = {
   title: `الدفع بـ Vodafone Cash — ${APP_NAME}`,
@@ -22,22 +25,25 @@ export default async function VodafoneCashOfflinePage({
   if (!isPlan(planParam)) redirect(ROUTES.pricing);
   const plan = PLANS[planParam];
 
+  // Guest checkout: an unauthenticated visitor with an email in the
+  // cookie can still see Vodafone Cash instructions. Admins confirm
+  // the payment manually after the WhatsApp screenshot lands.
   const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) {
-    redirect(
-      `${ROUTES.login}?redirect=${encodeURIComponent(`/offline/vodafone?plan=${planParam}`)}`
-    );
+  const guestEmail = user ? null : cookies().get(GUEST_EMAIL_COOKIE)?.value || null;
+  if (!user && !guestEmail) {
+    redirect(`/checkout?plan=${planParam}`);
   }
+  const ownerEmail = user?.email ?? guestEmail ?? '';
 
   const number = OFFLINE_PAYMENTS.vodafoneCash.phone;
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <CheckoutTracker
-        eventId={`checkout-vodafone-${user.id}-${planParam}`}
+        eventId={`checkout-vodafone-${user?.id ?? ownerEmail ?? 'guest'}-${planParam}`}
         value={plan.price}
         currency={plan.currency}
         contentName={plan.name}
@@ -158,7 +164,7 @@ export default async function VodafoneCashOfflinePage({
               اشتراكك خلال ساعات قليلة.
             </p>
             <WhatsAppConfirmButton
-              email={user.email || ''}
+              email={ownerEmail}
               plan={planParam}
               amountUsd={plan.price}
               channel="Vodafone Cash / Barq"
