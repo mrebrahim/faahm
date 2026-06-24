@@ -15,13 +15,19 @@ export const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://faahm.com';
  */
 export const CANONICAL_URL = 'https://faahm.com';
 
-// Pricing
+// Pricing.
+// Monthly is intentionally priced ABOVE the 12-month equivalent of the
+// yearly plan ($9.99 × 12 = $119.88 vs. $40/year). This is what powers
+// the "save 67%" anchor on /pricing — and the gap is large enough that
+// most visitors who don't have an immediate cancel risk reach for the
+// yearly plan. Monthly is intentionally feature-limited (courses only)
+// so the comparison isn't just about price.
 export const PLANS = {
   monthly: {
     id: 'monthly',
     name: 'الاشتراك الشهري',
-    priceCents: 500,
-    price: 5,
+    priceCents: 999,
+    price: 9.99,
     currency: 'USD',
     interval: 'month',
     features: [
@@ -29,8 +35,14 @@ export const PLANS = {
       'فيديوهات بجودة عالية',
       'ملفات وموارد قابلة للتحميل',
       'مسابقات تفاعلية',
-      'شهادات إتمام',
-      'دعم فني',
+    ],
+    // Features the monthly plan does NOT include — surfaced as ❌
+    // bullets on /pricing so visitors see exactly what they lose vs.
+    // the yearly plan, not just a vague feature gap.
+    missingFeatures: [
+      'بدون المساعد الذكي فاهم',
+      'بدون شهادة إتمام',
+      'بدون أولوية الدعم الفني',
     ],
   },
   yearly: {
@@ -40,10 +52,11 @@ export const PLANS = {
     price: 40,
     currency: 'USD',
     interval: 'year',
-    badge: 'وفّر 33%',
+    badge: 'وفّر 67%',
     features: [
-      'كل مميزات الاشتراك الشهري',
-      'وفّر 33% (شهرين مجانًا)',
+      'وصول كامل لكل الكورسات',
+      'المساعد الذكي فاهم',
+      'شهادة إتمام لكل كورس',
       'أولوية الدعم الفني',
       'وصول مبكر للكورسات الجديدة',
     ],

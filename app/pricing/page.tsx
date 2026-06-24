@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
 import { APP_NAME, PLANS, ROUTES } from '@/lib/constants';
-import { CheckCircle2, ArrowLeft, Sparkles, Star, Zap } from 'lucide-react';
+import { CheckCircle2, XCircle, ArrowLeft, Sparkles, Star, Zap } from 'lucide-react';
 
 export const metadata = {
   title: 'الأسعار — فاهم!',
@@ -31,13 +31,21 @@ export default async function PricingPage() {
   } = await supabase.auth.getUser();
 
   // Anchor / split-pricing math, computed once so the markup stays clean
-  // and the savings stay in sync if PLANS.* ever changes.
-  const monthlyPrice = PLANS.monthly.price; // 5 — the headline anchor per-month
-  const yearlyPrice = PLANS.yearly.price; // 40 — what's actually charged once a year
-  const yearlyAnchorTotal = monthlyPrice * 12; // 60 — the "would have paid" full-year figure
-  const yearlyPerMonth = (yearlyPrice / 12).toFixed(1); // 3.3 — the framed per-month number
-  const savings = yearlyAnchorTotal - yearlyPrice; // 20
-  const savingsPct = Math.round((savings / yearlyAnchorTotal) * 100); // 33
+  // and the savings stay in sync if PLANS.* ever changes. With the
+  // current $9.99 monthly / $40 yearly mix:
+  //   anchor    = 9.99 × 12 = 119.88 → displayed as $119
+  //   perMonth  = 40 / 12   = 3.33   → displayed as $3.3
+  //   savings   = 119.88 − 40 = 79.88 → displayed as $80
+  //   savingsPct = 67%
+  // The strikethrough $119 is *real*: it's the cost of paying month-to-
+  // month for a whole year. Keeps the anchor honest (no fake MSRP).
+  const monthlyPrice = PLANS.monthly.price;
+  const yearlyPrice = PLANS.yearly.price;
+  const yearlyAnchorRaw = monthlyPrice * 12;
+  const yearlyAnchorTotal = Math.round(yearlyAnchorRaw);
+  const yearlyPerMonth = (yearlyPrice / 12).toFixed(1);
+  const savings = Math.round(yearlyAnchorRaw - yearlyPrice);
+  const savingsPct = Math.round(((yearlyAnchorRaw - yearlyPrice) / yearlyAnchorRaw) * 100);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -152,8 +160,16 @@ function YearlyCard({
   void user;
   const href = `/checkout?plan=yearly`;
 
+  void anchorPerMonth;
+
   return (
     <div className="relative rounded-2xl overflow-hidden border-2 border-brand-500 bg-white shadow-2xl shadow-brand-500/20 md:scale-[1.03] md:order-1">
+      {/* Corner savings badge — independent of the inline copy below so
+          the discount catches the eye even before scanning the card. */}
+      <div className="absolute top-3 start-3 z-10 px-2 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-extrabold shadow">
+        وفّر {savingsPct}%
+      </div>
+
       {/* Green header band */}
       <div className="bg-brand-500 text-white text-center py-4 px-4">
         <div className="font-display text-xl sm:text-2xl font-extrabold">سنوي</div>
@@ -164,14 +180,14 @@ function YearlyCard({
       </div>
 
       <div className="p-6 sm:p-8">
-        {/* Anchor (strikethrough) — the monthly plan's per-month price,
-            framed as the comparison so the headline below feels like a
-            cut, not just a number. */}
+        {/* Anchor (strikethrough) — the *real* full-year cost of paying
+            month-to-month at $9.99×12, framed so the headline $3.3/شهر
+            below reads as a cut, not just a number. */}
         <div
           dir="ltr"
           className="text-sm text-gray-400 line-through font-medium text-center mb-1"
         >
-          ${anchorPerMonth}/شهر
+          ${anchorYearTotal}/سنة
         </div>
 
         {/* Hero price — split per month */}
@@ -205,7 +221,7 @@ function YearlyCard({
         {/* Feature list */}
         <ul className="space-y-2.5 mb-6">
           <Feature text="وصول كامل لكل الكورسات" />
-          <Feature text="المساعد الذكي والكويزات التفاعلية" />
+          <Feature text="المساعد الذكي فاهم" />
           <Feature text="شهادة إتمام لكل كورس" />
           <Feature text="أولوية الدعم الفني" />
           <Feature text="وصول مبكر للكورسات الجديدة" />
@@ -252,11 +268,14 @@ function MonthlyCard({ user, price }: { user: any; price: number }) {
         {/* Spacer to vertical-align with the savings callout on the yearly card */}
         <div className="h-[60px] mb-5" />
 
+        {/* Monthly is intentionally feature-gated to "courses only" so
+            the comparison vs. yearly isn't just price — the visitor sees
+            exactly what they lose if they don't take the yearly. */}
         <ul className="space-y-2.5 mb-6">
           <Feature text="وصول كامل لكل الكورسات" muted />
-          <Feature text="المساعد الذكي والكويزات" muted />
-          <Feature text="شهادة إتمام لكل كورس" muted />
-          <Feature text="دعم فني" muted />
+          <MissingFeature text="بدون المساعد الذكي فاهم" />
+          <MissingFeature text="بدون شهادة إتمام" />
+          <MissingFeature text="بدون أولوية الدعم الفني" />
         </ul>
 
         {/* CTA — dark/secondary so it doesn't compete with the yearly green */}
@@ -280,6 +299,17 @@ function Feature({ text, muted = false }: { text: string; muted?: boolean }) {
         }`}
       />
       <span className={muted ? 'text-gray-600' : 'text-gray-800'}>{text}</span>
+    </li>
+  );
+}
+
+function MissingFeature({ text }: { text: string }) {
+  return (
+    <li className="flex items-start gap-2.5 text-sm leading-relaxed">
+      <XCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-300" />
+      <span className="text-gray-400 line-through decoration-gray-300">
+        {text}
+      </span>
     </li>
   );
 }
