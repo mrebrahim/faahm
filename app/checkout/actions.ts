@@ -3,6 +3,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import type { PlanId } from '@/lib/constants';
+import { notifyAbandonment } from '@/lib/abandonment';
 
 const GUEST_EMAIL_COOKIE = 'guest_checkout_email';
 
@@ -11,6 +12,12 @@ const GUEST_EMAIL_COOKIE = 'guest_checkout_email';
  * (Stripe customer_email, PayPal pre-fill, offline confirmation message)
  * picks up the same value, and so the /billing/success claim flow knows
  * who to provision an account for if the visitor never signed up.
+ *
+ * Also fires the email at the n8n recovery webhook the moment the
+ * visitor surrenders it — that's the earliest possible signal we have
+ * for a potential abandonment, and the recovery sequence runs from
+ * that timestamp. n8n dedups against later "paid" pings, so firing
+ * here even on visitors who do complete the purchase is harmless.
  *
  * 24h expiry — long enough to finish PayPal's hosted-button round-trip
  * but short enough that a stale email doesn't haunt the next checkout
@@ -31,6 +38,16 @@ export async function saveGuestEmail(formData: FormData) {
     sameSite: 'lax',
     path: '/',
     maxAge: 60 * 60 * 24, // 24h
+  });
+
+  // Fire-and-forget recovery webhook. Wrapped to make sure a webhook
+  // outage never blocks the redirect — the visitor must keep moving.
+  void notifyAbandonment({
+    email: normalized,
+    plan: plan === 'yearly' || plan === 'monthly' ? plan : null,
+    step: 'picker',
+    region: 'sa',
+    source: '/checkout',
   });
 
   redirect(`/checkout?plan=${encodeURIComponent(plan)}`);

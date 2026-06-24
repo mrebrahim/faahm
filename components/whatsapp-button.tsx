@@ -1,12 +1,28 @@
+'use client';
+
+import { usePathname } from 'next/navigation';
+
 /**
  * Floating WhatsApp button — opens wa.me with a pre-filled inquiry message.
  * Phone is stored in international format (E.164 without the +) so wa.me
  * routes correctly regardless of the user's region.
+ *
+ * Hidden inside the checkout funnel (and on /billing/success after a
+ * payment lands) because tapping it on a phone hard-exits Safari to the
+ * WhatsApp app — the "I'll do it later" exit that's worth ~25% of the
+ * cart-abandonment rate per Baymard's 2025 funnel report.
  */
 const WHATSAPP_PHONE = '201027555789';
 const WHATSAPP_MESSAGE = 'اريد الاستفسار عن كورسات الذكاء الاصطناعي';
 
+const HIDDEN_PREFIXES = ['/checkout', '/billing', '/offline'];
+
 export function WhatsAppButton() {
+  const pathname = usePathname() || '';
+  if (HIDDEN_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
+    return null;
+  }
+
   const href = `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(
     WHATSAPP_MESSAGE
   )}`;

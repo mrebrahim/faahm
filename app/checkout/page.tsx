@@ -246,13 +246,56 @@ export default async function CheckoutPage({
               />
             </div>
 
-            <p className="text-xs text-gray-500 text-center mt-8 leading-relaxed">
-              الدفع بالبطاقة بيفعّل اشتراكك تلقائياً. الـ PayPal و InstaPay و
-              Vodafone Cash بنأكّدهم يدوياً بعد ما تبعت سكرين شوت على واتساب.
+            {/* Trust strip — replaces the WhatsApp button that used to
+                live floating in this corner. The PRD's #1 distraction
+                lift comes from removing the button; the trust pills
+                here both backfill the visual weight and address the
+                ~25% of abandonments that quote security as the reason. */}
+            <div className="mt-7 grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs">
+              <TrustPill icon="🔒" text="دفع آمن ومشفّر 100%" />
+              <Link
+                href="/refund-policy"
+                className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-center text-emerald-800 font-medium hover:border-emerald-300 transition-colors"
+              >
+                🛡️ ضمان استرداد 7 أيام
+              </Link>
+              <TrustPill icon="⭐" text="انضم لآلاف المتعلمين" />
+            </div>
+
+            {/* Payment-rail logos. Picking the rails the visitor will see
+                on the next page so there's no surprise after they click. */}
+            <div className="mt-3 flex items-center justify-center gap-3 text-[11px] text-gray-400 flex-wrap">
+              <span>Apple Pay</span>
+              <span>·</span>
+              <span>Visa</span>
+              <span>·</span>
+              <span>Mastercard</span>
+              <span>·</span>
+              <span>PayPal</span>
+              <span>·</span>
+              <span>Barq</span>
+            </div>
+
+            <p className="text-[11px] text-gray-400 text-center mt-5 leading-relaxed">
+              الدفع بالبطاقة و PayPal بيفعّل اشتراكك تلقائياً. باقي القنوات
+              بنأكّدها يدوياً بعد ما تبعت سكرين شوت على واتساب. تعرف أكتر في{' '}
+              <Link href="/refund-policy" className="underline hover:text-foreground">
+                سياسة الاسترجاع
+              </Link>
+              .
             </p>
           </>
         )}
       </main>
+    </div>
+  );
+}
+
+function TrustPill({ icon, text }: { icon: string; text: string }) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-center text-gray-700 font-medium">
+      <span className="me-1.5">{icon}</span>
+      {text}
     </div>
   );
 }
