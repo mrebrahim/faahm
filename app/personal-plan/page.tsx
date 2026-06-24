@@ -27,6 +27,9 @@ import {
   Languages,
   ShieldCheck,
   Zap,
+  Award,
+  Brain,
+  MessageSquare,
 } from 'lucide-react';
 
 export const metadata = {
@@ -166,34 +169,43 @@ export default async function PersonalPlanPage() {
         </div>
       </section>
 
-      {/* ─────────────────────  AI ASSISTANT USP  ─────────────────── */}
-      <section className="relative px-4 py-16 sm:py-20 border-t border-gray-100">
-        <div className="container mx-auto max-w-5xl grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-          <div className="order-2 lg:order-1">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 mb-4 rounded-full border border-brand-500/30 bg-brand-500/10 text-xs font-bold text-brand-700">
-              <Bot className="w-3.5 h-3.5" /> الميزة اللي مفيش عند حد تاني
-            </div>
-            <h2 className="font-display text-2xl sm:text-4xl font-extrabold mb-4 leading-tight">
-              مش هتتعلّم لوحدك — <span className="text-gradient-brand">فاهم</span>{' '}
-              معاك في كل درس.
-            </h2>
-            <p className="text-gray-600 leading-relaxed mb-5 text-sm sm:text-base">
-              مساعد ذكي مدرّب على محتوى كل كورس بالعربي. تسأل أي سؤال جوّه
-              الدرس — تشرح، تلخّص، تترجم، تختبرك — والإجابة بتيجي من قلب
-              الكورس مش من جوجل.
+      {/* ─────────────────────  VALUE PROPS STRIP  ─────────────────────
+          Three-icon row that names the platform's pillars in one
+          glance — globally curated AI-recorded courses, certified
+          completion, and AI-powered practice + assessments. Sits
+          between the stats bar and the catalog rails so visitors get
+          the 'what is this thing' answer before they start scrolling
+          through course cards. */}
+      <section className="relative px-4 py-10 sm:py-12 border-t border-gray-100">
+        <div className="container mx-auto max-w-5xl">
+          <div className="text-center mb-8">
+            <p className="text-xs uppercase tracking-wider font-bold text-brand-700 mb-2">
+              منصّة فاهم قائمة على
             </p>
-            <ul className="space-y-3">
-              <BulletIcon icon={Languages} text="بالعربي الفصيح والعامية — مش بتترجم، بيشرح من الأول." />
-              <BulletIcon icon={Bot} text="مدرّب على محتوى الدرس اللي بتتفرّج عليه — مفيش 'مش عارف'." />
-              <BulletIcon icon={Zap} text="رد فوري 24/7 من غير ما تستنّى مدرّس." />
-            </ul>
+            <h2 className="font-display text-xl sm:text-2xl font-extrabold leading-tight">
+              كورسات عالمية بالعربي · شهادات معتمدة · ذكاء اصطناعي في كل خطوة
+            </h2>
           </div>
-          <div className="order-1 lg:order-2">
-            <AssistantMockup />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
+            <ValueProp
+              icon={Languages}
+              title="كورسات عالمية مسجّلة بالـ AI"
+              body="محتوى منتقى من أحسن المنصات العالمية ومُسجَّل بالعربي بالكامل بصوت طبيعي بالذكاء الاصطناعي."
+              tone="brand"
+            />
+            <ValueProp
+              icon={Award}
+              title="شهادات إتمام لكل كورس"
+              body="شهادة رقمية باسمك بعد ما تكمّل كل كورس — تنفع للسي في، اللينكدإن، وملف خبراتك."
+              tone="amber"
+            />
+            <ValueProp
+              icon={Brain}
+              title="تدريبات واختبارات بالـ AI"
+              body="مع المساعد الذكي فاهم بتطبّق فوراً، بيختبرك، ويتأكد إنك فاهم كل خطوة قبل الجاية."
+              tone="indigo"
+            />
           </div>
-        </div>
-        <div className="container mx-auto max-w-5xl mt-8 sm:mt-10">
-          <MidCTA />
         </div>
       </section>
 
@@ -256,6 +268,45 @@ export default async function PersonalPlanPage() {
           </div>
         </section>
       )}
+
+      {/* ─────────────────────  AI ASSISTANT USP  ─────────────────────
+          Sits AFTER the catalog rails so visitors who came in cold see
+          the actual courses first, then meet the differentiator: the
+          'فاهم' assistant that turns watch-only content into a real
+          tutoring loop. The mockup on the right is the visual proof. */}
+      <section className="relative px-4 py-14 sm:py-16 border-t border-gray-100">
+        <div className="container mx-auto max-w-5xl grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+          <div className="order-2 lg:order-1">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 mb-4 rounded-full border border-brand-500/30 bg-brand-500/10 text-[11px] font-bold text-brand-700">
+              <Bot className="w-3.5 h-3.5" />
+              المساعد الذكي فاهم
+            </div>
+            <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-extrabold leading-tight mb-4">
+              مش بس بتفرّج — بتتعلّم وبتطبّق مع مدرّس ذكي معاك في كل درس.
+            </h2>
+            <ul className="space-y-3">
+              <BulletIcon
+                icon={MessageSquare}
+                text="اسأل عن أي جملة في الدرس — وهيرد عليك من قلب المحتوى بالعربي."
+              />
+              <BulletIcon
+                icon={Brain}
+                text="بيختبرك بأسئلة وتدريبات ذكية بعد كل قسم عشان يتأكد إنك فاهم."
+              />
+              <BulletIcon
+                icon={Award}
+                text="بتاخد شهادة إتمام رقمية باسمك بعد ما تكمّل كل كورس."
+              />
+            </ul>
+          </div>
+          <div className="order-1 lg:order-2">
+            <AssistantMockup />
+          </div>
+        </div>
+        <div className="container mx-auto max-w-3xl mt-10">
+          <MidCTA />
+        </div>
+      </section>
 
       {/* ─────────────────────  PROBLEM / SOLUTION  ───────────────── */}
       <section className="relative px-4 py-14 sm:py-16 border-t border-gray-100 bg-gray-50">
@@ -580,6 +631,38 @@ function MidCTA() {
           <ArrowLeft className="w-4 h-4" />
         </Link>
       </Button>
+    </div>
+  );
+}
+
+const VALUE_PROP_TONES: Record<'brand' | 'amber' | 'indigo', { chip: string; ring: string }> = {
+  brand: { chip: 'bg-brand-500/15 text-brand-700', ring: 'ring-brand-500/15' },
+  amber: { chip: 'bg-amber-500/15 text-amber-700', ring: 'ring-amber-500/15' },
+  indigo: { chip: 'bg-indigo-500/15 text-indigo-700', ring: 'ring-indigo-500/15' },
+};
+
+function ValueProp({
+  icon: Icon,
+  title,
+  body,
+  tone,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  body: string;
+  tone: 'brand' | 'amber' | 'indigo';
+}) {
+  const t = VALUE_PROP_TONES[tone];
+  return (
+    <div className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 text-start">
+      <span
+        className={`w-11 h-11 rounded-xl inline-flex items-center justify-center mb-3 ring-4 ${t.ring} ${t.chip}`}
+        aria-hidden
+      >
+        <Icon className="w-5 h-5" />
+      </span>
+      <div className="font-bold text-base sm:text-lg mb-1.5 leading-snug">{title}</div>
+      <p className="text-sm text-gray-600 leading-relaxed">{body}</p>
     </div>
   );
 }
