@@ -146,8 +146,11 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
   let ctaHref: string;
   let ctaLabel: string;
   if (!user) {
-    ctaHref = `${ROUTES.signup}?redirect=${encodeURIComponent(`/course/${course.slug}`)}`;
-    ctaLabel = 'اشترك دلوقتي وابدأ';
+    // Guest checkout: send to the landing/pricing funnel, never to
+    // /signup — the visitor can pay without an account and the
+    // post-payment claim form creates the account from their email.
+    ctaHref = '/personal-plan';
+    ctaLabel = 'احصل على خطتك الشخصية';
   } else if (!subscribed) {
     ctaHref = ROUTES.pricing;
     ctaLabel = 'اشترك دلوقتي وابدأ';
@@ -457,7 +460,7 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
                 اشترك واحصل على كل الكورسات
               </h3>
               <p className="text-sm text-gray-600 mb-4">
-                مفيش شراء كل كورس لوحده. اشتراك سنوي بـ <strong>$3.3/شهر</strong>
+                مفيش شراء كل كورس لوحده. اشتراك سنوي بـ <strong>~12 ر.س/شهر</strong>
                 {' '}بيفتحلك كل المحتوى + المساعد الذكي + الشهادة.
               </p>
               <ul className="space-y-2 mb-5 text-sm">
@@ -474,8 +477,8 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
                 ))}
               </ul>
               <Button asChild className="w-full" size="lg">
-                <Link href={user ? ROUTES.pricing : `${ROUTES.signup}?redirect=${encodeURIComponent(`/course/${course.slug}`)}`}>
-                  {user ? 'اختار خطة الاشتراك' : 'ابدأ الآن'}
+                <Link href={user ? ROUTES.pricing : '/personal-plan'}>
+                  {user ? 'اختار خطة الاشتراك' : 'احصل على خطتك الشخصية'}
                   <ArrowLeft className="w-4 h-4" />
                 </Link>
               </Button>

@@ -3,7 +3,9 @@ import { createClient } from '@/lib/supabase/server';
 import { submitLead } from './leads/actions';
 import { Button } from '@/components/ui/button';
 import { MainNav } from '@/components/main-nav';
-import { ROUTES, APP_NAME, PLANS } from '@/lib/constants';
+import { ROUTES, APP_NAME } from '@/lib/constants';
+import { pricingFor } from '@/lib/region';
+import { SARMoney } from '@/components/sar-money';
 import {
   ArrowLeft,
   Play,
@@ -15,6 +17,8 @@ import {
   Video,
   Briefcase,
   CheckCircle2,
+  XCircle,
+  Star,
   Award,
   Users,
   BookOpen,
@@ -101,8 +105,8 @@ export default async function HomePage({
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button asChild size="lg" className="min-w-[200px]">
-              <Link href={ROUTES.signup}>
-                ابدأ التعلم الآن
+              <Link href="/personal-plan">
+                احصل على خطتك الشخصية
                 <ArrowLeft className="w-4 h-4" />
               </Link>
             </Button>
@@ -188,9 +192,14 @@ export default async function HomePage({
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12 max-w-3xl mx-auto">
-            <PricingCard plan={PLANS.monthly} />
-            <PricingCard plan={PLANS.yearly} featured />
+            <PricingCard kind="yearly" featured />
+            <PricingCard kind="monthly" />
           </div>
+          <p className="text-center text-xs text-gray-500 mt-6">
+            <Link href={ROUTES.pricing} className="underline hover:text-foreground">
+              شوف كل تفاصيل الباقات
+            </Link>
+          </p>
         </div>
       </section>
 
@@ -204,8 +213,8 @@ export default async function HomePage({
             انضم لآلاف المتعلمين العرب اللي اختاروا فاهم — أول منصة عربية للكورسات بالذكاء الاصطناعي.
           </p>
           <Button asChild size="lg">
-            <Link href={ROUTES.signup}>
-              اشترك دلوقتي
+            <Link href="/personal-plan">
+              احصل على خطتك الشخصية
               <ArrowLeft className="w-4 h-4" />
             </Link>
           </Button>
@@ -434,13 +443,23 @@ function CourseCard({ course }: { course: any }) {
   );
 }
 
+/**
+ * Home-page pricing card. Reads SAR amounts straight off the
+ * region-aware pricingFor('sa') helper — same source-of-truth the
+ * /pricing surface uses, so the two pages can't drift. CTAs link
+ * directly to /checkout (guest-checkout aware), never /signup, so the
+ * visitor isn't bounced through a sign-up gate before paying.
+ */
 function PricingCard({
-  plan,
+  kind,
   featured = false,
 }: {
-  plan: typeof PLANS.monthly | typeof PLANS.yearly;
+  kind: 'monthly' | 'yearly';
   featured?: boolean;
 }) {
+  const p = pricingFor('sa');
+  const isYearly = kind === 'yearly';
+
   return (
     <div
       className={`relative p-8 rounded-2xl border transition-all ${
@@ -449,26 +468,57 @@ function PricingCard({
           : 'bg-white border-gray-200'
       }`}
     >
-      {featured && 'badge' in plan && plan.badge && (
-        <div className="absolute -top-3 right-6 px-3 py-1 bg-brand-500 text-white text-xs font-bold rounded-full shadow-lg shadow-brand-500/30">
-          {plan.badge}
+      {featured && (
+        <div className="absolute -top-3 end-6 inline-flex items-center gap-1 px-3 py-1 bg-brand-500 text-white text-xs font-bold rounded-full shadow-lg shadow-brand-500/30">
+          <Star className="w-3 h-3 fill-white" />
+          الأكثر مبيعاً
         </div>
       )}
 
-      <h3 className="font-display text-2xl font-bold mb-2">{plan.name}</h3>
+      <h3 className="font-display text-2xl font-bold mb-2">
+        {isYearly ? 'الاشتراك السنوي' : 'الاشتراك الشهري'}
+      </h3>
 
-      <div className="flex items-baseline gap-1 mb-6">
-        <span className="text-5xl font-extrabold font-display">${plan.price}</span>
-        <span className="text-gray-500">/ {plan.interval === 'month' ? 'شهر' : 'سنة'}</span>
+      {isYearly && (
+        <div className="text-sm text-gray-400 line-through font-medium mb-1">
+          <SARMoney value={p.yearlyAnchor} />/سنة
+        </div>
+      )}
+
+      <div className="flex items-baseline gap-2 mb-3">
+        <span className="text-5xl font-extrabold font-display">
+          <SARMoney
+            value={isYearly ? p.yearlyPerMonth : p.monthlyAmount}
+            symbolClassName="w-[0.55em] h-[0.55em] mx-1"
+          />
+        </span>
+        <span className="text-gray-500">/ شهر</span>
       </div>
 
+      {isYearly && (
+        <p className="text-xs text-brand-700 bg-brand-500/5 border border-brand-500/20 rounded-lg py-2 px-3 mb-5 leading-relaxed">
+          تدفع <SARMoney value={p.yearlyAmount} /> سنوياً — وفّر{' '}
+          <SARMoney value={p.savings} /> ({p.savingsPct}%)
+        </p>
+      )}
+      {!isYearly && <div className="mb-5 h-[36px]" />}
+
       <ul className="space-y-3 mb-8">
-        {plan.features.map((feature, idx) => (
-          <li key={idx} className="flex items-start gap-3 text-sm">
-            <CheckCircle2 className="w-5 h-5 text-brand-500 mt-0.5 flex-shrink-0" />
-            <span className="text-gray-700">{feature}</span>
-          </li>
-        ))}
+        {isYearly ? (
+          <>
+            <Feat ok text="وصول كامل لكل الكورسات" />
+            <Feat ok text="المساعد الذكي فاهم" />
+            <Feat ok text="شهادة إتمام لكل كورس" />
+            <Feat ok text="أولوية الدعم الفني" />
+          </>
+        ) : (
+          <>
+            <Feat ok text="وصول كامل لكل الكورسات" muted />
+            <Feat text="بدون المساعد الذكي فاهم" />
+            <Feat text="بدون شهادة إتمام" />
+            <Feat text="بدون أولوية الدعم الفني" />
+          </>
+        )}
       </ul>
 
       <Button
@@ -477,11 +527,30 @@ function PricingCard({
         size="lg"
         className="w-full"
       >
-        <Link href={`${ROUTES.signup}?plan=${plan.id}`}>
-          اختار {plan.interval === 'month' ? 'الشهري' : 'السنوي'}
+        <Link href={`/checkout?plan=${kind}`}>
+          {isYearly ? 'اختار السنوي' : 'اختار الشهري'}
         </Link>
       </Button>
     </div>
+  );
+}
+
+function Feat({ text, ok = false, muted = false }: { text: string; ok?: boolean; muted?: boolean }) {
+  if (ok) {
+    return (
+      <li className="flex items-start gap-3 text-sm">
+        <CheckCircle2
+          className={`w-5 h-5 ${muted ? 'text-gray-400' : 'text-brand-500'} mt-0.5 flex-shrink-0`}
+        />
+        <span className={muted ? 'text-gray-600' : 'text-gray-700'}>{text}</span>
+      </li>
+    );
+  }
+  return (
+    <li className="flex items-start gap-3 text-sm">
+      <XCircle className="w-5 h-5 text-gray-300 mt-0.5 flex-shrink-0" />
+      <span className="text-gray-400 line-through decoration-gray-300">{text}</span>
+    </li>
   );
 }
 

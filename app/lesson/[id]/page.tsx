@@ -448,14 +448,12 @@ function UnplayableBlock() {
 
 function PaywallBlock({ lessonId, loggedIn }: { lessonId: string; loggedIn: boolean }) {
   // Logged-in but unsubscribed users see a subscribe CTA. Anonymous
-  // visitors see a login CTA that carries the lesson URL forward via
-  // ?redirect= so they land back here straight after signing in.
+  // visitors get the guest-checkout funnel (/personal-plan) — they
+  // can pay before signing up, and the post-payment claim form
+  // provisions the account from their email.
   const cta = loggedIn
     ? { href: ROUTES.pricing, label: 'اشترك دلوقتي' }
-    : {
-        href: `${ROUTES.login}?redirect=${encodeURIComponent(`/lesson/${lessonId}`)}`,
-        label: 'سجّل دخول للمتابعة',
-      };
+    : { href: '/personal-plan', label: 'احصل على خطتك الشخصية' };
   return (
     <div className="aspect-video w-full rounded-2xl border border-gray-200 bg-gradient-to-br from-gray-900 to-gray-700 text-white flex items-center justify-center p-8">
       <div className="text-center max-w-md">
@@ -467,7 +465,7 @@ function PaywallBlock({ lessonId, loggedIn }: { lessonId: string; loggedIn: bool
         </h2>
         <p className="text-sm text-gray-300 mb-6">
           {loggedIn
-            ? 'اشترك دلوقتي بـ $3.3/شهر سنوياً واحصل على كل دروس الكورس + كل كورسات فاهم!'
+            ? 'اشترك دلوقتي بـ ~12 ر.س/شهر سنوياً واحصل على كل دروس الكورس + كل كورسات فاهم!'
             : 'سجّل حساب مجاني عشان تشوف الدروس المجانية، أو اشترك للوصول الكامل.'}
         </p>
         <Button asChild size="lg" className="bg-white text-gray-900 hover:bg-gray-100 shadow-none">
