@@ -257,12 +257,11 @@ export function SocialProofToast() {
       role="status"
       aria-live="polite"
       // end-4 → bottom-LEFT in RTL physically. WhatsApp now sits on
-      // the right, so the two never overlap. Safe-area inset keeps
-      // the toast above the iOS home indicator.
-      className="fixed end-4 z-40 w-[calc(100vw-2rem)] max-w-[22rem] animate-[sp-in_0.35s_cubic-bezier(0.4,0,0.2,1)_both]"
-      style={{
-        bottom: 'calc(env(safe-area-inset-bottom, 0px) + 1rem)',
-      }}
+      // the right, so the two never overlap. On mobile the StickyMobileCTA
+      // rides on the very bottom (~80px tall + safe-area), so the toast
+      // bumps itself ~5.5rem up to clear it. Above sm: there's no sticky
+      // CTA, so the toast sits at the normal ~1rem inset.
+      className="fixed end-4 z-40 w-[calc(100vw-2rem)] max-w-[22rem] bottom-[calc(env(safe-area-inset-bottom,0px)+5.5rem)] sm:bottom-[calc(env(safe-area-inset-bottom,0px)+1rem)] animate-[sp-in_0.35s_cubic-bezier(0.4,0,0.2,1)_both]"
     >
       <div className="relative rounded-2xl bg-white border border-gray-200 shadow-xl shadow-gray-900/15 pe-3 ps-4 py-3 flex items-center gap-3">
         {/* Plan icon chip — replaces the stock photo other social-proof
