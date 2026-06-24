@@ -16,6 +16,7 @@ import {
   ArrowRight,
   CheckCircle2,
   Ticket,
+  Globe2,
 } from 'lucide-react';
 import { GuestEmailForm } from './guest-email-form';
 
@@ -211,7 +212,7 @@ export default async function CheckoutPage({
             <h2 className="font-display text-lg font-bold mb-3">اختر طريقة الدفع:</h2>
 
             <div className="space-y-3">
-              {/* Cards / wallets / Apple Pay → Stripe */}
+              {/* 1. Cards / wallets / Apple Pay → Stripe (SAR) */}
               <PaymentMethod
                 href={`/api/checkout?plan=${planParam}${emailQs}${regionQs}`}
                 icon={CreditCard}
@@ -220,7 +221,7 @@ export default async function CheckoutPage({
                 recommended
               />
 
-              {/* PayPal — subscription with recurring billing */}
+              {/* 2. PayPal — subscription with recurring billing */}
               <PaymentMethod
                 href={`/checkout/paypal?plan=${planParam}${emailQs}${regionQs}`}
                 icon={Wallet}
@@ -228,20 +229,20 @@ export default async function CheckoutPage({
                 subtitle="اشتراك متجدّد تلقائياً — إلغاء في أي وقت"
               />
 
-              {/* InstaPay */}
+              {/* 3. Barq — international transfer from Saudi (SAR) */}
               <PaymentMethod
-                href={`/offline/instapay?plan=${planParam}${emailQs}${regionQs}`}
-                icon={Smartphone}
-                title="InstaPay"
-                subtitle="تحويل فوري من أي بنك مصري"
+                href={`/offline/barq?plan=${planParam}${emailQs}${regionQs}`}
+                icon={Globe2}
+                title="Barq (من السعودية)"
+                subtitle="تحويل دولي بالريال من السعودية لمصر"
               />
 
-              {/* Vodafone Cash / Barq */}
+              {/* 4. Egyptian combo — InstaPay + Vodafone Cash (EGP) */}
               <PaymentMethod
-                href={`/offline/vodafone?plan=${planParam}${emailQs}${regionQs}`}
+                href={`/offline/egp?plan=${planParam}${emailQs}${regionQs}`}
                 icon={Smartphone}
-                title="Vodafone Cash أو Barq"
-                subtitle="فودافون كاش / تحويل دولي من السعودية عبر Barq"
+                title="من مصر — InstaPay أو Vodafone Cash"
+                subtitle="تحويل فوري بالجنيه المصري"
               />
             </div>
 

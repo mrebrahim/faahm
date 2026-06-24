@@ -6,19 +6,23 @@ import { OFFLINE_PAYMENTS, type PlanId } from '@/lib/constants';
  * with a pre-filled Arabic message that includes the user's email and the
  * chosen plan / amount so admins can verify the payment fast.
  *
- * Amount is quoted in Saudi Riyal — the SAR funnel is the only one
- * we ship today and admins reconcile the WhatsApp screenshot against
- * the SAR transfer the visitor actually made.
+ * `currencyLabel` lets callers quote whichever currency the channel
+ * actually charges in — riyals for Barq, Egyptian pounds for InstaPay
+ * / Vodafone Cash — so the admin's reconciliation matches the figure
+ * the visitor saw on screen.
  */
 export function WhatsAppConfirmButton({
   email,
   plan,
-  amountSar,
+  amount,
+  currencyLabel,
   channel,
 }: {
   email: string;
   plan: PlanId;
-  amountSar: number;
+  amount: number;
+  /** e.g. 'ر.س' or 'ج.م' — whatever the channel charged in. */
+  currencyLabel: string;
   /** Free-form channel label used in the message body. */
   channel: string;
 }) {
@@ -26,7 +30,7 @@ export function WhatsAppConfirmButton({
   const message = [
     'لقد اشتركت في فاهم وهذه اسكرين شوت من الدفع.',
     `الإيميل: ${email}`,
-    `الخطة: ${planLabel} (${amountSar} ر.س)`,
+    `الخطة: ${planLabel} (${amount} ${currencyLabel})`,
     `طريقة الدفع: ${channel}`,
   ].join('\n');
 
