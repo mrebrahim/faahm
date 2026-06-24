@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
-import { APP_NAME, PLANS, ROUTES } from '@/lib/constants';
+import { APP_NAME, ROUTES } from '@/lib/constants';
+import { pricingFor, resolveRegion, type Region } from '@/lib/region';
 import { CheckCircle2, XCircle, ArrowLeft, Sparkles, Star, Zap } from 'lucide-react';
 
 export const metadata = {
@@ -9,6 +10,8 @@ export const metadata = {
   description:
     'اشتراك واحد بسيط بيفتحلك كل كورسات فاهم — اختار الباقة اللي تناسبك وابدأ التعلم.',
 };
+
+export const dynamic = 'force-dynamic';
 
 /**
  * Pricing page styled after the "split + anchor" psychology spec:
@@ -24,28 +27,23 @@ export const metadata = {
  *  Real price ($40/year) and the Stripe Price IDs are unchanged — only
  *  the way the deal is presented changes.
  */
-export default async function PricingPage() {
+export default async function PricingPage({
+  searchParams,
+}: {
+  searchParams: { region?: string };
+}) {
   const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Anchor / split-pricing math, computed once so the markup stays clean
-  // and the savings stay in sync if PLANS.* ever changes. With the
-  // current $9.99 monthly / $40 yearly mix:
-  //   anchor    = 9.99 × 12 = 119.88 → displayed as $119
-  //   perMonth  = 40 / 12   = 3.33   → displayed as $3.3
-  //   savings   = 119.88 − 40 = 79.88 → displayed as $80
-  //   savingsPct = 67%
-  // The strikethrough $119 is *real*: it's the cost of paying month-to-
-  // month for a whole year. Keeps the anchor honest (no fake MSRP).
-  const monthlyPrice = PLANS.monthly.price;
-  const yearlyPrice = PLANS.yearly.price;
-  const yearlyAnchorRaw = monthlyPrice * 12;
-  const yearlyAnchorTotal = Math.round(yearlyAnchorRaw);
-  const yearlyPerMonth = (yearlyPrice / 12).toFixed(1);
-  const savings = Math.round(yearlyAnchorRaw - yearlyPrice);
-  const savingsPct = Math.round(((yearlyAnchorRaw - yearlyPrice) / yearlyAnchorRaw) * 100);
+  // Region drives the entire pricing display + the price IDs handed to
+  // Stripe later. Defaults to USD; Saudi visitors get the SAR funnel
+  // either by URL (/sa/pricing forces ?region=sa), CDN geo header
+  // (cf-ipcountry / x-vercel-ip-country = SA), or sticky cookie set
+  // once they've landed on the SAR funnel before.
+  const region: Region = resolveRegion(searchParams.region ?? null);
+  const pricing = pricingFor(region);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -98,14 +96,18 @@ export default async function PricingPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6 max-w-3xl mx-auto">
           <YearlyCard
             user={user}
-            anchorPerMonth={monthlyPrice}
-            anchorYearTotal={yearlyAnchorTotal}
-            perMonth={yearlyPerMonth}
-            yearTotal={yearlyPrice}
-            savings={savings}
-            savingsPct={savingsPct}
+            region={region}
+            anchorYearDisplay={pricing.yearlyAnchorDisplay}
+            perMonthDisplay={pricing.yearlyPerMonthDisplay}
+            yearTotalDisplay={pricing.yearlyDisplay}
+            savingsDisplay={pricing.savingsDisplay}
+            savingsPct={pricing.savingsPct}
           />
-          <MonthlyCard user={user} price={monthlyPrice} />
+          <MonthlyCard
+            user={user}
+            region={region}
+            priceDisplay={pricing.monthlyDisplay}
+          />
         </div>
 
         {/* Trust strip */}
@@ -139,28 +141,29 @@ export default async function PricingPage() {
 
 function YearlyCard({
   user,
-  anchorPerMonth,
-  anchorYearTotal,
-  perMonth,
-  yearTotal,
-  savings,
+  region,
+  anchorYearDisplay,
+  perMonthDisplay,
+  yearTotalDisplay,
+  savingsDisplay,
   savingsPct,
 }: {
   user: any;
-  anchorPerMonth: number;
-  anchorYearTotal: number;
-  perMonth: string;
-  yearTotal: number;
-  savings: number;
+  region: Region;
+  anchorYearDisplay: string;
+  perMonthDisplay: string;
+  yearTotalDisplay: string;
+  savingsDisplay: string;
   savingsPct: number;
 }) {
   // Guest checkout: send everyone straight to /checkout. The page itself
   // collects an email if there's no session, and the account is
-  // provisioned on the success page after the payment lands.
+  // provisioned on the success page after the payment lands. The region
+  // travels with the request so the Stripe price ID picked downstream
+  // matches the currency we showed the visitor here.
   void user;
-  const href = `/checkout?plan=yearly`;
-
-  void anchorPerMonth;
+  const href = `/checkout?plan=yearly&region=${region}`;
+  const isSar = region === 'sa';
 
   return (
     <div className="relative rounded-2xl overflow-hidden border-2 border-brand-500 bg-white shadow-2xl shadow-brand-500/20 md:scale-[1.03] md:order-1">
@@ -181,20 +184,23 @@ function YearlyCard({
 
       <div className="p-6 sm:p-8">
         {/* Anchor (strikethrough) — the *real* full-year cost of paying
-            month-to-month at $9.99×12, framed so the headline $3.3/شهر
-            below reads as a cut, not just a number. */}
+            month-to-month at the monthly plan's rate, framed so the
+            headline price below reads as a cut, not just a number. */}
         <div
-          dir="ltr"
+          dir={isSar ? 'rtl' : 'ltr'}
           className="text-sm text-gray-400 line-through font-medium text-center mb-1"
         >
-          ${anchorYearTotal}/سنة
+          {anchorYearDisplay}/سنة
         </div>
 
         {/* Hero price — split per month */}
         <div className="text-center mb-3">
-          <div className="flex items-baseline justify-center gap-1.5" dir="ltr">
+          <div
+            className="flex items-baseline justify-center gap-1.5"
+            dir={isSar ? 'rtl' : 'ltr'}
+          >
             <span className="text-5xl sm:text-6xl font-extrabold font-display text-foreground">
-              ${perMonth}
+              {perMonthDisplay}
             </span>
           </div>
           <div className="text-sm text-gray-500 mt-1">/ شهر</div>
@@ -204,17 +210,12 @@ function YearlyCard({
             would cost, framed against the actual yearly charge. */}
         <p className="text-xs sm:text-sm text-center text-gray-700 bg-brand-500/5 border border-brand-500/20 rounded-lg py-2 px-3 mb-5 leading-relaxed">
           * تدفع{' '}
-          <span className="font-bold" dir="ltr">
-            ${yearTotal}
-          </span>{' '}
-          بدلاً من{' '}
-          <span className="font-bold line-through text-gray-400" dir="ltr">
-            ${anchorYearTotal}
+          <span className="font-bold">{yearTotalDisplay}</span> بدلاً من{' '}
+          <span className="font-bold line-through text-gray-400">
+            {anchorYearDisplay}
           </span>{' '}
           سنوياً — وفّر{' '}
-          <span className="font-bold text-brand-700" dir="ltr">
-            ${savings}
-          </span>{' '}
+          <span className="font-bold text-brand-700">{savingsDisplay}</span>{' '}
           ({savingsPct}%)
         </p>
 
@@ -240,9 +241,18 @@ function YearlyCard({
   );
 }
 
-function MonthlyCard({ user, price }: { user: any; price: number }) {
+function MonthlyCard({
+  user,
+  region,
+  priceDisplay,
+}: {
+  user: any;
+  region: Region;
+  priceDisplay: string;
+}) {
   void user;
-  const href = `/checkout?plan=monthly`;
+  const href = `/checkout?plan=monthly&region=${region}`;
+  const isSar = region === 'sa';
 
   return (
     <div className="relative rounded-2xl overflow-hidden border border-gray-200 bg-white md:order-2">
@@ -257,9 +267,12 @@ function MonthlyCard({ user, price }: { user: any; price: number }) {
         <div className="h-5 mb-1" />
 
         <div className="text-center mb-3">
-          <div className="flex items-baseline justify-center gap-1.5" dir="ltr">
+          <div
+            className="flex items-baseline justify-center gap-1.5"
+            dir={isSar ? 'rtl' : 'ltr'}
+          >
             <span className="text-5xl sm:text-6xl font-extrabold font-display text-foreground">
-              ${price}
+              {priceDisplay}
             </span>
           </div>
           <div className="text-sm text-gray-500 mt-1">/ شهر</div>

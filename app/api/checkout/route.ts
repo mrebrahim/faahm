@@ -4,6 +4,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { stripe, getStripePriceId } from '@/lib/stripe';
 import { ROUTES, PLANS, type PlanId } from '@/lib/constants';
 import { resolveAppUrl } from '@/lib/app-url';
+import { resolveRegion } from '@/lib/region';
 
 const GUEST_EMAIL_COOKIE = 'guest_checkout_email';
 
@@ -28,6 +29,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}${ROUTES.pricing}`);
   }
   const plan = planParam as PlanId;
+
+  // Region picks which Stripe Price ID (USD vs SAR) we hand to Stripe.
+  // Falls through to the cookie / CDN-country header for visitors who
+  // got here without ?region= on the URL.
+  const region = resolveRegion(url.searchParams.get('region'));
 
   const supabase = createClient();
   const {
@@ -89,7 +95,7 @@ export async function GET(request: NextRequest) {
       : { customer_email: checkoutEmail ?? undefined }),
     line_items: [
       {
-        price: getStripePriceId(plan),
+        price: getStripePriceId(plan, region),
         quantity: 1,
       },
     ],
@@ -103,6 +109,7 @@ export async function GET(request: NextRequest) {
       metadata: {
         ...(user ? { supabase_user_id: user.id } : {}),
         plan,
+        region,
         // Stamp the email for guest flows so the webhook can find / create
         // the user even if customer_email rotates later in Stripe.
         ...(checkoutEmail ? { guest_email: checkoutEmail } : {}),
@@ -111,6 +118,7 @@ export async function GET(request: NextRequest) {
     metadata: {
       ...(user ? { supabase_user_id: user.id } : {}),
       plan,
+      region,
       redirect_after: redirectParam,
       ...(checkoutEmail ? { guest_email: checkoutEmail } : {}),
     },

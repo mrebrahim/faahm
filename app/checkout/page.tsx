@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
 import { CheckoutTracker } from '@/components/checkout-tracker';
 import { APP_NAME, PLANS, ROUTES, type PlanId } from '@/lib/constants';
+import { pricingFor, resolveRegion } from '@/lib/region';
 import { clearGuestEmail } from './actions';
 import {
   ArrowLeft,
@@ -22,6 +23,8 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
+export const dynamic = 'force-dynamic';
+
 /**
  * Cookie that carries the guest email between the picker, the payment
  * provider (Stripe/PayPal/offline), and the post-payment claim page so a
@@ -35,13 +38,21 @@ const isPlan = (v: unknown): v is PlanId => v === 'monthly' || v === 'yearly';
 export default async function CheckoutPage({
   searchParams,
 }: {
-  searchParams: { plan?: string };
+  searchParams: { plan?: string; region?: string };
 }) {
   const planParam = searchParams.plan;
   if (!isPlan(planParam)) {
     redirect(ROUTES.pricing);
   }
   const plan = PLANS[planParam];
+
+  // Region picks the currency we show + which Stripe Price ID downstream
+  // gateways grab. Carried via ?region= on every payment-method link so
+  // the visitor's currency choice doesn't get lost on a back-button.
+  const region = resolveRegion(searchParams.region ?? null);
+  const pricing = pricingFor(region);
+  const isSar = region === 'sa';
+  const regionQs = `&region=${region}`;
 
   // Guest checkout: we no longer redirect anonymous visitors to /signup.
   // Logged-in users still get their email baked into all the payment
@@ -84,88 +95,78 @@ export default async function CheckoutPage({
           contentIds={[planParam]}
           step="picker"
         />
-        {/* Order summary. The anchor and savings on the yearly plan are
-            derived from PLANS so they stay in sync if the pricing changes
-            again — anchor = monthly × 12, savings = anchor − yearly. */}
-        {(() => {
-          const monthlyPrice = PLANS.monthly.price;
-          const yearlyPrice = PLANS.yearly.price;
-          const yearlyAnchor = Math.round(monthlyPrice * 12);
-          const yearlySavings = Math.round(monthlyPrice * 12 - yearlyPrice);
-          const yearlySavingsPct = Math.round(
-            ((monthlyPrice * 12 - yearlyPrice) / (monthlyPrice * 12)) * 100
-          );
-          return (
-            <>
-              <div className="rounded-2xl border border-brand-500/30 bg-brand-500/5 p-5 mb-4">
-                <div className="flex items-start justify-between gap-3 mb-3">
-                  <div>
-                    <div className="text-xs text-brand-700 font-medium mb-1">طلبك</div>
-                    <h1 className="font-display text-xl font-bold">{plan.name}</h1>
-                  </div>
-                  <div className="text-right">
-                    {planParam === 'yearly' && (
-                      <div
-                        className="text-sm text-gray-400 line-through font-medium"
-                        dir="ltr"
-                      >
-                        ${yearlyAnchor}
-                      </div>
-                    )}
-                    <div className="font-display text-3xl font-extrabold" dir="ltr">
-                      ${plan.price}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      / {plan.interval === 'month' ? 'شهر' : 'سنة'}
-                    </div>
-                  </div>
-                </div>
-                <ul className="space-y-1 text-xs text-gray-600">
-                  {plan.features.slice(0, 3).map((f) => (
-                    <li key={f} className="flex items-center gap-1.5">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-brand-500 flex-shrink-0" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Coupon — visual only; the standing yearly discount that's
-                  already baked into the price. */}
+        {/* Order summary. Numbers are pulled from the region-aware
+            pricing table so SAR visitors see riyals end-to-end and USD
+            visitors see dollars — no FX maths in the markup. */}
+        <div className="rounded-2xl border border-brand-500/30 bg-brand-500/5 p-5 mb-4">
+          <div className="flex items-start justify-between gap-3 mb-3">
+            <div>
+              <div className="text-xs text-brand-700 font-medium mb-1">طلبك</div>
+              <h1 className="font-display text-xl font-bold">{plan.name}</h1>
+            </div>
+            <div className="text-right">
               {planParam === 'yearly' && (
-                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 mb-6">
-                  <div className="flex items-center justify-between gap-3 flex-wrap">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
-                        <Ticket className="w-4 h-4 text-emerald-600" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-bold text-emerald-800">
-                            كوبون مفعّل
-                          </span>
-                          <code
-                            dir="ltr"
-                            className="font-mono text-[11px] font-bold bg-white text-emerald-700 px-1.5 py-0.5 rounded border border-emerald-200"
-                          >
-                            SAVE{yearlySavingsPct}
-                          </code>
-                        </div>
-                        <div className="text-[11px] text-emerald-700 mt-0.5">
-                          خصم {yearlySavingsPct}% على الاشتراك السنوي — وفّرت{' '}
-                          <span dir="ltr" className="font-bold">${yearlySavings}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <span className="text-[11px] font-bold text-emerald-700 bg-white border border-emerald-200 px-2 py-0.5 rounded-full">
-                      −${yearlySavings}
-                    </span>
-                  </div>
+                <div
+                  className="text-sm text-gray-400 line-through font-medium"
+                  dir={isSar ? 'rtl' : 'ltr'}
+                >
+                  {pricing.yearlyAnchorDisplay}
                 </div>
               )}
-            </>
-          );
-        })()}
+              <div
+                className="font-display text-3xl font-extrabold"
+                dir={isSar ? 'rtl' : 'ltr'}
+              >
+                {planParam === 'yearly' ? pricing.yearlyDisplay : pricing.monthlyDisplay}
+              </div>
+              <div className="text-xs text-gray-500">
+                / {plan.interval === 'month' ? 'شهر' : 'سنة'}
+              </div>
+            </div>
+          </div>
+          <ul className="space-y-1 text-xs text-gray-600">
+            {plan.features.slice(0, 3).map((f) => (
+              <li key={f} className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-3.5 h-3.5 text-brand-500 flex-shrink-0" />
+                {f}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Coupon — visual only; the standing yearly discount that's
+            already baked into the price. */}
+        {planParam === 'yearly' && (
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 mb-6">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center flex-shrink-0">
+                  <Ticket className="w-4 h-4 text-emerald-600" />
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-emerald-800">
+                      كوبون مفعّل
+                    </span>
+                    <code
+                      dir="ltr"
+                      className="font-mono text-[11px] font-bold bg-white text-emerald-700 px-1.5 py-0.5 rounded border border-emerald-200"
+                    >
+                      SAVE{pricing.savingsPct}
+                    </code>
+                  </div>
+                  <div className="text-[11px] text-emerald-700 mt-0.5">
+                    خصم {pricing.savingsPct}% على الاشتراك السنوي — وفّرت{' '}
+                    <span className="font-bold">{pricing.savingsDisplay}</span>
+                  </div>
+                </div>
+              </div>
+              <span className="text-[11px] font-bold text-emerald-700 bg-white border border-emerald-200 px-2 py-0.5 rounded-full">
+                −{pricing.savingsDisplay}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Guest gate: collect an email before any payment buttons are
             shown, so every gateway link can stamp it on the order and the
@@ -211,7 +212,7 @@ export default async function CheckoutPage({
             <div className="space-y-3">
               {/* Cards / wallets / Apple Pay → Stripe */}
               <PaymentMethod
-                href={`/api/checkout?plan=${planParam}${emailQs}`}
+                href={`/api/checkout?plan=${planParam}${emailQs}${regionQs}`}
                 icon={CreditCard}
                 title="البطاقات البنكية والمحافظ"
                 subtitle="Visa · Mastercard · Apple Pay"
@@ -220,7 +221,7 @@ export default async function CheckoutPage({
 
               {/* PayPal — subscription with recurring billing */}
               <PaymentMethod
-                href={`/checkout/paypal?plan=${planParam}${emailQs}`}
+                href={`/checkout/paypal?plan=${planParam}${emailQs}${regionQs}`}
                 icon={Wallet}
                 title="PayPal"
                 subtitle="اشتراك متجدّد تلقائياً — إلغاء في أي وقت"
@@ -228,7 +229,7 @@ export default async function CheckoutPage({
 
               {/* InstaPay */}
               <PaymentMethod
-                href={`/offline/instapay?plan=${planParam}${emailQs}`}
+                href={`/offline/instapay?plan=${planParam}${emailQs}${regionQs}`}
                 icon={Smartphone}
                 title="InstaPay"
                 subtitle="تحويل فوري من أي بنك مصري"
@@ -236,7 +237,7 @@ export default async function CheckoutPage({
 
               {/* Vodafone Cash / Barq */}
               <PaymentMethod
-                href={`/offline/vodafone?plan=${planParam}${emailQs}`}
+                href={`/offline/vodafone?plan=${planParam}${emailQs}${regionQs}`}
                 icon={Smartphone}
                 title="Vodafone Cash أو Barq"
                 subtitle="فودافون كاش / تحويل دولي من السعودية عبر Barq"
