@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { redirect } from 'next/navigation';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { applyPendingInvitesForCurrentUser } from '@/lib/invites';
@@ -249,8 +250,14 @@ export default async function DashboardPage() {
                 >
                   <div className="aspect-video bg-gray-100 relative overflow-hidden">
                     {course.thumbnail_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={course.thumbnail_url} alt={course.title_ar} className="w-full h-full object-cover" />
+                      <Image
+                        src={course.thumbnail_url}
+                        alt={course.title_ar}
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 280px"
+                        className="object-cover"
+                        quality={70}
+                      />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <BookOpen className="w-10 h-10 text-brand-500/40" />

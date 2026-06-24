@@ -5,7 +5,10 @@ const nextConfig = {
   // `node .next/standalone/server.js` plus the static-files copy step.
   // No-op in dev.
   output: 'standalone',
-  // Image optimization
+  // Image optimization. Next ships everything through /_next/image so
+  // a 1.5 MB Supabase JPG comes out the other end as a ~80 KB AVIF
+  // sized to the requesting viewport — every <Image> call site gets
+  // this for free as long as it sets `sizes`.
   images: {
     remotePatterns: [
       {
@@ -25,6 +28,19 @@ const nextConfig = {
         hostname: '*.r2.cloudflarestorage.com',
       },
     ],
+    // AVIF first (≈30–50% smaller than WebP on modern browsers), with
+    // WebP as the fallback for slightly older clients. Both crush the
+    // source JPG/PNGs Supabase Storage ships back.
+    formats: ['image/avif', 'image/webp'],
+    // Tightened breakpoint ladder. Default is [640, 750, …, 3840] —
+    // the biggest image surface here (the carousel cards) tops out at
+    // ~340px CSS wide, so capping at 1280 cuts cache footprint and
+    // CDN egress without affecting any real layout.
+    deviceSizes: [360, 480, 640, 828, 1080, 1280],
+    imageSizes: [64, 96, 128, 200, 280, 340],
+    // 60s minimum CDN cache so repeat visits don't re-encode the same
+    // thumbnail; Next's stale-while-revalidate covers source updates.
+    minimumCacheTTL: 60,
   },
   // Security headers
   async headers() {

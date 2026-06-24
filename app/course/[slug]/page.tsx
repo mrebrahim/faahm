@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
@@ -269,11 +270,16 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
                 // eslint-disable-next-line jsx-a11y/media-has-caption
                 <video src={trailerEmbed.src} controls playsInline className="w-full h-full" />
               ) : course.thumbnail_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <Image
                   src={course.thumbnail_url}
                   alt={course.title_ar}
-                  className="w-full h-full object-cover"
+                  fill
+                  // The hero thumbnail can fill the column at any
+                  // breakpoint, so a wide ladder is fine here.
+                  sizes="(max-width: 1024px) 100vw, 480px"
+                  className="object-cover"
+                  quality={75}
+                  priority
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-500/20 to-gray-100">
@@ -426,11 +432,13 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
               <div className="p-5 sm:p-6 rounded-2xl bg-white border border-gray-200 flex gap-4 items-start">
                 <div className="w-16 h-16 rounded-full overflow-hidden bg-brand-500/10 flex-shrink-0 flex items-center justify-center">
                   {instructor.avatar_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Image
                       src={instructor.avatar_url}
                       alt={instructor.full_name_ar}
-                      className="w-full h-full object-cover"
+                      fill
+                      sizes="64px"
+                      className="object-cover"
+                      quality={75}
                     />
                   ) : (
                     <UserIcon className="w-7 h-7 text-brand-500" />

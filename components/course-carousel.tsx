@@ -2,6 +2,7 @@
 
 import { useRef, useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ChevronLeft, ChevronRight, BookOpen, Clock, Star } from 'lucide-react';
 
 export type CarouselCourse = {
@@ -133,12 +134,16 @@ export function CourseCarousel({
             >
               <div className="relative aspect-video bg-gray-100 overflow-hidden">
                 {c.thumbnail_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <Image
                     src={c.thumbnail_url}
                     alt={c.title_ar}
-                    loading="lazy"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    fill
+                    // Tells the optimizer the largest CSS width any
+                    // breakpoint asks for, so it ships the right
+                    // resolution instead of the raw 1080p source.
+                    sizes="(max-width: 640px) 280px, (max-width: 1024px) 340px, 340px"
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    quality={70}
                   />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-500/20 to-gray-100">
