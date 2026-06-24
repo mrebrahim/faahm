@@ -105,8 +105,8 @@ export default async function PayPalCheckoutPage({
           {/* Footnote */}
           <div className="p-5 bg-gray-50">
             <p className="text-[11px] text-gray-500 leading-relaxed">
-              بعد ما تخلّص الدفع في PayPal، ابعتلنا سكرين شوت للتأكيد على
-              واتساب وهنفعّل اشتراكك خلال دقايق.
+              بعد ما تأكّد الدفع في نافذة PayPal، اشتراكك هيتفعّل فوراً
+              وهتترحّل لصفحة التأكيد. لو حصلت مشكلة، كلّمنا على واتساب.
             </p>
           </div>
         </div>

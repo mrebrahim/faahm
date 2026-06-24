@@ -124,18 +124,24 @@ export const STRIPE_PAYMENT_LINKS = {
 } as const;
 
 /**
- * PayPal subscription configuration — uses PayPal Hosted Buttons. The
- * subscribe button is a plain HTML form that POSTs `hosted_button_id`
- * to PayPal's webscr endpoint; PayPal handles the entire checkout and
- * recurring billing. There's no SDK callback with a subscription id,
- * so activation runs through the same manual WhatsApp-confirmation
- * flow as InstaPay / Vodafone Cash — the user lands on
- * /billing/success and, if the subscription row isn't there yet,
- * sees the 'confirm via WhatsApp' CTA.
+ * PayPal subscription configuration — SDK + plan IDs. PayPal's
+ * subscription SDK creates a Subscription resource keyed off `plan_id`
+ * (a recurring price you've configured in PayPal Dashboard). After
+ * the visitor approves, the SDK's `onApprove` callback hands us back
+ * a subscription ID that the server can verify against PayPal's API
+ * to unlock the user.
+ *
+ * `clientId` is public (it appears in the loaded SDK URL). The
+ * matching server-side secret lives in PAYPAL_CLIENT_SECRET so the
+ * activation route can call PayPal's /v1/billing/subscriptions/{id}
+ * endpoint to confirm payment state before granting access.
  */
 export const PAYPAL = {
-  hostedButtons: {
-    monthly: 'DJWE2F2CEXKP6',
-    yearly: 'VX7RG9E6LTV58',
+  clientId:
+    process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ||
+    'Aa2JYhQE0BrpujlmTjeAnBOj8ZbbaV43lwMgJWpE-nAg0X2wED_nUCoLJvK-sP-wn1I-ewF6F-_FRZ3s',
+  plans: {
+    monthly: 'P-41703329EL039891VNITKHGQ',
+    yearly: 'P-81768794T3699470VNITKGCY',
   },
 } as const;
