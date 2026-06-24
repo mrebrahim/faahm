@@ -7,6 +7,7 @@ import { CheckoutTracker } from '@/components/checkout-tracker';
 import { APP_NAME, PLANS, ROUTES, type PlanId } from '@/lib/constants';
 import { pricingFor } from '@/lib/region';
 import { SARMoney } from '@/components/sar-money';
+import { SocialProofToast } from '@/components/social-proof-toast';
 import { clearGuestEmail } from './actions';
 import {
   ArrowLeft,
@@ -68,6 +69,11 @@ export default async function CheckoutPage({
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Live social proof — PRD §14. The toast auto-pauses the moment
+          the visitor focuses any field (incl. the email gate and the
+          Stripe iframe), so it never interrupts the payment moment. */}
+      <SocialProofToast />
+
       <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/80 backdrop-blur-xl">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link href={ROUTES.home} className="flex items-center gap-2">

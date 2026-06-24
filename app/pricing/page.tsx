@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { APP_NAME, ROUTES } from '@/lib/constants';
 import { pricingFor, type Region } from '@/lib/region';
 import { SARMoney } from '@/components/sar-money';
+import { SocialProofToast } from '@/components/social-proof-toast';
 import { CheckCircle2, XCircle, ArrowLeft, Sparkles, Star, Zap } from 'lucide-react';
 
 export const metadata = {
@@ -53,6 +54,10 @@ export default async function PricingPage({
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Live social proof — PRD §14. Capped at 5/session, paused while
+          inputs are focused, never blocks the CTAs. */}
+      <SocialProofToast />
+
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur-xl">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
