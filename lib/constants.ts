@@ -111,6 +111,19 @@ export const OFFLINE_PAYMENTS = {
 } as const;
 
 /**
+ * Stripe-hosted Payment Links for the SAR funnel. These are pre-built
+ * subscription checkouts created in Stripe Dashboard with SAR-priced
+ * recurring prices baked in — we just redirect the visitor to them
+ * with prefilled_email so they land on the right currency without us
+ * having to call the Stripe API ourselves. Subscription activation
+ * still rides on the existing Stripe webhook.
+ */
+export const STRIPE_PAYMENT_LINKS = {
+  monthly: 'https://buy.stripe.com/eVq9ATfno87QfIQbOY53O1I',
+  yearly: 'https://buy.stripe.com/4gM7sL5MO3RAgMU1ak53O1J',
+} as const;
+
+/**
  * PayPal subscription configuration — uses PayPal Hosted Buttons. The
  * subscribe button is a plain HTML form that POSTs `hosted_button_id`
  * to PayPal's webscr endpoint; PayPal handles the entire checkout and
