@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import dynamicImport from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { MainNav } from '@/components/main-nav';
 import { createServiceClient } from '@/lib/supabase/server';
@@ -8,26 +7,16 @@ import { APP_NAME, ROUTES } from '@/lib/constants';
 import { pricingFor } from '@/lib/region';
 import { SARMoney } from '@/components/sar-money';
 import { CourseCarousel, type CarouselCourse } from '@/components/course-carousel';
-
-// Defer the conversion-time-only widgets so they don't sit in the
-// critical render path of the landing page. The toast doesn't fire
-// until 2s anyway and the sticky CTA only reveals after ~60vh of
-// scroll, so neither needs to ship in the first paint.
-const SocialProofToast = dynamicImport(
-  () => import('@/components/social-proof-toast').then((m) => m.SocialProofToast),
-  { ssr: false }
-);
-const StickyMobileCTA = dynamicImport(
-  () => import('@/components/sticky-mobile-cta').then((m) => m.StickyMobileCTA),
-  { ssr: false }
-);
-// Funnel-event tracker — fires lp_view + pricing_viewed across GA4 /
-// Meta / TikTok. Client-only because the events have to run after
-// the pixel snippets actually loaded.
-const LandingTracker = dynamicImport(
-  () => import('@/components/landing-tracker').then((m) => m.LandingTracker),
-  { ssr: false }
-);
+// Plain client-component imports. Earlier these were behind next/dynamic
+// with ssr:false to keep them out of the server stream, but Next.js 14
+// quietly skips dynamic({ ssr: false }) when it's reached from a Server
+// Component — the components silently never loaded on the client. Direct
+// import is fine for performance here: each is a small 'use client'
+// component whose initial render returns null until useEffect fires, so
+// it adds essentially nothing to the visible critical path.
+import { SocialProofToast } from '@/components/social-proof-toast';
+import { StickyMobileCTA } from '@/components/sticky-mobile-cta';
+import { LandingTracker } from '@/components/landing-tracker';
 import {
   ArrowLeft,
   Star,
