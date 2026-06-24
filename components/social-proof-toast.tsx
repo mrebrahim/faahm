@@ -144,7 +144,7 @@ const PLAN_META: Record<
 const SESSION_KEY = 'faahm_socialproof_shown';
 const MAX_PER_SESSION = 5;
 
-const FIRST_DELAY_MS = 10_000;
+const FIRST_DELAY_MS = 2_000;
 const NEXT_DELAY_MIN_MS = 25_000;
 const NEXT_DELAY_MAX_MS = 40_000;
 const VISIBLE_MS_DESKTOP = 5_000;
