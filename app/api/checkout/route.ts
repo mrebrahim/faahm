@@ -86,46 +86,76 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  const session = await stripe.checkout.sessions.create({
-    mode: 'subscription',
-    // For signed-in users we pass the linked customer; for guests we let
-    // Stripe create one keyed off the email. Both can't be set at once.
-    ...(customerId
-      ? { customer: customerId }
-      : { customer_email: checkoutEmail ?? undefined }),
-    line_items: [
-      {
-        price: getStripePriceId(plan, region),
-        quantity: 1,
+  // Resolve the Stripe price ID up front so a misconfigured deploy
+  // (env var missing in Coolify, redeploy not run, etc.) lands the
+  // visitor on /pricing with a banner instead of a raw HTTP 500.
+  // getStripePriceId throws by design when the env var is missing
+  // — we catch it here, log it loudly, and recover the UX.
+  let priceId: string;
+  try {
+    priceId = getStripePriceId(plan, region);
+  } catch (err) {
+    console.error('[checkout] price ID lookup failed', { plan, region, err });
+    return NextResponse.redirect(
+      `${origin}${ROUTES.pricing}?err=stripe_config`
+    );
+  }
+
+  let session;
+  try {
+    session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      // For signed-in users we pass the linked customer; for guests we let
+      // Stripe create one keyed off the email. Both can't be set at once.
+      ...(customerId
+        ? { customer: customerId }
+        : { customer_email: checkoutEmail ?? undefined }),
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      allow_promotion_codes: true,
+      // Stripe Checkout doesn't support 'ar' as a locale; fall back to the
+      // browser default so users in the MENA region get English at worst.
+      locale: 'auto',
+      success_url: `${origin}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}/billing/cancel`,
+      subscription_data: {
+        metadata: {
+          ...(user ? { supabase_user_id: user.id } : {}),
+          plan,
+          region,
+          // Stamp the email for guest flows so the webhook can find / create
+          // the user even if customer_email rotates later in Stripe.
+          ...(checkoutEmail ? { guest_email: checkoutEmail } : {}),
+        },
       },
-    ],
-    allow_promotion_codes: true,
-    // Stripe Checkout doesn't support 'ar' as a locale; fall back to the
-    // browser default so users in the MENA region get English at worst.
-    locale: 'auto',
-    success_url: `${origin}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${origin}/billing/cancel`,
-    subscription_data: {
       metadata: {
         ...(user ? { supabase_user_id: user.id } : {}),
         plan,
         region,
-        // Stamp the email for guest flows so the webhook can find / create
-        // the user even if customer_email rotates later in Stripe.
+        redirect_after: redirectParam,
         ...(checkoutEmail ? { guest_email: checkoutEmail } : {}),
       },
-    },
-    metadata: {
-      ...(user ? { supabase_user_id: user.id } : {}),
-      plan,
-      region,
-      redirect_after: redirectParam,
-      ...(checkoutEmail ? { guest_email: checkoutEmail } : {}),
-    },
-  });
+    });
+  } catch (err) {
+    // Stripe will reject the price ID if it doesn't exist or doesn't
+    // belong to this account. Same recovery path as the missing env
+    // var case — visitors land on /pricing with a banner, the error
+    // surfaces in logs for the operator.
+    console.error('[checkout] stripe session create failed', { plan, region, err });
+    return NextResponse.redirect(
+      `${origin}${ROUTES.pricing}?err=stripe_session`
+    );
+  }
 
   if (!session.url) {
-    return NextResponse.json({ error: 'Stripe did not return a checkout URL' }, { status: 500 });
+    console.error('[checkout] stripe returned no url');
+    return NextResponse.redirect(
+      `${origin}${ROUTES.pricing}?err=stripe_session`
+    );
   }
 
   return NextResponse.redirect(session.url, { status: 303 });

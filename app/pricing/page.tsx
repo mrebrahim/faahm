@@ -28,7 +28,11 @@ export const dynamic = 'force-dynamic';
  *  Real price ($40/year) and the Stripe Price IDs are unchanged — only
  *  the way the deal is presented changes.
  */
-export default async function PricingPage() {
+export default async function PricingPage({
+  searchParams,
+}: {
+  searchParams: { err?: string };
+}) {
   const supabase = createClient();
   const {
     data: { user },
@@ -41,6 +45,11 @@ export default async function PricingPage() {
   // ID lookup keeps working.)
   const region: Region = 'sa';
   const pricing = pricingFor(region);
+
+  // Soft-fail banner: /api/checkout redirects here with ?err=stripe_*
+  // when the Stripe price ID / session create blew up. Beats a Chrome
+  // HTTP 500 page for the visitor.
+  const errorCode = searchParams.err ?? null;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -88,6 +97,19 @@ export default async function PricingPage() {
             ابدأ النهارده، والغي في أي وقت من غير أسئلة.
           </p>
         </div>
+
+        {errorCode && (
+          <div className="max-w-3xl mx-auto mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-start">
+            <div className="text-sm font-bold text-amber-800 mb-1">
+              في مشكلة بسيطة في بوابة الدفع
+            </div>
+            <p className="text-xs text-amber-700 leading-relaxed">
+              ما قدرناش نوصّلك لصفحة Stripe دلوقتي. ممكن تجرّب تاني بعد
+              دقيقة، أو تستخدم PayPal أو InstaPay أو Vodafone Cash من
+              صفحة الدفع. لو لسه مش شغّال كلّمنا على واتساب.
+            </p>
+          </div>
+        )}
 
         {/* Plans — yearly first in DOM ⇒ lands on the RIGHT in RTL */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6 max-w-3xl mx-auto">
