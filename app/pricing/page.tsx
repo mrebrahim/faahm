@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
 import { APP_NAME, ROUTES } from '@/lib/constants';
 import { pricingFor, type Region } from '@/lib/region';
+import { SARMoney } from '@/components/sar-money';
 import { CheckCircle2, XCircle, ArrowLeft, Sparkles, Star, Zap } from 'lucide-react';
 
 export const metadata = {
@@ -93,16 +94,16 @@ export default async function PricingPage() {
           <YearlyCard
             user={user}
             region={region}
-            anchorYearDisplay={pricing.yearlyAnchorDisplay}
-            perMonthDisplay={pricing.yearlyPerMonthDisplay}
-            yearTotalDisplay={pricing.yearlyDisplay}
-            savingsDisplay={pricing.savingsDisplay}
+            anchorYear={pricing.yearlyAnchor}
+            perMonth={pricing.yearlyPerMonth}
+            yearTotal={pricing.yearlyAmount}
+            savings={pricing.savings}
             savingsPct={pricing.savingsPct}
           />
           <MonthlyCard
             user={user}
             region={region}
-            priceDisplay={pricing.monthlyDisplay}
+            price={pricing.monthlyAmount}
           />
         </div>
 
@@ -138,18 +139,18 @@ export default async function PricingPage() {
 function YearlyCard({
   user,
   region,
-  anchorYearDisplay,
-  perMonthDisplay,
-  yearTotalDisplay,
-  savingsDisplay,
+  anchorYear,
+  perMonth,
+  yearTotal,
+  savings,
   savingsPct,
 }: {
   user: any;
   region: Region;
-  anchorYearDisplay: string;
-  perMonthDisplay: string;
-  yearTotalDisplay: string;
-  savingsDisplay: string;
+  anchorYear: number | string;
+  perMonth: number | string;
+  yearTotal: number | string;
+  savings: number;
   savingsPct: number;
 }) {
   // Guest checkout: send everyone straight to /checkout. The page itself
@@ -159,7 +160,6 @@ function YearlyCard({
   // matches the currency we showed the visitor here.
   void user;
   const href = `/checkout?plan=yearly&region=${region}`;
-  const isSar = region === 'sa';
 
   return (
     <div className="relative rounded-2xl overflow-hidden border-2 border-brand-500 bg-white shadow-2xl shadow-brand-500/20 md:scale-[1.03] md:order-1">
@@ -182,21 +182,21 @@ function YearlyCard({
         {/* Anchor (strikethrough) — the *real* full-year cost of paying
             month-to-month at the monthly plan's rate, framed so the
             headline price below reads as a cut, not just a number. */}
-        <div
-          dir={isSar ? 'rtl' : 'ltr'}
-          className="text-sm text-gray-400 line-through font-medium text-center mb-1"
-        >
-          {anchorYearDisplay}/سنة
+        <div className="text-sm text-gray-400 line-through font-medium text-center mb-1">
+          <SARMoney value={anchorYear} />/سنة
         </div>
 
-        {/* Hero price — split per month */}
+        {/* Hero price — split per month. Big enough that the SAR symbol
+            sits right next to the digit at headline size, with a
+            slight nudge down so the riyal glyph doesn't dwarf the
+            number. */}
         <div className="text-center mb-3">
-          <div
-            className="flex items-baseline justify-center gap-1.5"
-            dir={isSar ? 'rtl' : 'ltr'}
-          >
+          <div className="flex items-baseline justify-center">
             <span className="text-5xl sm:text-6xl font-extrabold font-display text-foreground">
-              {perMonthDisplay}
+              <SARMoney
+                value={perMonth}
+                symbolClassName="w-[0.55em] h-[0.55em] mx-1"
+              />
             </span>
           </div>
           <div className="text-sm text-gray-500 mt-1">/ شهر</div>
@@ -206,12 +206,17 @@ function YearlyCard({
             would cost, framed against the actual yearly charge. */}
         <p className="text-xs sm:text-sm text-center text-gray-700 bg-brand-500/5 border border-brand-500/20 rounded-lg py-2 px-3 mb-5 leading-relaxed">
           * تدفع{' '}
-          <span className="font-bold">{yearTotalDisplay}</span> بدلاً من{' '}
+          <span className="font-bold">
+            <SARMoney value={yearTotal} />
+          </span>{' '}
+          بدلاً من{' '}
           <span className="font-bold line-through text-gray-400">
-            {anchorYearDisplay}
+            <SARMoney value={anchorYear} />
           </span>{' '}
           سنوياً — وفّر{' '}
-          <span className="font-bold text-brand-700">{savingsDisplay}</span>{' '}
+          <span className="font-bold text-brand-700">
+            <SARMoney value={savings} />
+          </span>{' '}
           ({savingsPct}%)
         </p>
 
@@ -240,15 +245,14 @@ function YearlyCard({
 function MonthlyCard({
   user,
   region,
-  priceDisplay,
+  price,
 }: {
   user: any;
   region: Region;
-  priceDisplay: string;
+  price: number | string;
 }) {
   void user;
   const href = `/checkout?plan=monthly&region=${region}`;
-  const isSar = region === 'sa';
 
   return (
     <div className="relative rounded-2xl overflow-hidden border border-gray-200 bg-white md:order-2">
@@ -263,12 +267,12 @@ function MonthlyCard({
         <div className="h-5 mb-1" />
 
         <div className="text-center mb-3">
-          <div
-            className="flex items-baseline justify-center gap-1.5"
-            dir={isSar ? 'rtl' : 'ltr'}
-          >
+          <div className="flex items-baseline justify-center">
             <span className="text-5xl sm:text-6xl font-extrabold font-display text-foreground">
-              {priceDisplay}
+              <SARMoney
+                value={price}
+                symbolClassName="w-[0.55em] h-[0.55em] mx-1"
+              />
             </span>
           </div>
           <div className="text-sm text-gray-500 mt-1">/ شهر</div>

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { CheckoutTracker } from '@/components/checkout-tracker';
 import { APP_NAME, PLANS, ROUTES, type PlanId } from '@/lib/constants';
 import { pricingFor } from '@/lib/region';
+import { SARMoney } from '@/components/sar-money';
 import { clearGuestEmail } from './actions';
 import {
   ArrowLeft,
@@ -50,7 +51,6 @@ export default async function CheckoutPage({
   // lives in /lib for future flexibility, but every checkout / Stripe
   // call here is locked to 'sa' so display + collection stay in riyals.
   const pricing = pricingFor('sa');
-  const isSar = true;
   const regionQs = `&region=sa`;
 
   // Guest checkout: we no longer redirect anonymous visitors to /signup.
@@ -105,18 +105,18 @@ export default async function CheckoutPage({
             </div>
             <div className="text-right">
               {planParam === 'yearly' && (
-                <div
-                  className="text-sm text-gray-400 line-through font-medium"
-                  dir={isSar ? 'rtl' : 'ltr'}
-                >
-                  {pricing.yearlyAnchorDisplay}
+                <div className="text-sm text-gray-400 line-through font-medium">
+                  <SARMoney value={pricing.yearlyAnchor} />
                 </div>
               )}
-              <div
-                className="font-display text-3xl font-extrabold"
-                dir={isSar ? 'rtl' : 'ltr'}
-              >
-                {planParam === 'yearly' ? pricing.yearlyDisplay : pricing.monthlyDisplay}
+              <div className="font-display text-3xl font-extrabold">
+                <SARMoney
+                  value={
+                    planParam === 'yearly'
+                      ? pricing.yearlyAmount
+                      : pricing.monthlyAmount
+                  }
+                />
               </div>
               <div className="text-xs text-gray-500">
                 / {plan.interval === 'month' ? 'شهر' : 'سنة'}
@@ -156,12 +156,14 @@ export default async function CheckoutPage({
                   </div>
                   <div className="text-[11px] text-emerald-700 mt-0.5">
                     خصم {pricing.savingsPct}% على الاشتراك السنوي — وفّرت{' '}
-                    <span className="font-bold">{pricing.savingsDisplay}</span>
+                    <span className="font-bold">
+                      <SARMoney value={pricing.savings} />
+                    </span>
                   </div>
                 </div>
               </div>
               <span className="text-[11px] font-bold text-emerald-700 bg-white border border-emerald-200 px-2 py-0.5 rounded-full">
-                −{pricing.savingsDisplay}
+                −<SARMoney value={pricing.savings} />
               </span>
             </div>
           </div>

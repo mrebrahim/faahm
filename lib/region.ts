@@ -81,17 +81,22 @@ export function setRegionCookie(region: Region) {
  */
 export type PlanPricing = {
   currency: 'USD' | 'SAR';
+  /** Plain string for the currency suffix in callers that want one. */
   currencyLabel: string;
+  /** Single character that introduces a USD number ($) — empty for SAR
+   *  because the riyal symbol is rendered as an SVG via SARSymbol. */
   symbol: string;
-  monthlyPrice: number;
-  monthlyDisplay: string;
-  yearlyPrice: number;
-  yearlyDisplay: string;
-  yearlyAnchor: number;
-  yearlyAnchorDisplay: string;
-  yearlyPerMonthDisplay: string;
+  /** Raw monetary amounts. Use these with <SARMoney value={...} /> for
+   *  SAR callers so the official 2025 SAMA riyal glyph sits next to
+   *  the number; USD callers prefix `symbol` themselves. */
+  monthlyAmount: number | string;
+  yearlyAmount: number | string;
+  yearlyAnchor: number | string;
+  /** Yearly price split into a per-month figure. SAR shows 12.5 (i.e.
+   *  149 ÷ 12 = 12.42 rounded one decimal up so the eye reads it as a
+   *  clean "twelve and a half"); USD shows 3.3. */
+  yearlyPerMonth: number | string;
   savings: number;
-  savingsDisplay: string;
   savingsPct: number;
 };
 
@@ -100,32 +105,24 @@ const PRICING: Record<Region, PlanPricing> = {
     currency: 'USD',
     currencyLabel: 'USD',
     symbol: '$',
-    monthlyPrice: 9.99,
-    monthlyDisplay: '$9.99',
-    yearlyPrice: 40,
-    yearlyDisplay: '$40',
+    monthlyAmount: 9.99,
+    yearlyAmount: 40,
     yearlyAnchor: 119,
-    yearlyAnchorDisplay: '$119',
-    yearlyPerMonthDisplay: '$3.3',
+    yearlyPerMonth: 3.3,
     savings: 80,
-    savingsDisplay: '$80',
     savingsPct: 67,
   },
   sa: {
     currency: 'SAR',
     currencyLabel: 'ر.س',
-    symbol: 'ر.س',
-    monthlyPrice: 39,
-    monthlyDisplay: '39 ر.س',
-    yearlyPrice: 149,
-    yearlyDisplay: '149 ر.س',
+    // Empty — SAR amounts are rendered with the SARSymbol SVG, not a
+    // text-prefixed character like '$'.
+    symbol: '',
+    monthlyAmount: 39,
+    yearlyAmount: 149,
     yearlyAnchor: 449,
-    yearlyAnchorDisplay: '449 ر.س',
-    // ~12 ر.س/شهر — the leading ~ stays in display to be honest about
-    // the rounding (149 ÷ 12 = 12.42).
-    yearlyPerMonthDisplay: '~12 ر.س',
+    yearlyPerMonth: 12.5,
     savings: 300,
-    savingsDisplay: '300 ر.س',
     savingsPct: 67,
   },
 };
