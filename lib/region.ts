@@ -17,7 +17,9 @@ const REGION_COOKIE = 'faahm_region';
  *   3. CDN-provided country header (cf-ipcountry on Cloudflare,
  *      x-vercel-ip-country on Vercel — present once we proxy through
  *      either; safely missing on plain Coolify)
- *   4. Default → 'us'
+ *   4. Default → 'sa' — Saudi is the active commercial focus, so an
+ *      ambiguous request defaults to riyals rather than dollars.
+ *      Non-Saudi visitors can flip to USD via the toggle on /pricing.
  *
  * Pass `urlRegion` if you've already pulled it off searchParams in a
  * page; otherwise the helper falls through to cookie + headers, which
@@ -37,12 +39,14 @@ export function resolveRegion(urlRegion?: string | null): Region {
       h.get('x-country') ||
       ''
     ).toUpperCase();
-    if (country === 'SA') return 'sa';
+    // Any non-Saudi country with a real header signal gets USD; the
+    // SA→sa mapping is implicit since `sa` is the default below.
+    if (country && country !== 'SA') return 'us';
   } catch {
     // headers() throws outside a request scope (e.g. static generation).
   }
 
-  return 'us';
+  return 'sa';
 }
 
 /**
