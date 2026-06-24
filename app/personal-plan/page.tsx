@@ -6,6 +6,7 @@ import { APP_NAME, ROUTES } from '@/lib/constants';
 import { pricingFor } from '@/lib/region';
 import { SARMoney } from '@/components/sar-money';
 import { SocialProofToast } from '@/components/social-proof-toast';
+import { CourseCarousel, type CarouselCourse } from '@/components/course-carousel';
 import {
   ArrowLeft,
   Star,
@@ -41,13 +42,26 @@ export default async function PersonalPlanPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Pull the headline catalog stats from real DB rows so the page
-  // doesn't lie if courses get added/removed.
-  const { count: courseCount } = await supabase
+  // Pull the full catalog up front. The three flagship AI courses
+  // (n8n, vibe-coding, ai-video) get their own highlighted carousel
+  // above the fold's AI-assistant story; everything else cascades
+  // into the secondary 'باقي الكورسات' rail.
+  const { data: allCourses } = await supabase
     .from('courses')
-    .select('id', { count: 'exact', head: true })
-    .eq('is_published', true);
-  const totalCourses = courseCount ?? 21;
+    .select(
+      'id, slug, title_ar, thumbnail_url, total_lessons, total_duration_sec, rating_avg, rating_count, sort_order'
+    )
+    .eq('is_published', true)
+    .order('sort_order')
+    .order('created_at', { ascending: false });
+
+  const FEATURED_SLUGS = ['n8n', 'vibe-coding', 'ai-video'];
+  const courses = (allCourses ?? []) as CarouselCourse[];
+  const featuredCourses = FEATURED_SLUGS
+    .map((slug) => courses.find((c) => c.slug === slug))
+    .filter((c): c is CarouselCourse => !!c);
+  const restCourses = courses.filter((c) => !FEATURED_SLUGS.includes(c.slug));
+  const totalCourses = courses.length || 21;
 
   const p = pricingFor('sa');
 
@@ -132,6 +146,66 @@ export default async function PersonalPlanPage() {
           </div>
         </div>
       </section>
+
+      {/* ─────────────────────  FEATURED AI COURSES  ───────────────── */}
+      {featuredCourses.length > 0 && (
+        <section className="relative px-4 py-14 sm:py-16 border-t border-gray-100">
+          <div className="container mx-auto max-w-5xl">
+            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6 sm:mb-8">
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 mb-2 rounded-full border border-brand-500/30 bg-brand-500/10 text-[11px] font-bold text-brand-700">
+                  <Bot className="w-3.5 h-3.5" />
+                  كورسات AI الأكثر طلباً
+                </div>
+                <h2 className="font-display text-2xl sm:text-3xl font-extrabold">
+                  ابدأ من أقوى كورسات الذكاء الاصطناعي عندنا
+                </h2>
+                <p className="text-gray-600 text-sm mt-2 max-w-2xl">
+                  ٣ كورسات بتاخدك من الصفر للاحتراف في الأتمتة، البرمجة الذكية،
+                  وإنشاء الفيديوهات بالـ AI — كلها بالعربي ومعاك المساعد فاهم.
+                </p>
+              </div>
+              <Link
+                href={ROUTES.courses}
+                className="text-sm text-brand-600 hover:text-brand-700 font-medium whitespace-nowrap"
+              >
+                شوف كل الكورسات →
+              </Link>
+            </div>
+            <CourseCarousel
+              courses={featuredCourses}
+              cardWidthClass="w-[280px] sm:w-[340px]"
+              aiPill
+            />
+          </div>
+        </section>
+      )}
+
+      {/* ─────────────────────  REST OF COURSES  ───────────────── */}
+      {restCourses.length > 0 && (
+        <section className="relative px-4 py-12 sm:py-14 border-t border-gray-100 bg-gray-50">
+          <div className="container mx-auto max-w-5xl">
+            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
+              <div>
+                <h2 className="font-display text-xl sm:text-2xl font-extrabold">
+                  وكمان فيه أكتر من {restCourses.length} كورس
+                </h2>
+                <p className="text-gray-600 text-sm mt-1">
+                  في التواصل، التسويق، البراند، الإنتاجية، ومهارات الشغل
+                  الأساسية — كلهم متاحين باشتراك واحد.
+                </p>
+              </div>
+              <Link
+                href={ROUTES.courses}
+                className="text-sm text-brand-600 hover:text-brand-700 font-medium whitespace-nowrap"
+              >
+                تصفّح الكل →
+              </Link>
+            </div>
+            <CourseCarousel courses={restCourses} />
+          </div>
+        </section>
+      )}
 
       {/* ─────────────────────  PROBLEM / SOLUTION  ───────────────── */}
       <section className="relative px-4 py-14 sm:py-16 border-t border-gray-100 bg-gray-50">
