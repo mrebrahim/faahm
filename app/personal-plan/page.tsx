@@ -21,6 +21,13 @@ const StickyMobileCTA = dynamicImport(
   () => import('@/components/sticky-mobile-cta').then((m) => m.StickyMobileCTA),
   { ssr: false }
 );
+// Funnel-event tracker — fires lp_view + pricing_viewed across GA4 /
+// Meta / TikTok. Client-only because the events have to run after
+// the pixel snippets actually loaded.
+const LandingTracker = dynamicImport(
+  () => import('@/components/landing-tracker').then((m) => m.LandingTracker),
+  { ssr: false }
+);
 import {
   ArrowLeft,
   Star,
@@ -105,6 +112,7 @@ export default async function PersonalPlanPage() {
     <main className="relative min-h-screen overflow-hidden bg-white">
       <SocialProofToast />
       <StickyMobileCTA />
+      <LandingTracker />
       <MainNav signedIn={false} isAdmin={false} />
 
       {/* ─────────────────────────  HERO  ───────────────────────── */}
