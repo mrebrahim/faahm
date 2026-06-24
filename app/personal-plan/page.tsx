@@ -7,6 +7,7 @@ import { pricingFor } from '@/lib/region';
 import { SARMoney } from '@/components/sar-money';
 import { SocialProofToast } from '@/components/social-proof-toast';
 import { CourseCarousel, type CarouselCourse } from '@/components/course-carousel';
+import { StickyMobileCTA } from '@/components/sticky-mobile-cta';
 import {
   ArrowLeft,
   Star,
@@ -68,6 +69,7 @@ export default async function PersonalPlanPage() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-white">
       <SocialProofToast />
+      <StickyMobileCTA />
       <MainNav signedIn={!!user} isAdmin={false} />
 
       {/* ─────────────────────────  HERO  ───────────────────────── */}
@@ -92,14 +94,23 @@ export default async function PersonalPlanPage() {
             كورسات مصمّمة بالذكاء الاصطناعي في الأتمتة، التسويق الرقمي،
             صناعة المحتوى، والبرمجة — من خبراء عرب وباشتراك واحد بسيط بالريال.
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-6">
-            <Button asChild size="lg" className="min-w-[220px] font-bold">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 mb-6">
+            <Button
+              asChild
+              size="lg"
+              className="w-full sm:w-auto sm:min-w-[220px] font-bold min-h-[52px]"
+            >
               <Link href="#pricing">
                 ابدأ خطتك الشخصية
                 <ArrowLeft className="w-4 h-4" />
               </Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="min-w-[180px]">
+            <Button
+              asChild
+              size="lg"
+              variant="outline"
+              className="w-full sm:w-auto sm:min-w-[180px] min-h-[52px]"
+            >
               <Link href={ROUTES.courses}>تصفّح الكورسات</Link>
             </Button>
           </div>
@@ -110,12 +121,16 @@ export default async function PersonalPlanPage() {
         </div>
       </section>
 
-      {/* ─────────────────────────  STATS BAR  ───────────────────────── */}
+      {/* ─────────────────────────  STATS BAR  ─────────────────────────
+          Mobile spec: 2×2 grid, large bold value, small label under.
+          One horizontal row above tablet so the stats don't dominate
+          the fold on a big screen. */}
       <section className="relative px-4 py-10 sm:py-12 border-t border-gray-100 bg-gray-50">
-        <div className="container mx-auto max-w-5xl grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
+        <div className="container mx-auto max-w-5xl grid grid-cols-2 md:grid-cols-4 gap-5 sm:gap-6 text-center">
           <Stat value="عالمية" label="كورسات مترجمة بالعربي" />
-          <Stat value="24/7" label="المساعد الذكي فاهم بيرد عليك" />
+          <Stat value="24/7" label="المساعد الذكي بيرد عليك" />
           <Stat value="٤.٨ ⭐" label="متوسط تقييمات الطلاب" />
+          <Stat value="7 أيام" label="ضمان استرداد بدون أسئلة" />
         </div>
       </section>
 
@@ -144,6 +159,9 @@ export default async function PersonalPlanPage() {
           <div className="order-1 lg:order-2">
             <AssistantMockup />
           </div>
+        </div>
+        <div className="container mx-auto max-w-5xl mt-8 sm:mt-10">
+          <MidCTA />
         </div>
       </section>
 
@@ -277,6 +295,9 @@ export default async function PersonalPlanPage() {
               </ul>
             </div>
           </div>
+          <div className="mt-8">
+            <MidCTA />
+          </div>
         </div>
       </section>
 
@@ -335,6 +356,9 @@ export default async function PersonalPlanPage() {
               a="بالعربي الفصيح والعامية. تكتبله بأي أسلوب وهيرد عليك بنفس الأسلوب — من محتوى الدرس مباشرة."
             />
           </div>
+          <div className="mt-8">
+            <MidCTA />
+          </div>
         </div>
       </section>
 
@@ -348,7 +372,7 @@ export default async function PersonalPlanPage() {
             انضم لآلاف المتعلمين العرب اللي اختاروا فاهم — أول منصة عربية
             بمساعد ذكي حقيقي في كل كورس.
           </p>
-          <Button asChild size="lg" className="min-w-[240px] font-bold">
+          <Button asChild size="lg" className="w-full sm:w-auto sm:min-w-[240px] font-bold min-h-[52px]">
             <Link href="#pricing">
               ابدأ خطتك الشخصية
               <ArrowLeft className="w-4 h-4" />
@@ -365,6 +389,34 @@ export default async function PersonalPlanPage() {
 }
 
 /* ───────────────────────────  BITS  ─────────────────────────── */
+
+/**
+ * Mid-page CTA strip used between sections. Full-width on mobile (the
+ * spec's 'CTA متكرر' rule) so the visitor never has to scroll back up
+ * to convert; sits inline on desktop so the layout doesn't feel like
+ * an ad break. Mobile button height is bumped to 52px to clear the
+ * iOS/Android touch-target minimum (44/48px) with margin.
+ */
+function MidCTA() {
+  return (
+    <div className="rounded-2xl border border-brand-500/30 bg-gradient-to-br from-brand-500/5 to-white px-4 sm:px-6 py-5 sm:py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="text-center sm:text-start">
+        <p className="font-bold text-sm sm:text-base">
+          مستعد تبدأ خطتك الشخصية؟
+        </p>
+        <p className="text-xs text-gray-500 mt-0.5">
+          ضمان استرداد 7 أيام · إلغاء في أي وقت
+        </p>
+      </div>
+      <Button asChild size="lg" className="w-full sm:w-auto font-bold min-h-[52px] sm:min-h-0">
+        <Link href="#pricing">
+          ابدأ خطتك الشخصية
+          <ArrowLeft className="w-4 h-4" />
+        </Link>
+      </Button>
+    </div>
+  );
+}
 
 function Stat({ value, label }: { value: string; label: string }) {
   return (
@@ -512,7 +564,7 @@ function YearlyCard({ p }: { p: ReturnType<typeof pricingFor> }) {
           <Feat ok text="شهادة إتمام لكل كورس" />
           <Feat ok text="أولوية الدعم الفني" />
         </ul>
-        <Button asChild size="lg" className="w-full font-bold">
+        <Button asChild size="lg" className="w-full font-bold min-h-[52px]">
           <Link href="/checkout?plan=yearly">
             <Zap className="w-4 h-4" />
             اشتراك الآن
@@ -548,7 +600,7 @@ function MonthlyCard({ p }: { p: ReturnType<typeof pricingFor> }) {
           <Feat text="بدون شهادة إتمام" />
           <Feat text="بدون أولوية الدعم الفني" />
         </ul>
-        <Button asChild size="lg" variant="outline" className="w-full font-bold">
+        <Button asChild size="lg" variant="outline" className="w-full font-bold min-h-[52px]">
           <Link href="/checkout?plan=monthly">
             اشتراك الآن
             <ArrowLeft className="w-4 h-4" />
