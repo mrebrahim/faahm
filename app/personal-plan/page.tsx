@@ -113,7 +113,7 @@ export default async function PersonalPlanPage() {
       {/* ─────────────────────────  STATS BAR  ───────────────────────── */}
       <section className="relative px-4 py-10 sm:py-12 border-t border-gray-100 bg-gray-50">
         <div className="container mx-auto max-w-5xl grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
-          <Stat value={`${totalCourses}+`} label="كورس متخصص" />
+          <Stat value="عالمية" label="كورسات مترجمة بالعربي" />
           <Stat value="24/7" label="المساعد الذكي فاهم بيرد عليك" />
           <Stat value="٤.٨ ⭐" label="متوسط تقييمات الطلاب" />
         </div>
@@ -188,11 +188,11 @@ export default async function PersonalPlanPage() {
             <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
               <div>
                 <h2 className="font-display text-xl sm:text-2xl font-extrabold">
-                  وكمان فيه أكتر من {restCourses.length} كورس
+                  وكمان كورسات عالمية مترجمة بالعربي
                 </h2>
                 <p className="text-gray-600 text-sm mt-1">
-                  في التواصل، التسويق، البراند، الإنتاجية، ومهارات الشغل
-                  الأساسية — كلهم متاحين باشتراك واحد.
+                  محتوى منتقى من أحسن المنصات العالمية ومترجم بالعربي — في
+                  التواصل، التسويق، البراند، الإنتاجية، ومهارات الشغل الأساسية.
                 </p>
               </div>
               <Link
@@ -239,8 +239,8 @@ export default async function PersonalPlanPage() {
             بسعر أقل من كورس واحد بره
           </h2>
           <p className="text-center text-gray-600 mb-8 text-sm">
-            خد {totalCourses} كورس + المساعد الذكي + شهادات إتمام بنفس
-            ميزانية كورس واحد على أي منصة عالمية.
+            خد كل كورسات المنصة + كورسات عالمية مترجمة بالعربي + المساعد
+            الذكي + شهادات إتمام، بنفس ميزانية كورس واحد بره.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
             <div className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6">
@@ -270,7 +270,7 @@ export default async function PersonalPlanPage() {
                 <span className="text-xs text-gray-500">/ سنة كاملة</span>
               </div>
               <ul className="space-y-2 text-sm">
-                <Feat ok text={`${totalCourses} كورس متخصص`} />
+                <Feat ok text="كل كورسات فاهم + كورسات عالمية مترجمة" />
                 <Feat ok text="المساعد الذكي فاهم في كل درس" />
                 <Feat ok text="كل المحتوى بالعربي" />
                 <Feat ok text="شهادة إتمام لكل كورس" />
