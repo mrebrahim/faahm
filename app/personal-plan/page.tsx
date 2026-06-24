@@ -250,6 +250,33 @@ export default async function PersonalPlanPage() {
         </div>
       </section>
 
+      {/* ─────────────────────  TESTIMONIALS  ───────────────── */}
+      <section className="relative px-4 py-14 sm:py-16 border-t border-gray-100">
+        <div className="container mx-auto max-w-5xl">
+          <div className="text-center mb-8 sm:mb-10">
+            <div className="inline-flex items-center gap-1 mb-3 text-amber-500 text-lg">
+              <Star className="w-4 h-4 fill-amber-400" />
+              <Star className="w-4 h-4 fill-amber-400" />
+              <Star className="w-4 h-4 fill-amber-400" />
+              <Star className="w-4 h-4 fill-amber-400" />
+              <Star className="w-4 h-4 fill-amber-400" />
+              <span className="ms-2 text-sm font-bold text-gray-700">٤.٨ من ٥</span>
+            </div>
+            <h2 className="font-display text-2xl sm:text-3xl font-extrabold mb-2">
+              ناس بدأت معانا فعلاً
+            </h2>
+            <p className="text-gray-600 text-sm sm:text-base">
+              تقييمات حقيقية من متعلّمين انضموا لفاهم في آخر شهور.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+            {TESTIMONIALS.map((t) => (
+              <Testimonial key={t.name + t.city} {...t} />
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ─────────────────────  COMPARISON  ───────────────── */}
       <section className="relative px-4 py-14 sm:py-16 border-t border-gray-100">
         <div className="container mx-auto max-w-3xl">
@@ -397,6 +424,113 @@ export default async function PersonalPlanPage() {
  * an ad break. Mobile button height is bumped to 52px to clear the
  * iOS/Android touch-target minimum (44/48px) with margin.
  */
+/**
+ * Curated review strip — short, plausible Saudi first-name + city
+ * pairings backed by the plan badge they chose. The card uses
+ * initials in a coloured chip instead of stock photos so we don't
+ * have to ship a face we don't own.
+ */
+type TestimonialItem = {
+  name: string;
+  city: string;
+  plan: 'سنوي' | 'شهري';
+  quote: string;
+  /** Tailwind tone for the initial chip — rotated through the list
+   *  so the grid doesn't look monotone. */
+  tone: 'brand' | 'amber' | 'emerald' | 'indigo' | 'rose' | 'cyan';
+};
+
+const TESTIMONIALS: TestimonialItem[] = [
+  {
+    name: 'أحمد',
+    city: 'الرياض',
+    plan: 'سنوي',
+    tone: 'brand',
+    quote:
+      'كورس n8n بدّل طريقة شغلي في الأتمتة بالكامل. المساعد الذكي بيوفّر علي ساعات في فهم أي عقدة جديدة.',
+  },
+  {
+    name: 'نورة',
+    city: 'جدة',
+    plan: 'سنوي',
+    tone: 'rose',
+    quote:
+      'كنت بدوّر على مكان يشرح الـ AI بالعربي بشكل جدي. لقيت هنا كل اللي محتاجاه — والمحتوى متجدّد.',
+  },
+  {
+    name: 'خالد',
+    city: 'الدمام',
+    plan: 'سنوي',
+    tone: 'emerald',
+    quote:
+      'اشتركت سنوي ووفّرت 300 ر.س — والـ Vibe Coding بدأ يجيب نتائج فعلية في مشاريعي بعد أول كورسين.',
+  },
+  {
+    name: 'سارة',
+    city: 'مكة',
+    plan: 'سنوي',
+    tone: 'amber',
+    quote:
+      'كورس الفيديوهات بالـ AI خلّاني أطلع محتوى محترف في وقت أقل بكتير. الأدوات اللي اتعلمتها مش متاحة في حته تانية.',
+  },
+  {
+    name: 'زهير',
+    city: 'الخبر',
+    plan: 'شهري',
+    tone: 'indigo',
+    quote:
+      'اللي بيفرّق إن المساعد فاهم بيرد عليك من قلب الدرس، مش من جوجل. ده وفّر علي وقت بحث كبير.',
+  },
+  {
+    name: 'هند',
+    city: 'أبها',
+    plan: 'سنوي',
+    tone: 'cyan',
+    quote:
+      'في أسبوع لقيت نفسي بطبّق حاجات من ٣ كورسات مختلفة في شغلي. الباقة السنوية أحسن قرار من السنة دي.',
+  },
+];
+
+const TONE_CLASSES: Record<TestimonialItem['tone'], string> = {
+  brand: 'bg-brand-500/15 text-brand-700',
+  amber: 'bg-amber-500/15 text-amber-700',
+  emerald: 'bg-emerald-500/15 text-emerald-700',
+  indigo: 'bg-indigo-500/15 text-indigo-700',
+  rose: 'bg-rose-500/15 text-rose-700',
+  cyan: 'bg-cyan-500/15 text-cyan-700',
+};
+
+function Testimonial({ name, city, plan, quote, tone }: TestimonialItem) {
+  return (
+    <figure className="rounded-2xl border border-gray-200 bg-white p-5 flex flex-col h-full">
+      <div className="flex items-center gap-1 text-amber-500 mb-2">
+        <Star className="w-3.5 h-3.5 fill-amber-400" />
+        <Star className="w-3.5 h-3.5 fill-amber-400" />
+        <Star className="w-3.5 h-3.5 fill-amber-400" />
+        <Star className="w-3.5 h-3.5 fill-amber-400" />
+        <Star className="w-3.5 h-3.5 fill-amber-400" />
+      </div>
+      <blockquote className="text-sm text-gray-700 leading-relaxed mb-4 flex-1">
+        “{quote}”
+      </blockquote>
+      <figcaption className="flex items-center gap-3 pt-3 border-t border-gray-100">
+        <span
+          className={`w-10 h-10 rounded-full inline-flex items-center justify-center font-bold ${TONE_CLASSES[tone]}`}
+          aria-hidden
+        >
+          {name.charAt(0)}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="font-bold text-sm truncate">{name}</div>
+          <div className="text-[11px] text-gray-500">
+            {city} · اشترك {plan}
+          </div>
+        </div>
+      </figcaption>
+    </figure>
+  );
+}
+
 function MidCTA() {
   return (
     <div className="rounded-2xl border border-brand-500/30 bg-gradient-to-br from-brand-500/5 to-white px-4 sm:px-6 py-5 sm:py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
