@@ -4,7 +4,6 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { stripe, getStripePriceId } from '@/lib/stripe';
 import { ROUTES, PLANS, type PlanId } from '@/lib/constants';
 import { resolveAppUrl } from '@/lib/app-url';
-import { resolveRegion } from '@/lib/region';
 
 const GUEST_EMAIL_COOKIE = 'guest_checkout_email';
 
@@ -30,10 +29,11 @@ export async function GET(request: NextRequest) {
   }
   const plan = planParam as PlanId;
 
-  // Region picks which Stripe Price ID (USD vs SAR) we hand to Stripe.
-  // Falls through to the cookie / CDN-country header for visitors who
-  // got here without ?region= on the URL.
-  const region = resolveRegion(url.searchParams.get('region'));
+  // Single-currency funnel: every checkout creates a SAR subscription.
+  // The Region type still threads through getStripePriceId() so we can
+  // re-introduce a USD funnel later without rewiring, but the URL
+  // override is gone — no surface in the UI sets it anyway.
+  const region = 'sa' as const;
 
   const supabase = createClient();
   const {

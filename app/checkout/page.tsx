@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
 import { CheckoutTracker } from '@/components/checkout-tracker';
 import { APP_NAME, PLANS, ROUTES, type PlanId } from '@/lib/constants';
-import { pricingFor, resolveRegion } from '@/lib/region';
+import { pricingFor } from '@/lib/region';
 import { clearGuestEmail } from './actions';
 import {
   ArrowLeft,
@@ -38,7 +38,7 @@ const isPlan = (v: unknown): v is PlanId => v === 'monthly' || v === 'yearly';
 export default async function CheckoutPage({
   searchParams,
 }: {
-  searchParams: { plan?: string; region?: string };
+  searchParams: { plan?: string };
 }) {
   const planParam = searchParams.plan;
   if (!isPlan(planParam)) {
@@ -46,13 +46,12 @@ export default async function CheckoutPage({
   }
   const plan = PLANS[planParam];
 
-  // Region picks the currency we show + which Stripe Price ID downstream
-  // gateways grab. Carried via ?region= on every payment-method link so
-  // the visitor's currency choice doesn't get lost on a back-button.
-  const region = resolveRegion(searchParams.region ?? null);
-  const pricing = pricingFor(region);
-  const isSar = region === 'sa';
-  const regionQs = `&region=${region}`;
+  // Single-currency funnel: SAR everywhere. The Region machinery still
+  // lives in /lib for future flexibility, but every checkout / Stripe
+  // call here is locked to 'sa' so display + collection stay in riyals.
+  const pricing = pricingFor('sa');
+  const isSar = true;
+  const regionQs = `&region=sa`;
 
   // Guest checkout: we no longer redirect anonymous visitors to /signup.
   // Logged-in users still get their email baked into all the payment

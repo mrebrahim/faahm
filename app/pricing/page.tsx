@@ -2,8 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
 import { APP_NAME, ROUTES } from '@/lib/constants';
-import { pricingFor, resolveRegion, type Region } from '@/lib/region';
-import { switchRegion } from './actions';
+import { pricingFor, type Region } from '@/lib/region';
 import { CheckCircle2, XCircle, ArrowLeft, Sparkles, Star, Zap } from 'lucide-react';
 
 export const metadata = {
@@ -28,22 +27,18 @@ export const dynamic = 'force-dynamic';
  *  Real price ($40/year) and the Stripe Price IDs are unchanged — only
  *  the way the deal is presented changes.
  */
-export default async function PricingPage({
-  searchParams,
-}: {
-  searchParams: { region?: string };
-}) {
+export default async function PricingPage() {
   const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Region drives the entire pricing display + the price IDs handed to
-  // Stripe later. Defaults to USD; Saudi visitors get the SAR funnel
-  // either by URL (/sa/pricing forces ?region=sa), CDN geo header
-  // (cf-ipcountry / x-vercel-ip-country = SA), or sticky cookie set
-  // once they've landed on the SAR funnel before.
-  const region: Region = resolveRegion(searchParams.region ?? null);
+  // Single-currency funnel: every visitor sees riyals on /pricing.
+  // Saudi is the target market and there's no toggle / no auto-detect
+  // here — the page just runs the SAR pricing table. (The Region type
+  // and pricingFor() helper stay around so the downstream Stripe price
+  // ID lookup keeps working.)
+  const region: Region = 'sa';
   const pricing = pricingFor(region);
 
   return (
@@ -88,13 +83,9 @@ export default async function PricingPage({
           <h1 className="font-display text-3xl sm:text-4xl md:text-6xl font-extrabold mb-4">
             اختار <span className="text-gradient-brand">الباقة</span> اللي تناسبك
           </h1>
-          <p className="text-gray-600 text-base sm:text-lg mb-6">
+          <p className="text-gray-600 text-base sm:text-lg">
             ابدأ النهارده، والغي في أي وقت من غير أسئلة.
           </p>
-          {/* Currency switcher. Default is SAR (Saudi is the active
-              focus); non-Saudi visitors can flip to USD here and the
-              choice sticks via cookie across /pricing → /checkout. */}
-          <CurrencyToggle current={region} />
         </div>
 
         {/* Plans — yearly first in DOM ⇒ lands on the RIGHT in RTL */}
@@ -318,43 +309,6 @@ function Feature({ text, muted = false }: { text: string; muted?: boolean }) {
       />
       <span className={muted ? 'text-gray-600' : 'text-gray-800'}>{text}</span>
     </li>
-  );
-}
-
-/**
- * Small segmented control above the pricing cards. Each chip is its own
- * form posting to switchRegion — that way we can keep this as a server
- * component (no client JS) and the cookie write happens server-side so
- * the very next render uses the new currency, no flash of the old one.
- */
-function CurrencyToggle({ current }: { current: Region }) {
-  const items: Array<{ id: Region; label: string; sublabel: string }> = [
-    { id: 'sa', label: 'ر.س', sublabel: 'الريال السعودي' },
-    { id: 'us', label: '$', sublabel: 'الدولار الأمريكي' },
-  ];
-  return (
-    <div className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white p-1 shadow-sm">
-      {items.map((it) => {
-        const active = it.id === current;
-        return (
-          <form key={it.id} action={switchRegion}>
-            <input type="hidden" name="region" value={it.id} />
-            <button
-              type="submit"
-              aria-pressed={active}
-              title={it.sublabel}
-              className={`px-3.5 py-1.5 rounded-full text-sm font-bold transition-colors ${
-                active
-                  ? 'bg-brand-500 text-white shadow'
-                  : 'text-gray-600 hover:text-foreground'
-              }`}
-            >
-              {it.label}
-            </button>
-          </form>
-        );
-      })}
-    </div>
   );
 }
 
