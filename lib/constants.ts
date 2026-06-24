@@ -119,8 +119,8 @@ export const OFFLINE_PAYMENTS = {
  * still rides on the existing Stripe webhook.
  */
 export const STRIPE_PAYMENT_LINKS = {
-  monthly: 'https://buy.stripe.com/eVq9ATfno87QfIQbOY53O1I',
-  yearly: 'https://buy.stripe.com/4gM7sL5MO3RAgMU1ak53O1J',
+  monthly: 'https://buy.stripe.com/4gM7sL5MO3RAgMU1ak53O1J',
+  yearly: 'https://buy.stripe.com/eVq9ATfno87QfIQbOY53O1I',
 } as const;
 
 /**
