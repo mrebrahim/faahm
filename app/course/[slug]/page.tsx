@@ -143,18 +143,17 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
       )
     : null;
 
-  // Primary CTA destination
+  // Primary CTA destination. We point both guest visitors AND
+  // signed-in-but-unsubscribed visitors at /personal-plan + the same
+  // 'احصل على خطتك الشخصية' wording — the marketing funnel does a
+  // better job at converting than the bare /pricing surface, and
+  // keeping the label identical across desktop / mobile means there's
+  // no inconsistency between the auth states the merchant sees.
   let ctaHref: string;
   let ctaLabel: string;
-  if (!user) {
-    // Guest checkout: send to the landing/pricing funnel, never to
-    // /signup — the visitor can pay without an account and the
-    // post-payment claim form creates the account from their email.
+  if (!subscribed) {
     ctaHref = '/personal-plan';
     ctaLabel = 'احصل على خطتك الشخصية';
-  } else if (!subscribed) {
-    ctaHref = ROUTES.pricing;
-    ctaLabel = 'اشترك دلوقتي وابدأ';
   } else if (resumeLessonId) {
     ctaHref = ROUTES.lesson(resumeLessonId);
     ctaLabel = 'كمّل من اللي قبل';
@@ -485,8 +484,8 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
                 ))}
               </ul>
               <Button asChild className="w-full" size="lg">
-                <Link href={user ? ROUTES.pricing : '/personal-plan'}>
-                  {user ? 'اختار خطة الاشتراك' : 'احصل على خطتك الشخصية'}
+                <Link href="/personal-plan">
+                  احصل على خطتك الشخصية
                   <ArrowLeft className="w-4 h-4" />
                 </Link>
               </Button>
