@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/server';
 import { APP_NAME, PLANS, ROUTES, OFFLINE_PAYMENTS, type PlanId } from '@/lib/constants';
 import { ArrowRight, ExternalLink, Smartphone, Copy } from 'lucide-react';
 import { CheckoutTracker } from '@/components/checkout-tracker';
+import { pricingFor } from '@/lib/region';
+import { SARMoney } from '@/components/sar-money';
 import { WhatsAppConfirmButton } from '../_components/whatsapp-confirm';
 
 const GUEST_EMAIL_COOKIE = 'guest_checkout_email';
@@ -38,6 +40,15 @@ export default async function InstapayOfflinePage({
     redirect(`/checkout?plan=${planParam}`);
   }
   const ownerEmail = user?.email ?? guestEmail ?? '';
+
+  // Single-currency funnel: every offline channel quotes SAR so the
+  // amount the visitor transfers matches what /checkout's picker
+  // promised. The WhatsApp confirmation also goes out with the SAR
+  // figure for the admin's reconciliation.
+  const sarAmount =
+    planParam === 'yearly'
+      ? Number(pricingFor('sa').yearlyAmount)
+      : Number(pricingFor('sa').monthlyAmount);
 
   const link = OFFLINE_PAYMENTS.instapay.link;
   // External QR generator: encodes the InstaPay deep link so users can
@@ -83,8 +94,8 @@ export default async function InstapayOfflinePage({
               <div className="text-xs text-gray-500">المبلغ المطلوب</div>
               <div className="text-xs text-gray-400 mt-0.5">{plan.name}</div>
             </div>
-            <div className="font-display text-3xl font-extrabold text-brand-600" dir="ltr">
-              ${plan.price}
+            <div className="font-display text-3xl font-extrabold text-brand-600">
+              <SARMoney value={sarAmount} />
             </div>
           </div>
 
@@ -148,7 +159,7 @@ export default async function InstapayOfflinePage({
             <WhatsAppConfirmButton
               email={ownerEmail}
               plan={planParam}
-              amountUsd={plan.price}
+              amountSar={sarAmount}
               channel="InstaPay"
             />
           </div>

@@ -4,6 +4,8 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { APP_NAME, PLANS, ROUTES, type PlanId } from '@/lib/constants';
 import { ArrowRight, CheckCircle2, Wallet } from 'lucide-react';
+import { pricingFor } from '@/lib/region';
+import { SARMoney } from '@/components/sar-money';
 import { PayPalButton } from './paypal-button';
 
 const GUEST_EMAIL_COOKIE = 'guest_checkout_email';
@@ -63,13 +65,19 @@ export default async function PayPalCheckoutPage({
             </div>
           </div>
 
-          {/* Order summary */}
+          {/* Order summary — SAR, matched to the /checkout picker. */}
           <div className="px-5 py-4 border-b border-gray-100">
             <div className="text-xs text-gray-500 mb-1">طلبك</div>
             <div className="flex items-baseline justify-between">
               <div className="font-bold">{plan.name}</div>
-              <div className="font-display text-3xl font-extrabold" dir="ltr">
-                ${plan.price}
+              <div className="font-display text-3xl font-extrabold">
+                <SARMoney
+                  value={
+                    planParam === 'yearly'
+                      ? pricingFor('sa').yearlyAmount
+                      : pricingFor('sa').monthlyAmount
+                  }
+                />
                 <span className="text-base text-gray-400 ms-1">
                   / {plan.interval === 'month' ? 'شهر' : 'سنة'}
                 </span>

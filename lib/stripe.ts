@@ -30,9 +30,10 @@ export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_missi
  *   STRIPE_PRICE_ID_MONTHLY_SAR    39 ر.س/month (SAR, Saudi region)
  *   STRIPE_PRICE_ID_YEARLY_SAR     149 ر.س/year (SAR, Saudi region)
  *
- * Falls back to the USD price ID when an SAR one is missing — keeps
- * the funnel working at a sane price (in USD) while the new SAR
- * prices are being wired up in Stripe.
+ * NO silent fallback. A missing SAR price ID used to fall through to
+ * the USD one, which meant a misconfigured deploy would happily charge
+ * dollars while the page said riyals. We throw loudly now so the bug
+ * surfaces in Stripe Checkout (500) instead of in customer support.
  */
 export function getStripePriceId(plan: PlanId, region: Region = 'us'): string {
   const envByRegionAndPlan: Record<Region, Record<PlanId, string | undefined>> = {
@@ -41,19 +42,19 @@ export function getStripePriceId(plan: PlanId, region: Region = 'us'): string {
       yearly: process.env.STRIPE_PRICE_ID_YEARLY,
     },
     sa: {
-      monthly:
-        process.env.STRIPE_PRICE_ID_MONTHLY_SAR ||
-        process.env.STRIPE_PRICE_ID_MONTHLY,
-      yearly:
-        process.env.STRIPE_PRICE_ID_YEARLY_SAR ||
-        process.env.STRIPE_PRICE_ID_YEARLY,
+      monthly: process.env.STRIPE_PRICE_ID_MONTHLY_SAR,
+      yearly: process.env.STRIPE_PRICE_ID_YEARLY_SAR,
     },
   };
 
   const id = envByRegionAndPlan[region]?.[plan];
   if (!id) {
+    const envName =
+      region === 'sa'
+        ? `STRIPE_PRICE_ID_${plan.toUpperCase()}_SAR`
+        : `STRIPE_PRICE_ID_${plan.toUpperCase()}`;
     throw new Error(
-      `Missing Stripe price ID for plan=${plan} region=${region}. Set the matching env var (see lib/stripe.ts).`
+      `Missing Stripe price ID for plan=${plan} region=${region}. Set env var ${envName} in Coolify and redeploy.`
     );
   }
   return id;

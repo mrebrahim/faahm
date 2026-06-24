@@ -5,16 +5,20 @@ import { OFFLINE_PAYMENTS, type PlanId } from '@/lib/constants';
  * 'ارسل صورة الدفع عبر الواتس اب لتاكيد الدفع' button. Builds a wa.me link
  * with a pre-filled Arabic message that includes the user's email and the
  * chosen plan / amount so admins can verify the payment fast.
+ *
+ * Amount is quoted in Saudi Riyal — the SAR funnel is the only one
+ * we ship today and admins reconcile the WhatsApp screenshot against
+ * the SAR transfer the visitor actually made.
  */
 export function WhatsAppConfirmButton({
   email,
   plan,
-  amountUsd,
+  amountSar,
   channel,
 }: {
   email: string;
   plan: PlanId;
-  amountUsd: number;
+  amountSar: number;
   /** Free-form channel label used in the message body. */
   channel: string;
 }) {
@@ -22,7 +26,7 @@ export function WhatsAppConfirmButton({
   const message = [
     'لقد اشتركت في فاهم وهذه اسكرين شوت من الدفع.',
     `الإيميل: ${email}`,
-    `الخطة: ${planLabel} ($${amountUsd})`,
+    `الخطة: ${planLabel} (${amountSar} ر.س)`,
     `طريقة الدفع: ${channel}`,
   ].join('\n');
 

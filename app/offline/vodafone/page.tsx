@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/server';
 import { APP_NAME, PLANS, ROUTES, OFFLINE_PAYMENTS, type PlanId } from '@/lib/constants';
 import { ArrowRight, Smartphone, Globe2 } from 'lucide-react';
 import { CheckoutTracker } from '@/components/checkout-tracker';
+import { pricingFor } from '@/lib/region';
+import { SARMoney } from '@/components/sar-money';
 import { WhatsAppConfirmButton } from '../_components/whatsapp-confirm';
 
 const GUEST_EMAIL_COOKIE = 'guest_checkout_email';
@@ -37,6 +39,15 @@ export default async function VodafoneCashOfflinePage({
     redirect(`/checkout?plan=${planParam}`);
   }
   const ownerEmail = user?.email ?? guestEmail ?? '';
+
+  // Single-currency funnel: every offline channel quotes SAR so the
+  // amount the visitor transfers matches what /checkout's picker
+  // promised. The WhatsApp confirmation goes out with the SAR figure
+  // for admin reconciliation.
+  const sarAmount =
+    planParam === 'yearly'
+      ? Number(pricingFor('sa').yearlyAmount)
+      : Number(pricingFor('sa').monthlyAmount);
 
   const number = OFFLINE_PAYMENTS.vodafoneCash.phone;
 
@@ -99,8 +110,11 @@ export default async function VodafoneCashOfflinePage({
               <Step n="1">افتح تطبيق فودافون كاش</Step>
               <Step n="2">
                 <div>
-                  حوّل <span dir="ltr" className="font-bold">${plan.price}</span> (
-                  ما يعادلها بالجنيه) على الرقم اللي فوق.
+                  حوّل ما يعادل{' '}
+                  <span className="font-bold">
+                    <SARMoney value={sarAmount} />
+                  </span>{' '}
+                  بالجنيه المصري على الرقم اللي فوق.
                 </div>
               </Step>
               <Step n="3">خد سكرين شوت من إشعار النجاح</Step>
@@ -140,8 +154,10 @@ export default async function VodafoneCashOfflinePage({
               </Step>
               <Step n="3" tone="emerald">
                 ابعت ما يعادل{' '}
-                <span dir="ltr" className="font-bold">${plan.price}</span> من
-                عملتك المحلية، وخد سكرين شوت من إشعار النجاح.
+                <span className="font-bold">
+                  <SARMoney value={sarAmount} />
+                </span>{' '}
+                من عملتك المحلية، وخد سكرين شوت من إشعار النجاح.
               </Step>
             </ol>
           </div>
@@ -152,8 +168,8 @@ export default async function VodafoneCashOfflinePage({
               <div className="text-xs text-gray-500">المبلغ المطلوب</div>
               <div className="text-xs text-gray-400 mt-0.5">{plan.name}</div>
             </div>
-            <div className="font-display text-3xl font-extrabold text-red-600" dir="ltr">
-              ${plan.price}
+            <div className="font-display text-3xl font-extrabold text-red-600">
+              <SARMoney value={sarAmount} />
             </div>
           </div>
 
@@ -166,7 +182,7 @@ export default async function VodafoneCashOfflinePage({
             <WhatsAppConfirmButton
               email={ownerEmail}
               plan={planParam}
-              amountUsd={plan.price}
+              amountSar={sarAmount}
               channel="Vodafone Cash / Barq"
             />
           </div>
