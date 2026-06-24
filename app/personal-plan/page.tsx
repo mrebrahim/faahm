@@ -1,13 +1,26 @@
 import Link from 'next/link';
+import dynamicImport from 'next/dynamic';
 import { Button } from '@/components/ui/button';
 import { MainNav } from '@/components/main-nav';
-import { createClient } from '@/lib/supabase/server';
+import { createServiceClient } from '@/lib/supabase/server';
+import { unstable_cache } from 'next/cache';
 import { APP_NAME, ROUTES } from '@/lib/constants';
 import { pricingFor } from '@/lib/region';
 import { SARMoney } from '@/components/sar-money';
-import { SocialProofToast } from '@/components/social-proof-toast';
 import { CourseCarousel, type CarouselCourse } from '@/components/course-carousel';
-import { StickyMobileCTA } from '@/components/sticky-mobile-cta';
+
+// Defer the conversion-time-only widgets so they don't sit in the
+// critical render path of the landing page. The toast doesn't fire
+// until 2s anyway and the sticky CTA only reveals after ~60vh of
+// scroll, so neither needs to ship in the first paint.
+const SocialProofToast = dynamicImport(
+  () => import('@/components/social-proof-toast').then((m) => m.SocialProofToast),
+  { ssr: false }
+);
+const StickyMobileCTA = dynamicImport(
+  () => import('@/components/sticky-mobile-cta').then((m) => m.StickyMobileCTA),
+  { ssr: false }
+);
 import {
   ArrowLeft,
   Star,
@@ -26,7 +39,36 @@ export const metadata = {
     'خطة تعلّم شخصية بالذكاء الاصطناعي — كورسات بالعربي + المساعد الذكي فاهم يجاوبك في أي درس. اشتراك واحد بسيط.',
 };
 
-export const dynamic = 'force-dynamic';
+// Incremental Static Regeneration. The page is rebuilt at most once
+// every 5 minutes, served from disk/edge cache the rest of the time.
+// Ad traffic hits a pre-rendered HTML in ~tens of ms instead of
+// triggering 2 round-trips to Supabase per visit. The published
+// catalog rarely changes, so 300s is a comfortable lower bound.
+export const revalidate = 300;
+
+/**
+ * Cached catalog query. Runs at most once per `revalidate` window,
+ * regardless of how many requests come in — uses the service-role
+ * client so it never reads cookies and stays safely shared between
+ * visitors. Tagged so an admin can bust the cache by revalidating
+ * 'published-courses' from any future course-mutation server action.
+ */
+const loadPublishedCourses = unstable_cache(
+  async () => {
+    const service = createServiceClient();
+    const { data } = await service
+      .from('courses')
+      .select(
+        'id, slug, title_ar, thumbnail_url, total_lessons, total_duration_sec, rating_avg, rating_count, sort_order'
+      )
+      .eq('is_published', true)
+      .order('sort_order')
+      .order('created_at', { ascending: false });
+    return (data ?? []) as CarouselCourse[];
+  },
+  ['personal-plan:published-courses'],
+  { revalidate: 300, tags: ['published-courses'] }
+);
 
 /**
  * Landing page for the 'احصل على خطتك الشخصية' CTA from the home page
@@ -38,23 +80,16 @@ export const dynamic = 'force-dynamic';
  * buying a single course outside → pricing (SAR) → FAQ → final CTA.
  */
 export default async function PersonalPlanPage() {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  // Pull the full catalog up front. The three flagship AI courses
-  // (n8n, vibe-coding, ai-video) get their own highlighted carousel
-  // above the fold's AI-assistant story; everything else cascades
-  // into the secondary 'باقي الكورسات' rail.
-  const { data: allCourses } = await supabase
-    .from('courses')
-    .select(
-      'id, slug, title_ar, thumbnail_url, total_lessons, total_duration_sec, rating_avg, rating_count, sort_order'
-    )
-    .eq('is_published', true)
-    .order('sort_order')
-    .order('created_at', { ascending: false });
+  // Pure ISR — no cookies(), no per-request DB calls. The catalog
+  // comes out of the unstable_cache wrapper, the page is otherwise
+  // a fully static HTML document that Coolify serves from disk for
+  // 5 minutes at a time. Ad traffic gets near-zero TTFB.
+  //
+  // Side-effect: the nav renders as anonymous regardless of whether
+  // the visitor is signed in. The vast majority of /personal-plan
+  // hits are cold ad clicks where that's fine — signed-in users
+  // reach the funnel from /dashboard which is its own surface.
+  const allCourses = await loadPublishedCourses();
 
   const FEATURED_SLUGS = ['n8n', 'vibe-coding', 'ai-video'];
   const courses = (allCourses ?? []) as CarouselCourse[];
@@ -70,7 +105,7 @@ export default async function PersonalPlanPage() {
     <main className="relative min-h-screen overflow-hidden bg-white">
       <SocialProofToast />
       <StickyMobileCTA />
-      <MainNav signedIn={!!user} isAdmin={false} />
+      <MainNav signedIn={false} isAdmin={false} />
 
       {/* ─────────────────────────  HERO  ───────────────────────── */}
       <section className="relative px-4 pt-12 sm:pt-20 pb-16 sm:pb-20">
