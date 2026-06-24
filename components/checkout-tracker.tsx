@@ -14,7 +14,7 @@ type Props = {
    * Mapped onto custom-data so the same Pixel can split conversions
    * by where the drop-off happens.
    */
-  step?: 'picker' | 'instapay' | 'vodafone';
+  step?: 'picker' | 'instapay' | 'vodafone' | 'egp' | 'barq';
 };
 
 declare global {
