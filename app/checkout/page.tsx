@@ -41,7 +41,7 @@ const isPlan = (v: unknown): v is PlanId => v === 'monthly' || v === 'yearly';
 export default async function CheckoutPage({
   searchParams,
 }: {
-  searchParams: { plan?: string };
+  searchParams: { plan?: string; eg?: string };
 }) {
   const planParam = searchParams.plan;
   if (!isPlan(planParam)) {
@@ -54,6 +54,15 @@ export default async function CheckoutPage({
   // call here is locked to 'sa' so display + collection stay in riyals.
   const pricing = pricingFor('sa');
   const regionQs = `&region=sa`;
+
+  // PRD §3.1: target market is Saudi. Showing 'تحويل من بنك مصري' to a
+  // Saudi visitor at the payment step is a documented cause of bounce —
+  // they read 'مصري' and assume they hit the wrong country. Default to
+  // SA-only methods (Visa/Mastercard/Apple Pay/PayPal/Barq); the EGP
+  // rail stays accessible behind a small 'أنا من مصر' link that flips
+  // ?eg=1 in the URL. No-one in Saudi sees the Egyptian options unless
+  // they explicitly ask for them.
+  const showEgyptian = searchParams.eg === '1';
 
   // Guest checkout: we no longer redirect anonymous visitors to /signup.
   // Logged-in users still get their email baked into all the payment
@@ -74,6 +83,11 @@ export default async function CheckoutPage({
           Stripe iframe), so it never interrupts the payment moment. */}
       <SocialProofToast />
 
+      {/* PRD §3.2 — 'تغيير الخطة' was the #1 click on desktop, signalling
+          hesitation. We don't hide it (the visitor genuinely may want
+          back-out), but we shrink it to a small secondary link so the
+          primary visual weight goes to brand identity + the payment
+          method buttons below, not to the back button. */}
       <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/80 backdrop-blur-xl">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link href={ROUTES.home} className="flex items-center gap-2">
@@ -84,10 +98,9 @@ export default async function CheckoutPage({
           </Link>
           <Link
             href={ROUTES.pricing}
-            className="text-sm text-gray-500 hover:text-foreground inline-flex items-center gap-1"
+            className="text-[11px] text-gray-400 hover:text-gray-600 underline underline-offset-2"
           >
             تغيير الخطة
-            <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
       </header>
@@ -215,15 +228,23 @@ export default async function CheckoutPage({
               </div>
             )}
 
-            <h2 className="font-display text-lg font-bold mb-3">اختر طريقة الدفع:</h2>
+            <div className="flex items-end justify-between gap-3 mb-3">
+              <h2 className="font-display text-lg font-bold">اختر طريقة الدفع:</h2>
+              {/* Guarantee chip — sits next to the payment heading so the
+                  reassurance is locked to the visitor's gaze right when
+                  they're picking a rail. PRD §3.3. */}
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
+                🛡️ ضمان استرداد 7 أيام
+              </span>
+            </div>
 
             <div className="space-y-3">
               {/* 1. Cards / wallets / Apple Pay → Stripe (SAR) */}
               <PaymentMethod
                 href={`/api/checkout?plan=${planParam}${emailQs}${regionQs}`}
                 icon={CreditCard}
-                title="البطاقات البنكية والمحافظ"
-                subtitle="Visa · Mastercard · Apple Pay"
+                title="البطاقات البنكية و Apple Pay"
+                subtitle="Visa · Mastercard · Apple Pay — إلغاء في أي وقت"
                 recommended
               />
 
@@ -240,17 +261,35 @@ export default async function CheckoutPage({
                 href={`/offline/barq?plan=${planParam}${emailQs}${regionQs}`}
                 icon={Globe2}
                 title="Barq (من السعودية)"
-                subtitle="تحويل دولي بالريال من السعودية لمصر"
+                subtitle="تحويل بالريال من حسابك السعودي"
               />
 
-              {/* 4. Egyptian combo — InstaPay + Vodafone Cash (EGP) */}
-              <PaymentMethod
-                href={`/offline/egp?plan=${planParam}${emailQs}${regionQs}`}
-                icon={Smartphone}
-                title="من مصر — InstaPay أو Vodafone Cash"
-                subtitle="تحويل فوري بالجنيه المصري"
-              />
+              {/* 4. Egyptian combo — InstaPay + Vodafone Cash (EGP). PRD
+                  §3.1: hidden by default because the target market is
+                  Saudi and showing 'مصري' here was a bounce trigger.
+                  Surfaced only behind the small 'أنا من مصر' link below
+                  (?eg=1), so any visitor who genuinely needs it can
+                  still get to it in one tap. */}
+              {showEgyptian && (
+                <PaymentMethod
+                  href={`/offline/egp?plan=${planParam}${emailQs}${regionQs}`}
+                  icon={Smartphone}
+                  title="من مصر — InstaPay أو Vodafone Cash"
+                  subtitle="تحويل فوري بالجنيه المصري"
+                />
+              )}
             </div>
+
+            {!showEgyptian && (
+              <div className="text-center mt-3">
+                <Link
+                  href={`?plan=${planParam}&eg=1`}
+                  className="text-[11px] text-gray-400 hover:text-gray-600 underline underline-offset-2"
+                >
+                  أنا من مصر — عرض InstaPay / Vodafone Cash
+                </Link>
+              </div>
+            )}
 
             {/* Trust strip — replaces the WhatsApp button that used to
                 live floating in this corner. The PRD's #1 distraction

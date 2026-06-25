@@ -23,7 +23,7 @@ export function StickyMobileCTA({
    *  element is intersecting the viewport. */
   hideWhenInView = '#pricing',
   href = '#pricing',
-  label = 'ابدأ خطتك الشخصية',
+  label = 'ابدأ خطتي الشخصية',
 }: {
   hideWhenInView?: string;
   href?: string;

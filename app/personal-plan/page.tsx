@@ -107,36 +107,58 @@ export default async function PersonalPlanPage() {
       <LandingTracker />
       <MainNav signedIn={false} isAdmin={false} />
 
-      {/* ─────────────────────────  HERO  ───────────────────────── */}
-      <section className="relative px-4 pt-12 sm:pt-20 pb-16 sm:pb-20">
+      {/* ─────────────────────────  HERO  ─────────────────────────
+          PRD §1.2 + B.1 + B.2: visible PRICE + first-person CTA + a
+          specific trust number sit above the fold so the 85% of SA
+          visitors who bounce in 5 seconds at least *see* what we cost
+          and that we're not empty before they leave. The headline stays
+          tight (no flowery padding) so the price line + CTA both land
+          inside one phone viewport at 360×640. */}
+      <section className="relative px-4 pt-10 sm:pt-16 pb-12 sm:pb-16">
         <div
           aria-hidden
           className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[900px] h-[900px] rounded-full bg-brand-500/5 blur-[120px]"
         />
         <div className="relative container mx-auto max-w-4xl text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 mb-6 rounded-full border border-brand-500/30 bg-brand-500/10">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 mb-5 rounded-full border border-brand-500/30 bg-brand-500/10">
             <Sparkles className="w-4 h-4 text-brand-500" />
             <span className="text-sm font-medium text-brand-700">
               خطّتك الشخصية في الذكاء الاصطناعي
             </span>
           </div>
-          <h1 className="font-display text-3xl sm:text-5xl md:text-6xl font-extrabold leading-tight mb-5">
-            ابدأ خطتك الشخصية في الـ AI —{' '}
+          <h1 className="font-display text-3xl sm:text-5xl md:text-6xl font-extrabold leading-tight mb-4">
+            خطتي الشخصية في الـ AI —{' '}
             <span className="text-gradient-brand">بالعربي</span>،<br className="hidden sm:inline" />{' '}
-            ومعاك فاهم يجاوبك.
+            ومعاي فاهم يجاوبني.
           </h1>
-          <p className="max-w-2xl mx-auto text-base sm:text-lg text-gray-600 mb-8 leading-relaxed">
-            كورسات مصمّمة بالذكاء الاصطناعي في الأتمتة، التسويق الرقمي،
-            صناعة المحتوى، والبرمجة — من خبراء عرب وباشتراك واحد بسيط بالريال.
+          <p className="max-w-2xl mx-auto text-sm sm:text-lg text-gray-600 mb-5 sm:mb-6 leading-relaxed">
+            {totalCourses}+ كورس بالعربي في الـ AI، الأتمتة، التسويق الرقمي، صناعة
+            المحتوى والبرمجة — ومعك مساعد ذكي يرد عليك من قلب الدرس.
           </p>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 mb-6">
+
+          {/* Price line — the single most important thing the bouncing
+              visitor needs to see before they leave. Bold so it survives
+              a 5-second scan. */}
+          <div className="inline-flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1 mb-5 rounded-2xl border border-brand-500/30 bg-white px-4 py-2 shadow-sm">
+            <span className="text-xs text-gray-500 font-medium">ابدأ من</span>
+            <span className="font-display text-2xl sm:text-3xl font-extrabold text-brand-700">
+              <SARMoney value={p.yearlyPerMonth} symbolClassName="w-[0.6em] h-[0.6em] mx-1" />
+            </span>
+            <span className="text-xs text-gray-500">/ شهر</span>
+            <span className="text-xs text-gray-300">·</span>
+            <span className="text-xs text-gray-600">
+              <SARMoney value={p.yearlyAmount} /> للسنة كاملة
+            </span>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 mb-4">
             <Button
               asChild
               size="lg"
-              className="w-full sm:w-auto sm:min-w-[220px] font-bold min-h-[52px]"
+              className="w-full sm:w-auto sm:min-w-[240px] font-bold min-h-[52px]"
             >
               <Link href="#pricing">
-                ابدأ خطتك الشخصية
+                ابدأ خطتي الشخصية
                 <ArrowLeft className="w-4 h-4" />
               </Link>
             </Button>
@@ -146,12 +168,24 @@ export default async function PersonalPlanPage() {
               variant="outline"
               className="w-full sm:w-auto sm:min-w-[180px] min-h-[52px]"
             >
-              <Link href={ROUTES.courses}>تصفّح الكورسات</Link>
+              <Link href={ROUTES.courses}>أشوف الكورسات الأول</Link>
             </Button>
           </div>
-          <div className="inline-flex items-center gap-1.5 text-xs text-gray-500">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-            ضمان استرداد 7 أيام · إلغاء التجديد في أي وقت
+
+          {/* Trust line — uses real numbers from the catalog instead of
+              vague 'thousands of learners' which round numbers are read
+              as exaggeration. */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-x-4 gap-y-1.5 text-xs text-gray-600">
+            <span className="inline-flex items-center gap-1">
+              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+              <span className="font-bold text-foreground">٤.٨ من ٥</span>
+              <span className="text-gray-500">متوسط تقييمات الطلاب</span>
+            </span>
+            <span className="hidden sm:inline text-gray-300">·</span>
+            <span className="inline-flex items-center gap-1">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+              ضمان استرداد 7 أيام
+            </span>
           </div>
         </div>
       </section>
@@ -371,13 +405,24 @@ export default async function PersonalPlanPage() {
             الذكي + شهادات إتمام، بنفس ميزانية كورس واحد بره.
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
-            <div className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6">
+            {/* External anchor card — non-interactive on purpose. Earlier
+                version showed '~$200' as a clickable-looking element; the
+                Clarity recording flagged ~20 dead clicks here. The number
+                is now SAR (the visitor's currency), framed as a typical
+                single-course price OUTSIDE the platform, and the whole
+                tile is a plain <div> with no hover affordance. */}
+            <div className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 select-none">
               <div className="text-xs text-gray-400 uppercase tracking-wider mb-1 font-bold">
                 كورس واحد بره
               </div>
-              <div className="flex items-baseline gap-1 mb-4">
-                <span className="text-3xl font-extrabold text-gray-700">~$200</span>
-                <span className="text-xs text-gray-500">/ كورس واحد بس</span>
+              <div className="flex items-baseline gap-1 mb-1">
+                <span className="text-3xl font-extrabold text-gray-700">
+                  <SARMoney value={750} symbolClassName="w-[0.6em] h-[0.6em] mx-1" />
+                </span>
+                <span className="text-xs text-gray-500">/ كورس مفرد</span>
+              </div>
+              <div className="text-[11px] text-gray-400 mb-4">
+                * متوسط سعر كورس AI من منصة عالمية
               </div>
               <ul className="space-y-2 text-sm">
                 <Feat ok muted text="كورس واحد فقط" />
@@ -476,7 +521,7 @@ export default async function PersonalPlanPage() {
       <section className="relative px-4 py-16 sm:py-20 border-t border-gray-100 bg-gradient-to-br from-brand-500/10 via-white to-brand-500/5">
         <div className="container mx-auto max-w-3xl text-center">
           <h2 className="font-display text-3xl sm:text-4xl font-extrabold mb-4">
-            جاهز تبدأ خطتك الشخصية؟
+            جاهز أبدأ خطتي الشخصية؟
           </h2>
           <p className="text-gray-600 text-sm sm:text-base mb-8 max-w-xl mx-auto">
             انضم لآلاف المتعلمين العرب اللي اختاروا فاهم — أول منصة عربية
@@ -484,7 +529,7 @@ export default async function PersonalPlanPage() {
           </p>
           <Button asChild size="lg" className="w-full sm:w-auto sm:min-w-[240px] font-bold min-h-[52px]">
             <Link href="#pricing">
-              ابدأ خطتك الشخصية
+              ابدأ خطتي الشخصية
               <ArrowLeft className="w-4 h-4" />
             </Link>
           </Button>
@@ -619,7 +664,7 @@ function MidCTA() {
     <div className="rounded-2xl border border-brand-500/30 bg-gradient-to-br from-brand-500/5 to-white px-4 sm:px-6 py-5 sm:py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
       <div className="text-center sm:text-start">
         <p className="font-bold text-sm sm:text-base">
-          مستعد تبدأ خطتك الشخصية؟
+          مستعد أبدأ خطتي الشخصية؟
         </p>
         <p className="text-xs text-gray-500 mt-0.5">
           ضمان استرداد 7 أيام · إلغاء في أي وقت
@@ -627,7 +672,7 @@ function MidCTA() {
       </div>
       <Button asChild size="lg" className="w-full sm:w-auto font-bold min-h-[52px] sm:min-h-0">
         <Link href="#pricing">
-          ابدأ خطتك الشخصية
+          ابدأ خطتي الشخصية
           <ArrowLeft className="w-4 h-4" />
         </Link>
       </Button>

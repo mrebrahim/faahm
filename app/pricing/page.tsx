@@ -87,14 +87,21 @@ export default async function PricingPage({
       </header>
 
       <main className="container mx-auto px-4 py-12 sm:py-16 max-w-5xl">
-        {/* Page header */}
+        {/* Page header. PRD §2.1: the 'اشتراك واحد' pill registered the
+            highest dead-click rate on /pricing — visitors expected it
+            to do something. Turning it into a real anchor link down to
+            the plans block both kills the dead click and gives eager
+            visitors a one-tap path to the cards. */}
         <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-12">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 mb-6 rounded-full border border-brand-500/30 bg-brand-500/10">
+          <Link
+            href="#plans"
+            className="inline-flex items-center gap-2 px-4 py-1.5 mb-6 rounded-full border border-brand-500/30 bg-brand-500/10 hover:bg-brand-500/15 transition-colors"
+          >
             <Sparkles className="w-4 h-4 text-brand-500" />
             <span className="text-sm font-medium text-brand-700">
               اشتراك واحد، كل الكورسات
             </span>
-          </div>
+          </Link>
           <h1 className="font-display text-3xl sm:text-4xl md:text-6xl font-extrabold mb-4">
             اختار <span className="text-gradient-brand">الباقة</span> اللي تناسبك
           </h1>
@@ -117,7 +124,7 @@ export default async function PricingPage({
         )}
 
         {/* Plans — yearly first in DOM ⇒ lands on the RIGHT in RTL */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6 max-w-3xl mx-auto">
+        <div id="plans" className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6 max-w-3xl mx-auto scroll-mt-20">
           <YearlyCard
             user={user}
             region={region}
