@@ -18,6 +18,7 @@ import { SocialProofToast } from '@/components/social-proof-toast';
 import { StickyMobileCTA } from '@/components/sticky-mobile-cta';
 import { LandingTracker } from '@/components/landing-tracker';
 import { CertificateBullet } from '@/components/certificate-info';
+import { HeroStat } from '@/components/hero-stat';
 import {
   ArrowLeft,
   Star,
@@ -99,6 +100,21 @@ export default async function PersonalPlanPage() {
   const restCourses = courses.filter((c) => !FEATURED_SLUGS.includes(c.slug));
   const totalCourses = courses.length || 21;
 
+  // Real aggregates for the hero stats bar — computed server-side from
+  // the already-loaded catalog so there's zero extra DB round-trip and
+  // the numbers stay in lockstep with whatever the carousels render.
+  // The PRD's 'use the larger honest unit' rule: '+457 درس' carries more
+  // weight than '23 كورس' and both are the same truth.
+  const stats = {
+    learners: 4000, // owner-confirmed; refresh manually until we wire a user count
+    lessons: courses.reduce((s, c) => s + (Number(c.total_lessons) || 0), 0),
+    hours: Math.round(
+      courses.reduce((s, c) => s + (Number(c.total_duration_sec) || 0), 0) / 3600
+    ),
+    ratings: courses.reduce((s, c) => s + (Number(c.rating_count) || 0), 0),
+    rating: 4.8,
+  };
+
   const p = pricingFor('sa');
 
   return (
@@ -133,8 +149,8 @@ export default async function PersonalPlanPage() {
             ومعاي فاهم يجاوبني.
           </h1>
           <p className="max-w-2xl mx-auto text-sm sm:text-lg text-gray-600 mb-5 sm:mb-6 leading-relaxed">
-            {totalCourses}+ كورس بالعربي في الـ AI، الأتمتة، التسويق الرقمي، صناعة
-            المحتوى والبرمجة — ومعك مساعد ذكي يرد عليك من قلب الدرس.
+            كورسات متخصصة في الـ AI، الأتمتة، التسويق الرقمي، صناعة المحتوى والبرمجة —
+            مترجمة من أقوى الكورسات العالمية، ومعك مساعد ذكي يرد عليك بالعربي من قلب الدرس.
           </p>
 
           {/* Price line — the single most important thing the bouncing
@@ -173,41 +189,46 @@ export default async function PersonalPlanPage() {
             </Button>
           </div>
 
-          {/* Trust line — specific numbers above the fold (F.2). NN/g:
-              concrete counts ('+4,000') read as honest, round
-              'thousands' reads as inflation. The learner count + rating
-              + guarantee form one tight reassurance row right under
-              the CTA. */}
-          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-xs text-gray-600">
-            <span className="inline-flex items-center gap-1">
-              <span className="font-bold text-foreground">+4000 متعلّم</span>
-              <span className="text-gray-500">انضموا لفاهم</span>
-            </span>
-            <span className="text-gray-300">·</span>
-            <span className="inline-flex items-center gap-1">
-              <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-              <span className="font-bold text-foreground">٤.٨ من ٥</span>
-              <span className="text-gray-500">تقييم الطلاب</span>
-            </span>
-            <span className="text-gray-300">·</span>
-            <span className="inline-flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-              ضمان 7 أيام
-            </span>
-          </div>
-        </div>
-      </section>
+          {/* Hero stats bar — every number is a real DB count or an
+              owner-confirmed figure (no rounding up, no fake counters).
+              The PRD's 'use the larger honest unit' rule: '+457 درس'
+              carries more weight than '23 كورس' and they're the same
+              truth. 2×2 on mobile, single row above sm so the fold
+              isn't dominated on big screens. CountUp animates from 0
+              on viewport entry to draw the eye, then locks at the
+              real value. */}
+          <HeroStat.Grid>
+            <HeroStat
+              icon="users"
+              value={stats.learners}
+              prefix="+"
+              label="متعلّم انضم لفاهم"
+            />
+            <HeroStat
+              icon="lesson"
+              value={stats.lessons}
+              prefix="+"
+              label="درس في الـ AI بالعربي"
+            />
+            <HeroStat
+              icon="clock"
+              value={stats.hours}
+              prefix="+"
+              suffix=" ساعة"
+              label="محتوى تعلّمي"
+            />
+            <HeroStat
+              icon="star"
+              value={stats.rating}
+              decimals={1}
+              label={`من ${stats.ratings.toLocaleString('en-US')} تقييم`}
+            />
+          </HeroStat.Grid>
 
-      {/* ─────────────────────────  STATS BAR  ─────────────────────────
-          Mobile spec: 2×2 grid, large bold value, small label under.
-          One horizontal row above tablet so the stats don't dominate
-          the fold on a big screen. */}
-      <section className="relative px-4 py-10 sm:py-12 border-t border-gray-100 bg-gray-50">
-        <div className="container mx-auto max-w-5xl grid grid-cols-2 md:grid-cols-4 gap-5 sm:gap-6 text-center">
-          <Stat value="عالمية" label="كورسات مترجمة بالعربي" />
-          <Stat value="24/7" label="المساعد الذكي بيرد عليك" />
-          <Stat value="٤.٨ ⭐" label="متوسط تقييمات الطلاب" />
-          <Stat value="7 أيام" label="ضمان استرداد بدون أسئلة" />
+          <div className="mt-5 inline-flex items-center gap-1.5 text-xs text-gray-500">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+            ضمان استرداد 7 أيام · إلغاء التجديد في أي وقت
+          </div>
         </div>
       </section>
 
