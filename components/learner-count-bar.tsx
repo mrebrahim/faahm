@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { GraduationCap, ArrowLeft } from 'lucide-react';
 
 /**
@@ -26,8 +27,23 @@ const HIDDEN_PREFIXES = ['/checkout', '/billing', '/offline'];
 const LEARNERS = 4000;
 
 export function LearnerCountBar() {
+  // Defer the pathname read until after mount so SSR can always
+  // ship the bar, then the client decides whether to hide it on
+  // checkout / billing / offline. Prevents any subtle SSR/client
+  // mismatch from `usePathname()` returning a different value
+  // between the two passes (which would surface as a hydration
+  // error and, in some Next 14 builds, a server-side exception
+  // before the client takes over).
   const pathname = usePathname() || '';
-  if (HIDDEN_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (
+    mounted &&
+    HIDDEN_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+  ) {
     return null;
   }
 
