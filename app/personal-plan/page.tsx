@@ -18,7 +18,7 @@ import { SocialProofToast } from '@/components/social-proof-toast';
 import { StickyMobileCTA } from '@/components/sticky-mobile-cta';
 import { LandingTracker } from '@/components/landing-tracker';
 import { CertificateBullet } from '@/components/certificate-info';
-import { HeroStat } from '@/components/hero-stat';
+import { HeroStat, HeroStatGrid } from '@/components/hero-stat';
 import {
   ArrowLeft,
   Star,
@@ -197,7 +197,7 @@ export default async function PersonalPlanPage() {
               isn't dominated on big screens. CountUp animates from 0
               on viewport entry to draw the eye, then locks at the
               real value. */}
-          <HeroStat.Grid>
+          <HeroStatGrid>
             <HeroStat
               icon="users"
               value={stats.learners}
@@ -223,7 +223,7 @@ export default async function PersonalPlanPage() {
               decimals={1}
               label={`من ${stats.ratings.toLocaleString('en-US')} تقييم`}
             />
-          </HeroStat.Grid>
+          </HeroStatGrid>
 
           <div className="mt-5 inline-flex items-center gap-1.5 text-xs text-gray-500">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />

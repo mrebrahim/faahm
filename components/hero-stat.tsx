@@ -134,10 +134,19 @@ export function HeroStat({
   );
 }
 
-HeroStat.Grid = function HeroStatGrid({ children }: { children: React.ReactNode }) {
+/**
+ * The grid wrapper is a separate named export — NOT a static
+ * property on HeroStat — because Next.js represents a 'use client'
+ * import as an opaque client-reference proxy when imported into a
+ * Server Component. Accessing `.Grid` on that proxy yields
+ * undefined and throws 'An error occurred in the Server Components
+ * render' at build/SSR time. Two siblings, two imports, no proxy
+ * property-access.
+ */
+export function HeroStatGrid({ children }: { children: React.ReactNode }) {
   return (
     <div className="mx-auto max-w-3xl grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-2 mb-1">
       {children}
     </div>
   );
-};
+}
