@@ -8,6 +8,9 @@ import { ROUTES } from '@/lib/constants';
 import { formatDuration } from '@/lib/utils';
 import { resolveVideoEmbed } from '@/lib/video';
 import { canAccessCourse } from '@/lib/access';
+import { pickRelated, type RelatedCandidate } from '@/lib/related-courses';
+import { CourseSocialProof } from '@/components/course-social-proof';
+import { RelatedCourses } from '@/components/related-courses';
 import {
   ArrowLeft,
   BookOpen,
@@ -78,7 +81,7 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
         id, slug, title_ar, description_ar, short_description_ar, thumbnail_url,
         trailer_video_provider, trailer_video_id, trailer_video_library_id,
         what_you_learn, requirements,
-        rating_avg, rating_count,
+        rating_avg, rating_count, category_id,
         level, total_lessons, total_duration_sec, language,
         category:categories(slug, name_ar),
         instructor:instructors(slug, full_name_ar, bio_ar, title_ar, avatar_url),
@@ -92,6 +95,43 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
     .maybeSingle();
 
   if (!course) notFound();
+
+  // Real social-proof counts. Two cheap parallel queries:
+  //   - enrollments for *this* course (the '+392 متعلّم انضم
+  //     لهذا الكورس' tile)
+  //   - the related-courses pool (published catalog without the
+  //     current course — pickRelated filters in JS)
+  // Both run with the service client so no RLS in the way of
+  // pure-catalog reads.
+  const [enrollmentCountRes, relatedPoolRes] = await Promise.all([
+    service
+      .from('enrollments')
+      .select('id', { count: 'exact', head: true })
+      .eq('course_id', course.id),
+    service
+      .from('courses')
+      .select(
+        'id, slug, title_ar, thumbnail_url, total_lessons, total_duration_sec, rating_avg, rating_count, category_id'
+      )
+      .eq('is_published', true),
+  ]);
+  const enrollmentCount = enrollmentCountRes.count ?? 0;
+  const relatedPool = (relatedPoolRes.data ?? []) as RelatedCandidate[];
+  const related = pickRelated(
+    {
+      id: course.id,
+      slug: course.slug,
+      title_ar: course.title_ar,
+      thumbnail_url: course.thumbnail_url,
+      total_lessons: course.total_lessons,
+      total_duration_sec: course.total_duration_sec,
+      rating_avg: (course as any).rating_avg ?? null,
+      rating_count: (course as any).rating_count ?? null,
+      category_id: (course as any).category_id ?? null,
+    },
+    relatedPool,
+    4
+  );
 
   const access = await canAccessCourse(user?.id, course.id);
   // For the rest of this page we treat enrollment the same as subscription —
@@ -204,15 +244,33 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
               </p>
             )}
 
-            {(course as any).rating_count > 0 && (
-              <div className="flex items-center gap-2 mb-4">
-                <span className="inline-flex items-center gap-1 font-bold text-amber-700">
-                  <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
-                  <span dir="ltr">{Number((course as any).rating_avg).toFixed(1)}</span>
-                </span>
-                <span dir="ltr" className="text-sm text-gray-500">
-                  ({(course as any).rating_count.toLocaleString('en-US')} ratings)
-                </span>
+            {/* Compact rating + enrollment row in the hero. The full
+                CourseSocialProof block sits below the hero with the
+                bigger visual treatment — this keeps the hero tight. */}
+            {((course as any).rating_count > 0 || enrollmentCount > 0) && (
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mb-4 text-sm">
+                {(course as any).rating_count > 0 && (
+                  <span className="inline-flex items-center gap-1 font-bold text-amber-700">
+                    <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                    <span dir="ltr">
+                      {Number((course as any).rating_avg).toFixed(1)}
+                    </span>
+                    <span className="text-gray-500 font-normal" dir="ltr">
+                      ({(course as any).rating_count.toLocaleString('en-US')})
+                    </span>
+                  </span>
+                )}
+                {enrollmentCount > 0 && (
+                  <>
+                    <span className="text-gray-300">·</span>
+                    <span className="inline-flex items-center gap-1 text-gray-700">
+                      <span className="font-bold text-foreground tabular-nums">
+                        +{enrollmentCount.toLocaleString('en-US')}
+                      </span>
+                      <span className="text-gray-500">متعلّم انضم لهذا الكورس</span>
+                    </span>
+                  </>
+                )}
               </div>
             )}
 
@@ -288,6 +346,18 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
             </div>
           </div>
         </div>
+      </section>
+
+      {/* Social proof — sits right under the hero so the first scroll
+          past the headline lands on real numbers (rating + enrolled
+          + platform). All counts are pulled live from the DB; no
+          synthesized distribution bars (no per-user data yet). */}
+      <section className="container mx-auto px-4 max-w-6xl py-6 sm:py-8">
+        <CourseSocialProof
+          ratingAvg={(course as any).rating_avg ?? null}
+          ratingCount={(course as any).rating_count ?? null}
+          enrollments={enrollmentCount}
+        />
       </section>
 
       {/* BODY: syllabus + sidebar */}
@@ -515,6 +585,12 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
           )}
         </aside>
       </main>
+
+      {/* Related courses — handpicked for the AI flagships
+          (n8n/vibe-coding/ai-video/prompt-fundamentals/digital-teacher),
+          category-fallback for everything else. Real DB data, every
+          card clickable. */}
+      <RelatedCourses courses={related} />
     </div>
   );
 }
