@@ -4,6 +4,7 @@ import './globals.css';
 import { APP_NAME, APP_TAGLINE, APP_URL } from '@/lib/constants';
 import { Analytics } from '@/components/analytics';
 import { WhatsAppButton } from '@/components/whatsapp-button';
+import { LearnerCountBar } from '@/components/learner-count-bar';
 
 const cairo = Cairo({
   subsets: ['arabic', 'latin'],
@@ -78,6 +79,10 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="font-sans min-h-screen bg-background text-foreground">
+        {/* Site-wide '+4,000 متعلّم' trust strip — first thing every
+            visitor reads. Hides itself on checkout / billing / offline
+            so it doesn't compete with the payment moment. */}
+        <LearnerCountBar />
         {children}
         <WhatsAppButton />
         <Analytics />
