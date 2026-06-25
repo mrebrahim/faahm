@@ -304,7 +304,7 @@ export default async function CheckoutPage({
               >
                 🛡️ ضمان استرداد 7 أيام
               </Link>
-              <TrustPill icon="⭐" text="انضم لآلاف المتعلمين" />
+              <TrustPill icon="⭐" text="+4000 متعلّم انضموا لفاهم" />
             </div>
 
             {/* Payment-rail logos. Picking the rails the visitor will see

@@ -141,10 +141,18 @@ export default async function PricingPage({
           />
         </div>
 
-        {/* Trust strip */}
+        {/* Trust strip. F.1: refund-policy badge now actually links —
+            matches the /checkout behaviour. The other two stay static
+            text because they don't have a destination. */}
         <div className="mt-10 sm:mt-12 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 max-w-3xl mx-auto text-sm">
           <TrustItem text="إلغاء في أي وقت" />
-          <TrustItem text="ضمان استرداد 7 أيام" />
+          <Link
+            href="/refund-policy"
+            className="flex items-center justify-center gap-2 rounded-xl bg-white border border-emerald-200 px-4 py-3 text-emerald-800 font-medium text-xs sm:text-sm hover:border-emerald-300 hover:bg-emerald-50/60 transition-colors"
+          >
+            <span aria-hidden>🛡️</span>
+            ضمان استرداد 7 أيام
+          </Link>
           <TrustItem text="دفع آمن عبر Stripe و PayPal" />
         </div>
 

@@ -17,6 +17,7 @@ import { CourseCarousel, type CarouselCourse } from '@/components/course-carouse
 import { SocialProofToast } from '@/components/social-proof-toast';
 import { StickyMobileCTA } from '@/components/sticky-mobile-cta';
 import { LandingTracker } from '@/components/landing-tracker';
+import { CertificateBullet } from '@/components/certificate-info';
 import {
   ArrowLeft,
   Star,
@@ -172,19 +173,26 @@ export default async function PersonalPlanPage() {
             </Button>
           </div>
 
-          {/* Trust line — uses real numbers from the catalog instead of
-              vague 'thousands of learners' which round numbers are read
-              as exaggeration. */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-x-4 gap-y-1.5 text-xs text-gray-600">
+          {/* Trust line — specific numbers above the fold (F.2). NN/g:
+              concrete counts ('+4,000') read as honest, round
+              'thousands' reads as inflation. The learner count + rating
+              + guarantee form one tight reassurance row right under
+              the CTA. */}
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-xs text-gray-600">
+            <span className="inline-flex items-center gap-1">
+              <span className="font-bold text-foreground">+4000 متعلّم</span>
+              <span className="text-gray-500">انضموا لفاهم</span>
+            </span>
+            <span className="text-gray-300">·</span>
             <span className="inline-flex items-center gap-1">
               <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
               <span className="font-bold text-foreground">٤.٨ من ٥</span>
-              <span className="text-gray-500">متوسط تقييمات الطلاب</span>
+              <span className="text-gray-500">تقييم الطلاب</span>
             </span>
-            <span className="hidden sm:inline text-gray-300">·</span>
+            <span className="text-gray-300">·</span>
             <span className="inline-flex items-center gap-1">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-              ضمان استرداد 7 أيام
+              ضمان 7 أيام
             </span>
           </div>
         </div>
@@ -446,7 +454,7 @@ export default async function PersonalPlanPage() {
                 <Feat ok text="كل كورسات فاهم + كورسات عالمية مترجمة" />
                 <Feat ok text="المساعد الذكي فاهم في كل درس" />
                 <Feat ok text="كل المحتوى بالعربي" />
-                <Feat ok text="شهادة إتمام لكل كورس" />
+                <li><CertificateBullet /></li>
               </ul>
             </div>
           </div>
@@ -524,7 +532,7 @@ export default async function PersonalPlanPage() {
             جاهز أبدأ خطتي الشخصية؟
           </h2>
           <p className="text-gray-600 text-sm sm:text-base mb-8 max-w-xl mx-auto">
-            انضم لآلاف المتعلمين العرب اللي اختاروا فاهم — أول منصة عربية
+            انضم لأكثر من 4000 متعلّم عربي اختاروا فاهم — أول منصة عربية
             بمساعد ذكي حقيقي في كل كورس.
           </p>
           <Button asChild size="lg" className="w-full sm:w-auto sm:min-w-[240px] font-bold min-h-[52px]">
@@ -855,7 +863,7 @@ function YearlyCard({ p }: { p: ReturnType<typeof pricingFor> }) {
         <ul className="space-y-2.5 mb-6">
           <Feat ok text="وصول كامل لكل الكورسات" />
           <Feat ok text="المساعد الذكي فاهم" />
-          <Feat ok text="شهادة إتمام لكل كورس" />
+          <li><CertificateBullet /></li>
           <Feat ok text="أولوية الدعم الفني" />
         </ul>
         <Button asChild size="lg" className="w-full font-bold min-h-[52px]">

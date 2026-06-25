@@ -211,7 +211,7 @@ export default async function HomePage({
             جاهز تتعلّم <span className="text-gradient-brand">الذكاء الاصطناعي</span> بالعربي؟
           </h2>
           <p className="text-gray-600 text-lg mb-8 max-w-2xl mx-auto">
-            انضم لآلاف المتعلمين العرب اللي اختاروا فاهم — أول منصة عربية للكورسات بالذكاء الاصطناعي.
+            انضم لأكثر من 4000 متعلّم عربي اختاروا فاهم — أول منصة عربية للكورسات بالذكاء الاصطناعي.
           </p>
           <Button asChild size="lg">
             <Link href="/personal-plan">
