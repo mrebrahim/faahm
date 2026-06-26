@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { postServerEvent } from '@/lib/client-tracking';
 
 type Props = {
   eventId: string;
@@ -95,6 +96,19 @@ export function CheckoutTracker({
         event_id: eventId,
       });
     }
+
+    // Server-side mirror: Meta CAPI + TikTok Events API with the
+    // SAME eventId so the networks dedupe against the client fbq() /
+    // ttq() above. Survives iOS ITP, ad-blockers, and any
+    // ad-network connectivity hiccup that drops the client pixel.
+    postServerEvent({
+      eventName: 'InitiateCheckout',
+      eventId,
+      value,
+      currency,
+      contentName,
+      contentIds: contentIds.length ? contentIds : [contentName],
+    });
   }, [eventId, value, currency, contentName, contentIds, step]);
 
   return null;

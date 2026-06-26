@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { postServerEvent, getSessionEventId } from '@/lib/client-tracking';
 
 /**
  * Landing-page funnel tracker. The platform-level pageview pings fire
@@ -38,9 +39,10 @@ export function LandingTracker({
     if (firedView.current) return;
     firedView.current = true;
 
-    // GA4 + Meta + TikTok all happily accept custom event names.
-    // Meta + TikTok also auto-fire PageView from the base snippet,
-    // so this is the *named* funnel event on top of that.
+    // Stable id used by BOTH client pixels and the server-side CAPI
+    // call below so Meta / TikTok collapse them into one conversion.
+    const eventId = getSessionEventId(viewEventName);
+
     try {
       if (typeof window.gtag === 'function') {
         window.gtag('event', viewEventName, {
@@ -52,9 +54,12 @@ export function LandingTracker({
 
     try {
       if (typeof window.fbq === 'function') {
-        window.fbq('trackCustom', viewEventName, {
-          page_path: window.location.pathname,
-        });
+        window.fbq(
+          'trackCustom',
+          viewEventName,
+          { page_path: window.location.pathname },
+          { eventID: eventId }
+        );
       }
     } catch {/* fbq missing */}
 
@@ -62,9 +67,17 @@ export function LandingTracker({
       if (window.ttq?.track) {
         window.ttq.track(viewEventName, {
           page_path: window.location.pathname,
+          event_id: eventId,
         });
       }
     } catch {/* ttq missing */}
+
+    // Server-side mirror — survives iOS ITP, ad-blockers, and any
+    // hop where the client pixel might be dropped.
+    postServerEvent({
+      eventName: viewEventName as 'lp_view',
+      eventId,
+    });
   }, [viewEventName]);
 
   // pricing_viewed: fires once when the visitor scrolls the pricing
@@ -79,6 +92,8 @@ export function LandingTracker({
         if (!entry.isIntersecting || firedPricing.current) return;
         firedPricing.current = true;
 
+        const eventId = getSessionEventId('pricing_viewed');
+
         try {
           if (typeof window.gtag === 'function') {
             window.gtag('event', 'pricing_viewed', {
@@ -89,15 +104,28 @@ export function LandingTracker({
 
         try {
           if (typeof window.fbq === 'function') {
-            window.fbq('trackCustom', 'pricing_viewed', {});
+            window.fbq(
+              'trackCustom',
+              'pricing_viewed',
+              {},
+              { eventID: eventId }
+            );
           }
         } catch {/* */}
 
         try {
           if (window.ttq?.track) {
-            window.ttq.track('pricing_viewed', {});
+            window.ttq.track('pricing_viewed', { event_id: eventId });
           }
         } catch {/* */}
+
+        // CAPI / EAPI mirror — same event_id, dedupe handled by ad
+        // networks. Survives iOS scroll-then-bounce sessions where
+        // the client pixel may never finish its outbound POST.
+        postServerEvent({
+          eventName: 'pricing_viewed',
+          eventId,
+        });
 
         io.disconnect();
       },
