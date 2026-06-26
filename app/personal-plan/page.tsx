@@ -124,79 +124,128 @@ export default async function PersonalPlanPage() {
       <LandingTracker />
       <MainNav signedIn={false} isAdmin={false} />
 
-      {/* ─────────────────────────  HERO  ─────────────────────────
-          PRD §1.2 + B.1 + B.2: visible PRICE + first-person CTA + a
-          specific trust number sit above the fold so the 85% of SA
-          visitors who bounce in 5 seconds at least *see* what we cost
-          and that we're not empty before they leave. The headline stays
-          tight (no flowery padding) so the price line + CTA both land
-          inside one phone viewport at 360×640. */}
-      <section className="relative px-4 pt-10 sm:pt-16 pb-12 sm:pb-16">
+      {/* ─────────────────────────  HERO v3  ─────────────────────────
+          PRD v1.0 'Hero Rebuild': mobile loses 86% of traffic in the
+          first 10% of scroll — the whole sales argument has to land in
+          one 375×667 viewport. Priority order from the PRD:
+            1. Outcome headline (تكسب)
+            2. Subhead naming the 3 flagship courses
+            3. 3 honest value chips (assistant / cert / guarantee —
+               NOT free server / 15k templates / live support, which
+               we don't actually offer; the PRD's §5 honesty clause
+               wins over the suggested copy)
+            4. Price + CTA grouped in one block
+            5. Bonus line: +20 other courses, smaller, last
+          Stats grid + value props moved BELOW the hero so they don't
+          push the CTA past the fold. */}
+      <section className="relative px-4 pt-8 sm:pt-14 pb-8 sm:pb-12">
         <div
           aria-hidden
           className="pointer-events-none absolute -top-40 left-1/2 -translate-x-1/2 w-[900px] h-[900px] rounded-full bg-brand-500/5 blur-[120px]"
         />
-        <div className="relative container mx-auto max-w-4xl text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 mb-5 rounded-full border border-brand-500/30 bg-brand-500/10">
-            <Sparkles className="w-4 h-4 text-brand-500" />
-            <span className="text-sm font-medium text-brand-700">
-              خطّتك الشخصية في الذكاء الاصطناعي
-            </span>
-          </div>
-          <h1 className="font-display text-3xl sm:text-5xl md:text-6xl font-extrabold leading-tight mb-4">
-            خطتي الشخصية في الـ AI —{' '}
-            <span className="text-gradient-brand">بالعربي</span>،<br className="hidden sm:inline" />{' '}
-            ومعاي فاهم يجاوبني.
+        <div className="relative container mx-auto max-w-3xl text-center">
+          {/* Outcome headline. clamp() handles 320px → 1920px without
+              ever wrapping the 'تكسب' off a line. The brand-gradient
+              span lifts 'تكسب' so it reads as the verb that closes the
+              promise, not 'learn'. */}
+          <h1
+            className="font-display font-extrabold leading-[1.1] mb-3 sm:mb-4 text-balance"
+            style={{ fontSize: 'clamp(1.625rem, 6.2vw, 3.5rem)' }}
+          >
+            اتعلّم الأتمتة والفيديو والبرمجة بالذكاء الاصطناعي —{' '}
+            <span className="text-gradient-brand">وابدأ تكسب منهم</span>
           </h1>
-          <p className="max-w-2xl mx-auto text-sm sm:text-lg text-gray-600 mb-5 sm:mb-6 leading-relaxed">
-            كورسات متخصصة في الـ AI، الأتمتة، التسويق الرقمي، صناعة المحتوى والبرمجة —
-            مترجمة من أقوى الكورسات العالمية، ومعك مساعد ذكي يرد عليك بالعربي من قلب الدرس.
+
+          {/* Subhead names the 3 flagship courses by their actual
+              product names (Latin script — the PRD calls this out
+              explicitly because Arabic transliteration of 'n8n' /
+              'Vibe Coding' reads as marketing fluff). */}
+          <p className="text-sm sm:text-lg text-gray-600 mb-4 sm:mb-5 leading-relaxed max-w-xl mx-auto">
+            ٣ كورسات عملية بالعربي:{' '}
+            <span className="font-bold text-foreground" dir="ltr">
+              n8n Automation
+            </span>{' '}
+            ·{' '}
+            <span className="font-bold text-foreground" dir="ltr">
+              AI Video
+            </span>{' '}
+            ·{' '}
+            <span className="font-bold text-foreground" dir="ltr">
+              Vibe Coding
+            </span>
           </p>
 
-          {/* Price line — the single most important thing the bouncing
-              visitor needs to see before they leave. Bold so it survives
-              a 5-second scan. */}
-          <div className="inline-flex flex-wrap items-baseline justify-center gap-x-2 gap-y-1 mb-5 rounded-2xl border border-brand-500/30 bg-white px-4 py-2 shadow-sm">
-            <span className="text-xs text-gray-500 font-medium">ابدأ من</span>
-            <span className="font-display text-2xl sm:text-3xl font-extrabold text-brand-700">
-              <SARMoney value={p.yearlyPerMonth} symbolClassName="w-[0.6em] h-[0.6em] mx-1" />
+          {/* Value chips — three claims we can defend. The PRD's
+              suggested chips (free server / 15k templates / live
+              support) aren't true for us, so per §5 we ship only the
+              ones that ARE true. */}
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 mb-5 text-xs sm:text-sm text-gray-700">
+            <span className="inline-flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-brand-600" />
+              مساعد ذكي بالعربي
             </span>
-            <span className="text-xs text-gray-500">/ شهر</span>
-            <span className="text-xs text-gray-300">·</span>
-            <span className="text-xs text-gray-600">
-              <SARMoney value={p.yearlyAmount} /> للسنة كاملة
+            <span className="inline-flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-brand-600" />
+              شهادة إتمام لكل كورس
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <CheckCircle2 className="w-3.5 h-3.5 text-brand-600" />
+              ضمان استرداد 7 أيام
             </span>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 mb-4">
+          {/* Price + CTA grouped. Price sits inside the same card the
+              button anchors so the visitor reads price and call-to-
+              action in one visual beat. */}
+          <div className="mx-auto max-w-md rounded-2xl border border-brand-500/30 bg-white shadow-sm px-4 py-4 sm:px-5 sm:py-5">
+            <div className="text-sm text-gray-600 mb-3">
+              كل ده بـ{' '}
+              <span className="font-display text-3xl sm:text-4xl font-extrabold text-brand-700 align-baseline">
+                <SARMoney
+                  value={p.yearlyPerMonth}
+                  symbolClassName="w-[0.6em] h-[0.6em] mx-1"
+                />
+              </span>{' '}
+              <span className="text-sm text-gray-500">/ شهر</span>
+              <span className="block text-[11px] text-gray-400 mt-0.5">
+                <SARMoney value={p.yearlyAmount} /> للسنة كاملة · ضمان 7 أيام
+              </span>
+            </div>
             <Button
               asChild
               size="lg"
-              className="w-full sm:w-auto sm:min-w-[240px] font-bold min-h-[52px]"
+              className="w-full font-bold min-h-[52px] text-base"
             >
               <Link href="#pricing">
                 ابدأ خطتي الشخصية
                 <ArrowLeft className="w-4 h-4" />
               </Link>
             </Button>
-            <Button
-              asChild
-              size="lg"
-              variant="outline"
-              className="w-full sm:w-auto sm:min-w-[180px] min-h-[52px]"
+            <Link
+              href={ROUTES.courses}
+              className="mt-2 inline-block text-xs text-gray-500 underline underline-offset-4 hover:text-gray-700"
             >
-              <Link href={ROUTES.courses}>أشوف الكورسات الأول</Link>
-            </Button>
+              أشوف الكورسات الأول
+            </Link>
           </div>
 
-          {/* Hero stats bar — every number is a real DB count or an
-              owner-confirmed figure (no rounding up, no fake counters).
-              The PRD's 'use the larger honest unit' rule: '+457 درس'
-              carries more weight than '23 كورس' and they're the same
-              truth. 2×2 on mobile, single row above sm so the fold
-              isn't dominated on big screens. CountUp animates from 0
-              on viewport entry to draw the eye, then locks at the
-              real value. */}
+          {/* Bonus line. The +20 figure is the real DB count (23
+              published − 3 flagship = 20). Categories listed match
+              what's actually in the catalog. */}
+          <p className="mt-5 text-xs sm:text-sm text-gray-500 max-w-xl mx-auto leading-relaxed">
+            واشتراكك بيفتحلك كمان{' '}
+            <span className="font-bold text-foreground">+20 كورس</span>{' '}
+            في التواصل، التسويق والمبيعات، الإنتاجية، وتنمية الذات.
+          </p>
+        </div>
+      </section>
+
+      {/* Real DB-backed numbers strip — demoted out of the hero so it
+          doesn't push the CTA past the fold on a 375×667 viewport,
+          but stays close enough that a one-thumb scroll lands on it
+          as supporting proof. */}
+      <section className="relative px-4 pb-10 sm:pb-12">
+        <div className="container mx-auto max-w-4xl">
           <HeroStatGrid>
             <HeroStat
               icon="users"
@@ -224,11 +273,6 @@ export default async function PersonalPlanPage() {
               label={`من ${stats.ratings.toLocaleString('en-US')} تقييم`}
             />
           </HeroStatGrid>
-
-          <div className="mt-5 inline-flex items-center gap-1.5 text-xs text-gray-500">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-            ضمان استرداد 7 أيام · إلغاء التجديد في أي وقت
-          </div>
         </div>
       </section>
 
