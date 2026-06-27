@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ROUTES, APP_NAME, PLANS, OFFLINE_PAYMENTS } from '@/lib/constants';
 import { ensureUserForEmail, reconcileCheckoutSession } from '@/lib/billing';
 import { trackServerEvent } from '@/lib/tracking';
+import { pricingFor } from '@/lib/region';
 import { PurchaseTracker } from '@/components/purchase-tracker';
 import { ClaimAccountForm } from './claim-account-form';
 import {
@@ -138,6 +139,15 @@ export default async function BillingSuccessPage({
   if (ready && subscription && txnId) {
     const plan = subscription.plan as 'monthly' | 'yearly';
     const planInfo = PLANS[plan];
+    // Tracking value must match what the visitor actually paid — every
+    // subscription on this site is in SAR (149 / 39). The legacy
+    // PLANS.price = 40/9.99 USD is kept only for back-compat on
+    // non-tracking surfaces; never feed it to ad networks again.
+    const saPricing = pricingFor('sa');
+    const trackingValue = Number(
+      plan === 'yearly' ? saPricing.yearlyAmount : saPricing.monthlyAmount
+    );
+    const trackingCurrency = 'SAR';
     const eventId =
       subscription.gateway === 'paypal'
         ? `purchase-paypal-${txnId}`
@@ -145,8 +155,8 @@ export default async function BillingSuccessPage({
 
     purchaseProps = {
       eventId,
-      value: planInfo.price,
-      currency: planInfo.currency,
+      value: trackingValue,
+      currency: trackingCurrency,
       contentName: planInfo.name,
       contentIds: [plan],
     };
@@ -169,8 +179,8 @@ export default async function BillingSuccessPage({
       },
       eventSourceUrl: h.get('referer') ?? undefined,
       custom: {
-        value: planInfo.price,
-        currency: planInfo.currency,
+        value: trackingValue,
+        currency: trackingCurrency,
         contentName: planInfo.name,
         contentIds: [plan],
       },

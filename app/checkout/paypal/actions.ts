@@ -6,6 +6,7 @@ import { PAYPAL, PLANS, type PlanId } from '@/lib/constants';
 import { fetchSubscription } from '@/lib/paypal';
 import { ensureUserForEmail } from '@/lib/billing';
 import { trackServerEvent } from '@/lib/tracking';
+import { pricingFor } from '@/lib/region';
 
 const GUEST_EMAIL_COOKIE = 'guest_checkout_email';
 
@@ -131,6 +132,13 @@ export async function activatePayPalSubscription(
   const ipChain = h.get('x-forwarded-for') ?? '';
   const ipAddress = ipChain.split(',')[0]?.trim() || h.get('x-real-ip') || null;
   const eventId = `purchase-paypal-${subscriptionId}`;
+  // Report the SAR amount the visitor actually paid, not the legacy
+  // USD figure baked into PLANS — see /billing/success for the same
+  // reasoning. Meta + TikTok bid optimisation use this value.
+  const saPricing = pricingFor('sa');
+  const trackingValue = Number(
+    plan === 'yearly' ? saPricing.yearlyAmount : saPricing.monthlyAmount
+  );
   void trackServerEvent({
     eventName: 'Purchase',
     eventId,
@@ -145,8 +153,8 @@ export async function activatePayPalSubscription(
     },
     eventSourceUrl: h.get('referer') ?? undefined,
     custom: {
-      value: planInfo.price,
-      currency: planInfo.currency,
+      value: trackingValue,
+      currency: 'SAR',
       contentName: planInfo.name,
       contentIds: [plan],
     },

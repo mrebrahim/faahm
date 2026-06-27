@@ -108,8 +108,18 @@ export default async function CheckoutPage({
       <main className="container mx-auto px-4 py-10 max-w-2xl">
         <CheckoutTracker
           eventId={`checkout-picker-${user?.id ?? checkoutEmail ?? 'guest'}-${planParam}`}
-          value={plan.price}
-          currency={plan.currency}
+          // Track the actual SAR amount the visitor will pay, NOT the
+          // legacy USD figure baked into PLANS — Meta + TikTok bid
+          // optimisation use the value bucket to allocate spend, and
+          // iOS Aggregated Event Measurement collapses small-value
+          // events together. Reporting USD 9.99 / 40 instead of SAR
+          // 39 / 149 mis-anchors every optimisation downstream.
+          value={Number(
+            planParam === 'yearly'
+              ? pricing.yearlyAmount
+              : pricing.monthlyAmount
+          )}
+          currency="SAR"
           contentName={plan.name}
           contentIds={[planParam]}
           step="picker"
