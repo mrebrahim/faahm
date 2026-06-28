@@ -57,8 +57,18 @@ export async function updateSession(request: NextRequest) {
     '/quiz/',
     '/certificates',
     '/settings',
-    '/billing',
     '/welcome',
+    // NOTE: /billing is NOT in this list. /billing/success has to
+    // render for unauthenticated visitors because:
+    //   1. Guest checkout: a visitor pays without a Supabase session
+    //      and lands here to claim their account (set a password).
+    //   2. Meta CAPI + Pixel Purchase event fires from the page
+    //      itself — if the middleware redirects to /login first, the
+    //      Purchase event NEVER lands at Meta and the merchant sees
+    //      'no purchases' in Ads Manager even though Stripe processed
+    //      the payment.
+    // /billing/cancel is also fine to leave public (it's the
+    // 'visitor abandoned the Stripe page' return URL).
   ];
   const authPaths = ['/login', '/signup'];
   const isAdminRoute = pathname.startsWith('/admin');
