@@ -66,31 +66,40 @@ export default async function BillingSuccessPage({
   const ownerEmail =
     user?.email ?? reconciled?.email ?? fallbackOwner?.email ?? null;
 
-  // If we still can't figure out who this payment belongs to, the visitor
-  // got here without a session_id (malformed link, refresh, etc.).
-  // There's nothing useful we can show — bounce them to /login so they
-  // can sign in if they already have an account.
+  // Direct hit on /billing/success with no session, no auth, no guest
+  // cookie. Could be a refresh, a bookmark, or a visitor who paid
+  // before we got the cookie. Show them the SAME two CTAs the
+  // recognised-payer sees — WhatsApp support + an OTP entry — so
+  // they can recover with one email + one code instead of bouncing
+  // to /login.
   if (!ownerUserId) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 py-16">
         <div className="max-w-md w-full text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 flex items-center justify-center">
-            <CheckCircle2 className="w-8 h-8 text-gray-400" />
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-brand-500/15 flex items-center justify-center">
+            <CheckCircle2 className="w-8 h-8 text-brand-500" />
           </div>
           <h1 className="font-display text-2xl font-bold mb-2">
-            مش لاقي تفاصيل الدفع
+            دفعت بالفعل؟
           </h1>
-          <p className="text-sm text-gray-500 mb-6">
-            لو دفعت لتوّك، استنّى دقيقة وحدّث الصفحة. أو سجّل دخول لو عندك
-            حساب.
+          <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+            ادخل بإيميلك اللي دفعت بيه — هنبعتلك كود تأكيد على الإيميل،
+            وتفتح كورساتك على طول.
           </p>
-          <div className="flex flex-col gap-2">
-            <Button asChild>
-              <Link href={ROUTES.login}>تسجيل الدخول</Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href={ROUTES.pricing}>ارجع للأسعار</Link>
-            </Button>
+          <div className="flex flex-col gap-3 text-start">
+            <a
+              href={(() => {
+                const msg = 'لقد دفعت وهذه اسكرين شوت من اشتراكي';
+                return `https://wa.me/${OFFLINE_PAYMENTS.confirmationWhatsApp}?text=${encodeURIComponent(msg)}`;
+              })()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-[#25D366] hover:bg-[#1ebe5b] text-white font-bold text-sm transition-colors"
+            >
+              <MessageCircle className="w-5 h-5" />
+              تواصل مع الدعم الفني
+            </a>
+            <OtpClaim email="" />
           </div>
         </div>
       </div>
