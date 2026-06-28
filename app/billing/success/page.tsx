@@ -131,11 +131,25 @@ export default async function BillingSuccessPage({
     contentIds: string[];
   } | null = null;
 
+  // Pick a transaction id with priority:
+  //   1. Stripe session_id from the success_url Stripe sets on the
+  //      Payment Link (the normal path for card purchases).
+  //   2. subscription.stripe_subscription_id (works for PayPal AND
+  //      for Stripe visitors who hit /billing/success directly,
+  //      refreshed, or got bounced through a redirect that dropped
+  //      the session_id query string — the OLD code skipped tracking
+  //      entirely in this case, so Stripe purchases viewed via a
+  //      bookmark or quick-back never reported to Meta).
+  //   3. user_id as last-resort so a confirmed-active visitor still
+  //      fires Purchase even if the subscription row is missing the
+  //      gateway id (very rare; legacy data).
+  // eventId is stable per-subscription so multiple visits to
+  // /billing/success don't trigger duplicate Purchase events at the
+  // ad networks — the dedup happens on event_id.
   const txnId =
     searchParams.session_id ||
-    (subscription?.gateway === 'paypal'
-      ? subscription?.stripe_subscription_id
-      : null);
+    subscription?.stripe_subscription_id ||
+    (ready && ownerUserId ? `user-${ownerUserId}` : null);
   if (ready && subscription && txnId) {
     const plan = subscription.plan as 'monthly' | 'yearly';
     const planInfo = PLANS[plan];
@@ -152,6 +166,12 @@ export default async function BillingSuccessPage({
       subscription.gateway === 'paypal'
         ? `purchase-paypal-${txnId}`
         : `purchase-${txnId}`;
+    // Server log so the merchant can verify Purchase fires from
+    // Coolify logs without round-tripping through Meta's 20-min
+    // Events Manager delay.
+    console.log(
+      `[tracking] Purchase fire: plan=${plan} value=${trackingValue} ${trackingCurrency} eventId=${eventId} gateway=${subscription.gateway} user=${ownerUserId}`
+    );
 
     purchaseProps = {
       eventId,

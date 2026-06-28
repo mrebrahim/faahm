@@ -201,7 +201,12 @@ function YearlyCard({
   // travels with the request so the Stripe price ID picked downstream
   // matches the currency we showed the visitor here.
   void user;
-  const href = `/checkout?plan=yearly&region=${region}`;
+  // Clean URL — no &region=sa. resolveRegion() defaults to 'sa' on
+  // every downstream surface so the param is redundant noise that
+  // also looks ugly in Meta Ads URL columns and breaks shareable
+  // payment-link previews.
+  void region;
+  const href = `/checkout?plan=yearly`;
 
   return (
     <div className="relative rounded-2xl overflow-hidden border-2 border-brand-500 bg-white shadow-2xl shadow-brand-500/20 md:scale-[1.03] md:order-1">
@@ -294,7 +299,8 @@ function MonthlyCard({
   price: number | string;
 }) {
   void user;
-  const href = `/checkout?plan=monthly&region=${region}`;
+  void region;
+  const href = `/checkout?plan=monthly`;
 
   return (
     <div className="relative rounded-2xl overflow-hidden border border-gray-200 bg-white md:order-2">

@@ -53,7 +53,6 @@ export default async function CheckoutPage({
   // lives in /lib for future flexibility, but every checkout / Stripe
   // call here is locked to 'sa' so display + collection stay in riyals.
   const pricing = pricingFor('sa');
-  const regionQs = `&region=sa`;
 
   // PRD §3.1: target market is Saudi. Showing 'تحويل من بنك مصري' to a
   // Saudi visitor at the payment step is a documented cause of bounce —
@@ -251,7 +250,7 @@ export default async function CheckoutPage({
             <div className="space-y-3">
               {/* 1. Cards / wallets / Apple Pay → Stripe (SAR) */}
               <PaymentMethod
-                href={`/api/checkout?plan=${planParam}${emailQs}${regionQs}`}
+                href={`/api/checkout?plan=${planParam}${emailQs}`}
                 icon={CreditCard}
                 title="البطاقات البنكية و Apple Pay"
                 subtitle="Visa · Mastercard · Apple Pay — إلغاء في أي وقت"
@@ -260,7 +259,7 @@ export default async function CheckoutPage({
 
               {/* 2. PayPal — subscription with recurring billing */}
               <PaymentMethod
-                href={`/checkout/paypal?plan=${planParam}${emailQs}${regionQs}`}
+                href={`/checkout/paypal?plan=${planParam}${emailQs}`}
                 icon={Wallet}
                 title="PayPal"
                 subtitle="اشتراك متجدّد تلقائياً — إلغاء في أي وقت"
@@ -268,7 +267,7 @@ export default async function CheckoutPage({
 
               {/* 3. Barq — international transfer from Saudi (SAR) */}
               <PaymentMethod
-                href={`/offline/barq?plan=${planParam}${emailQs}${regionQs}`}
+                href={`/offline/barq?plan=${planParam}${emailQs}`}
                 icon={Globe2}
                 title="Barq (من السعودية)"
                 subtitle="تحويل بالريال من حسابك السعودي"
@@ -282,7 +281,7 @@ export default async function CheckoutPage({
                   still get to it in one tap. */}
               {showEgyptian && (
                 <PaymentMethod
-                  href={`/offline/egp?plan=${planParam}${emailQs}${regionQs}`}
+                  href={`/offline/egp?plan=${planParam}${emailQs}`}
                   icon={Smartphone}
                   title="من مصر — InstaPay أو Vodafone Cash"
                   subtitle="تحويل فوري بالجنيه المصري"
