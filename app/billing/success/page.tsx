@@ -7,7 +7,7 @@ import { ensureUserForEmail, reconcileCheckoutSession } from '@/lib/billing';
 import { trackServerEvent } from '@/lib/tracking';
 import { pricingFor } from '@/lib/region';
 import { PurchaseTracker } from '@/components/purchase-tracker';
-import { ClaimAccountForm } from './claim-account-form';
+import { OtpClaim } from './otp-claim';
 import {
   CheckCircle2,
   ArrowLeft,
@@ -222,62 +222,63 @@ export default async function BillingSuccessPage({
           أهلاً بيك في <span className="font-bold text-foreground">{APP_NAME}</span>
         </p>
         <p className="text-sm text-gray-500 mb-8">
-          {isGuestClaim
-            ? 'الدفع وصلنا. خطوة أخيرة: اختار كلمة سر للحساب وادخل على كورساتك.'
-            : ready
+          {ready
             ? 'اشتراكك مفعّل وكل الكورسات مفتوحة لك دلوقتي. يلا نبدأ.'
             : 'استلمنا دفعتك وبنفعّل اشتراكك دلوقتي. لو الكورسات مظهرتش مفتوحة خلال دقيقة، حدّث الصفحة.'}
         </p>
 
-        {/* Guest claim: show the password form so the visitor finishes
-            creating the account they just paid for. Stripe path passes
-            the session_id so the server action can verify the payment
-            against Stripe; PayPal / offline paths fall through to the
-            cookie-based claim. Once submitted, the server action signs
-            them in and redirects to courses. */}
-        {isGuestClaim && ownerEmail && (
-          <div className="rounded-2xl border border-brand-500/40 bg-white p-5 sm:p-6 mb-6 text-start">
-            <ClaimAccountForm
-              sessionId={searchParams.session_id ?? null}
-              email={ownerEmail}
-            />
-          </div>
-        )}
+        {/* Two CTAs everyone sees — paid signed-in user, paid guest,
+            or 'paid but Stripe webhook is still catching up' state.
+            The WhatsApp button uses our confirmation number with a
+            screenshot-ready message; admins follow up there. */}
+        <div className="flex flex-col gap-3 mb-6">
+          {/* WhatsApp confirmation — always visible. Pre-fills a
+              message that matches the merchant's manual reconciliation
+              workflow ('have your subscriber screenshot the receipt'). */}
+          <a
+            href={(() => {
+              const msg = [
+                'لقد دفعت وهذه اسكرين شوت من اشتراكي',
+                ownerEmail ? `الإيميل: ${ownerEmail}` : '',
+              ]
+                .filter(Boolean)
+                .join('\n');
+              return `https://wa.me/${OFFLINE_PAYMENTS.confirmationWhatsApp}?text=${encodeURIComponent(msg)}`;
+            })()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-[#25D366] hover:bg-[#1ebe5b] text-white font-bold text-sm transition-colors"
+          >
+            <MessageCircle className="w-5 h-5" />
+            تواصل مع الدعم الفني
+          </a>
 
-        {!isGuestClaim && (
-          <div className="flex flex-col gap-3 mb-8">
-            {!ready && (
-              <a
-                href={(() => {
-                  const msg = [
-                    'لقد اشتركت وهذه اسكرين شوت من التحويل',
-                    `الإيميل: ${ownerEmail ?? ''}`,
-                  ].join('\n');
-                  return `https://wa.me/${OFFLINE_PAYMENTS.confirmationWhatsApp}?text=${encodeURIComponent(msg)}`;
-                })()}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-[#25D366] hover:bg-[#1ebe5b] text-white font-bold text-sm transition-colors"
-              >
-                <MessageCircle className="w-5 h-5" />
-                اضغط لتأكيد الدفع عبر واتساب
-              </a>
-            )}
+          {/* Start-the-courses CTA. Signed-in visitors go straight to
+              /courses (subscription already attached to their session).
+              Guests get an inline 6-digit email OTP — no password to
+              pick. They enter the code, Supabase sets the cookie,
+              the same /courses redirect runs. */}
+          {user ? (
             <Button asChild size="lg" className="w-full">
               <Link href={ROUTES.courses}>
                 <PlayCircle className="w-5 h-5" />
-                ابدأ التعلم دلوقتي
+                ابدأ الكورسات الآن
                 <ArrowLeft className="w-4 h-4" />
               </Link>
             </Button>
+          ) : (
+            <OtpClaim email={ownerEmail ?? ''} />
+          )}
+
+          {user && (
             <Button asChild size="lg" variant="outline" className="w-full">
               <Link href={ROUTES.dashboard}>
                 <Sparkles className="w-4 h-4" />
                 روح للوحتي
               </Link>
             </Button>
-          </div>
-        )}
+          )}
+        </div>
 
         {ready && subscription && (
           <p className="text-xs text-gray-400 mb-2">
