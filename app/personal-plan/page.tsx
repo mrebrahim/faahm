@@ -19,6 +19,7 @@ import { StickyMobileCTA } from '@/components/sticky-mobile-cta';
 import { LandingTracker } from '@/components/landing-tracker';
 import { CertificateBullet } from '@/components/certificate-info';
 import { HeroStat, HeroStatGrid } from '@/components/hero-stat';
+import { PersonalPlanQuiz } from '@/components/personal-plan-quiz';
 import {
   ArrowLeft,
   Star,
@@ -32,6 +33,7 @@ import {
   Award,
   Brain,
   MessageSquare,
+  Play,
 } from 'lucide-react';
 
 export const metadata = {
@@ -152,8 +154,8 @@ export default async function PersonalPlanPage() {
             className="font-display font-extrabold leading-[1.1] mb-3 sm:mb-4 text-balance"
             style={{ fontSize: 'clamp(1.625rem, 6.2vw, 3.5rem)' }}
           >
-            اتعلّم الأتمتة والفيديو والبرمجة بالذكاء الاصطناعي —{' '}
-            <span className="text-gradient-brand">وابدأ تكسب منهم</span>
+            اتعلّم الأتمتة والذكاء الاصطناعي —{' '}
+            <span className="text-gradient-brand">وحوّل مهاراتك لأرباح</span>
           </h1>
 
           {/* Subhead names the 3 flagship courses by their actual
@@ -229,6 +231,17 @@ export default async function PersonalPlanPage() {
             </Link>
           </div>
 
+          {/* Quiz lead-magnet entry — anchor-link to the in-page quiz
+              section below. Pulls indecisive visitors into a 3-tap
+              recommender that ends at a yearly checkout link. */}
+          <Link
+            href="#quiz"
+            className="mt-4 inline-flex items-center gap-1.5 text-sm font-bold text-brand-700 hover:text-brand-800 underline underline-offset-4 decoration-dotted"
+          >
+            <Sparkles className="w-4 h-4" />
+            مش عارف تبدأ منين؟ جاوب 3 أسئلة في 30 ثانية
+          </Link>
+
           {/* Bonus line. The +20 figure is the real DB count (23
               published − 3 flagship = 20). Categories listed match
               what's actually in the catalog. */}
@@ -239,6 +252,69 @@ export default async function PersonalPlanPage() {
           </p>
         </div>
       </section>
+
+      {/* Hero preview rail — the 3 flagship courses get featured cards
+          immediately under the hero so a visitor on a 360px phone can
+          see real product within one thumb-flick. Each card is a real
+          link into /course/[slug] which has the trailer playable + a
+          free preview lesson, satisfying the PRD's 'preview' button
+          without an inline video iframe that would crater LCP. */}
+      {featuredCourses.length > 0 && (
+        <section className="relative px-4 pb-8">
+          <div className="container mx-auto max-w-5xl">
+            <div className="text-center mb-5">
+              <p className="text-xs uppercase tracking-wider font-bold text-brand-700 mb-1">
+                ابدأ من واحد فيهم
+              </p>
+              <p className="text-sm text-gray-600">
+                ٣ كورسات بمعاينة مجانية — اضغط ▶ معاينة بدون أي تسجيل
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+              {featuredCourses.map((c) => (
+                <Link
+                  key={c.id}
+                  href={`/course/${c.slug}`}
+                  className="group flex items-center gap-3 sm:flex-col sm:text-center rounded-2xl border border-gray-200 hover:border-brand-500/50 bg-white p-3 sm:p-4 transition-all hover:shadow-md"
+                >
+                  <div className="w-16 h-16 sm:w-full sm:h-32 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0 relative">
+                    {c.thumbnail_url ? (
+                      <img
+                        src={c.thumbnail_url}
+                        alt={c.title_ar}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-500/20 to-gray-100">
+                        <Bot className="w-6 h-6 text-brand-500/40" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0 sm:mt-2">
+                    <h3 className="font-bold text-sm sm:text-base text-foreground leading-snug line-clamp-2 group-hover:text-brand-600 transition-colors">
+                      {c.title_ar}
+                    </h3>
+                    <div className="mt-1 flex items-center sm:justify-center gap-2 text-[11px] text-gray-500">
+                      <span>{c.total_lessons} درس</span>
+                    </div>
+                    <span className="mt-1.5 inline-flex items-center gap-1 text-xs font-bold text-brand-600 group-hover:text-brand-700">
+                      <Play className="w-3.5 h-3.5" />
+                      معاينة مجانية
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* 3-question recommender quiz. Below the hero + preview rail
+          so it can't push the price/CTA past the fold, close enough
+          that a confused visitor finds it on first scroll. */}
+      <PersonalPlanQuiz />
 
       {/* Real DB-backed numbers strip — demoted out of the hero so it
           doesn't push the CTA past the fold on a 375×667 viewport,
@@ -913,13 +989,15 @@ function YearlyCard({ p }: { p: ReturnType<typeof pricingFor> }) {
           </div>
           <div className="text-sm text-gray-500 mt-1">/ شهر</div>
         </div>
+        {/* Coffee-a-day anchor — the PRD's anti-dead-zone copy. Turns
+            'is 12.5 riyals expensive?' into 'less than a coffee a
+            day' without inventing a number. */}
+        <p className="text-xs sm:text-sm text-center text-brand-700 font-medium mb-2">
+          ☕ أقل من سعر قهوة في اليوم
+        </p>
         <p className="text-xs sm:text-sm text-center text-gray-700 bg-brand-500/5 border border-brand-500/20 rounded-lg py-2 px-3 mb-5 leading-relaxed">
           * تدفع <span className="font-bold"><SARMoney value={p.yearlyAmount} /></span>{' '}
-          بدلاً من{' '}
-          <span className="font-bold line-through text-gray-400">
-            <SARMoney value={p.yearlyAnchor} />
-          </span>{' '}
-          سنوياً — وفّر{' '}
+          للسنة كاملة — اشتراك واحد يفتح كل الكورسات. وفّر{' '}
           <span className="font-bold text-brand-700">
             <SARMoney value={p.savings} />
           </span>{' '}

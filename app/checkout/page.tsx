@@ -237,7 +237,7 @@ export default async function CheckoutPage({
               </div>
             )}
 
-            <div className="flex items-end justify-between gap-3 mb-3">
+            <div className="flex items-end justify-between gap-3 mb-2">
               <h2 className="font-display text-lg font-bold">اختر طريقة الدفع:</h2>
               {/* Guarantee chip — sits next to the payment heading so the
                   reassurance is locked to the visitor's gaze right when
@@ -245,6 +245,18 @@ export default async function CheckoutPage({
               <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">
                 🛡️ ضمان استرداد 7 أيام
               </span>
+            </div>
+            {/* Payment-rail badges — visible RIGHT BEFORE the buttons.
+                Baymard 2026: visible rail logos at the rail picker
+                drop hesitation by signalling 'your card works here'
+                before the visitor commits. We list the four SA visitor
+                actually sees on Stripe Checkout (Visa, Mastercard,
+                mada, Apple Pay). */}
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+              <PayBadge>VISA</PayBadge>
+              <PayBadge>Mastercard</PayBadge>
+              <PayBadge tone="brand">mada</PayBadge>
+              <PayBadge>Apple Pay</PayBadge>
             </div>
 
             <div className="space-y-3">
@@ -342,6 +354,26 @@ export default async function CheckoutPage({
         )}
       </main>
     </div>
+  );
+}
+
+function PayBadge({
+  children,
+  tone = 'neutral',
+}: {
+  children: React.ReactNode;
+  tone?: 'neutral' | 'brand';
+}) {
+  return (
+    <span
+      className={`inline-flex items-center justify-center px-2.5 py-1 rounded-md border text-[11px] font-bold tracking-wide tabular-nums ${
+        tone === 'brand'
+          ? 'bg-brand-500/10 border-brand-500/30 text-brand-700'
+          : 'bg-white border-gray-200 text-gray-600'
+      }`}
+    >
+      {children}
+    </span>
   );
 }
 
