@@ -150,6 +150,28 @@ export async function embedOne(text: string): Promise<number[]> {
  */
 export type ChatMessage = { role: 'user' | 'assistant'; content: string };
 
+/**
+ * The exact apology used when the question is off-topic for the
+ * course. Exported so the /api/chat short-circuit (the path that
+ * never calls the LLM because no chunks crossed the similarity
+ * threshold) sends the SAME line the model would have. Course name
+ * gets interpolated at the call site so the apology reads as
+ * 'مختصة بكورس n8n Automation' not 'مختصة بالكورس'.
+ */
+export function offTopicApology(courseTitle: string): string {
+  return `بعتذر، إجاباتي مختصة بكورس ${courseTitle} بس. لو عندك أي سؤال عن محتوى الكورس، أنا في خدمتك.`;
+}
+
+/**
+ * The exact 'no answer in course' line we want the model to emit
+ * when the chunks DO match topically but don't contain the answer.
+ * Kept separate from offTopicApology so the failure modes read
+ * distinctly to the student.
+ */
+export function notInCourseLine(): string {
+  return 'المعلومة دي مش موجودة في الكورس ده. ممكن تسأل عن حاجة تانية في الكورس.';
+}
+
 export async function answerStream({
   courseTitle,
   contextChunks,
@@ -167,17 +189,31 @@ export async function answerStream({
     .map((c, i) => `[${i + 1}] ${c}`)
     .join('\n\n---\n\n');
 
+  // Strict guardrail prompt — locks the model to the supplied context
+  // AND defines two distinct failure modes with EXACT canned replies:
+  //   off-topic            → 'بعتذر، إجاباتي مختصة بكورس X بس.'
+  //   on-topic, no answer  → 'المعلومة دي مش موجودة في الكورس ده.'
+  // Repeating the course name at top + bottom of the prompt + in the
+  // refusal copy is deliberate — the PRD's 'لو تجاهل، شدّد البرومبت
+  // وكرر القاعدة في الأول والآخر' guidance.
   const systemPrompt = [
-    `أنت "فاهم" — مساعد ذكي خاص بكورس "${courseTitle}" على منصة فاهم.`,
-    `قواعد إجبارية:`,
-    `- جاوب فقط بناءً على المعلومات المرفقة من الكورس في قسم "السياق" أدناه.`,
-    `- ممنوع تستخدم معرفة خارجية عن الكورس ده. لو السؤال خارج محتوى الكورس، أو لو السياق ما فيهوش إجابة كافية، رد بالنص الحرفي: "المعلومة دي مش موجودة في الكورس ده."`,
-    `- جاوب بالعربي دايماً، بأسلوب واضح ومباشر.`,
-    `- لا تخترع أسماء، أرقام، أو تواريخ مش موجودة في السياق.`,
-    `- لو السؤال عن "كيف" أو "اشرح"، قسّم الإجابة لخطوات لو ده يساعد.`,
+    `أنت مساعد ذكي متخصص حصرياً في كورس "${courseTitle}" على منصة فاهم.`,
+    `مهمتك: تجاوب أسئلة الطالب بناءً على معلومات الكورس المرفقة فقط (في قسم "معلومات الكورس" أدناه).`,
     ``,
-    `السياق:`,
-    context || '(فاضي — رد بالرسالة الحرفية أعلاه)',
+    `قواعد صارمة:`,
+    `1. جاوب فقط من "معلومات الكورس" المرفقة. ممنوع تستخدم أي معرفة خارجية.`,
+    `2. لو السؤال خارج نطاق الكورس تماماً (زي: سعر الدولار، عاصمة دولة، أخبار، رياضة، طبخ، أو أي موضوع عام لا علاقة له بمحتوى الكورس)، اعتذر بأدب وارد بالنص الحرفي ده فقط:`,
+    `   "${offTopicApology(courseTitle)}"`,
+    `3. لو السؤال متعلق بالكورس بس المعلومة مش موجودة في المرفقات، ارد بالنص الحرفي ده فقط:`,
+    `   "${notInCourseLine()}"`,
+    `4. جاوب دايماً باللغة العربية (عامية مصرية واضحة).`,
+    `5. كن مختصراً ومفيداً. ممنوع تأليف أسماء أو أرقام أو تواريخ مش موجودة في السياق.`,
+    `6. لو السؤال عن "كيف" أو "اشرح"، قسّم الإجابة لخطوات لو ده يساعد.`,
+    ``,
+    `تذكير: أنت مساعد كورس "${courseTitle}" — مش مساعد عام. أي سؤال مش متعلق بالكورس ده → الرد الحرفي اللي في القاعدة رقم 2.`,
+    ``,
+    `معلومات الكورس:`,
+    context || '(فاضي — أي سؤال يرد بالقاعدة رقم 2)',
   ].join('\n');
 
   const messages = [

@@ -1,6 +1,11 @@
 import { NextRequest } from 'next/server';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
-import { answerStream, embedOne, type ChatMessage } from '@/lib/openai';
+import {
+  answerStream,
+  embedOne,
+  offTopicApology,
+  type ChatMessage,
+} from '@/lib/openai';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -31,7 +36,6 @@ export const dynamic = 'force-dynamic';
  *     history?: { role: 'user'|'assistant'; content: string }[]
  *   }
  */
-const NOT_IN_COURSE = 'المعلومة دي مش موجودة في الكورس ده.';
 const MAX_HISTORY = 6; // last 3 turns
 const MAX_QUESTION_LEN = 1200;
 
@@ -124,10 +128,14 @@ export async function POST(req: NextRequest) {
 
   const chunks = ((matches ?? []) as { content: string }[]).map((m) => m.content);
 
-  // Cheap escape hatch — no useful context → return the canned line,
-  // skip the LLM entirely. Saves bill + kills hallucinations.
+  // Zero chunks crossed the similarity threshold → the question is
+  // almost certainly off-topic for this course. PRD §5: return the
+  // course-name-aware apology directly from the server WITHOUT
+  // touching the LLM (saves the API bill, removes the
+  // hallucination surface, faster TTFB). The same line the system
+  // prompt would have made the model emit, just delivered straight.
   if (chunks.length === 0) {
-    return new Response(NOT_IN_COURSE, {
+    return new Response(offTopicApology(course.title_ar), {
       status: 200,
       headers: {
         'content-type': 'text/plain; charset=utf-8',
