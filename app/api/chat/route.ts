@@ -108,7 +108,20 @@ export async function POST(req: NextRequest) {
   try {
     qVec = await embedOne(question);
   } catch (err) {
-    return json({ ok: false, error: (err as Error).message }, 502);
+    // Surface the real reason to the server logs — the most common
+    // cause is OPENAI_API_KEY missing / invalid in Coolify env, and
+    // without this line the merchant only sees a generic 502 on the
+    // client and has to guess.
+    console.error('[chat] embed failed', {
+      user: user.id,
+      courseId,
+      hasKey: !!process.env.OPENAI_API_KEY,
+      error: (err as Error).message,
+    });
+    return json(
+      { ok: false, error: 'embed-failed', detail: (err as Error).message },
+      502
+    );
   }
 
   // Cast to PostgREST-compatible payload — pgvector accepts the
@@ -160,7 +173,18 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (err) {
-    return json({ ok: false, error: (err as Error).message }, 502);
+    console.error('[chat] stream failed', {
+      user: user.id,
+      courseId,
+      chunkCount: chunks.length,
+      hasKey: !!process.env.OPENAI_API_KEY,
+      model: process.env.OPENAI_CHAT_MODEL || 'gpt-4o-mini',
+      error: (err as Error).message,
+    });
+    return json(
+      { ok: false, error: 'stream-failed', detail: (err as Error).message },
+      502
+    );
   }
 }
 

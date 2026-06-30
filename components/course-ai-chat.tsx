@@ -206,19 +206,34 @@ export function CourseAiChat({
     })
       .then(async (resp) => {
         if (!resp.ok) {
-          const errText = await resp.text().catch(() => '');
+          // Try to read a structured {ok:false, detail:'…'} body so
+          // the admin can see the real reason inline instead of just
+          // a status code. Falls back to raw text for non-JSON
+          // responses.
+          let detail = '';
+          try {
+            const raw = await resp.text();
+            try {
+              const parsed = JSON.parse(raw) as { detail?: string; error?: string };
+              detail = parsed.detail || parsed.error || raw;
+            } catch {
+              detail = raw;
+            }
+          } catch {
+            /* nothing readable */
+          }
+
           const apology =
             resp.status === 402
               ? 'الميزة دي للمشتركين السنويين فقط — رقّي اشتراكك للسنوي.'
               : resp.status === 401
                 ? 'محتاج تسجّل دخول الأول.'
-                : `مشكلة مؤقتة. حاول تاني خلال لحظات. (${resp.status})`;
+                : resp.status === 502
+                  ? `مشكلة في الاتصال بالـ AI. ${detail || 'تأكد إن OPENAI_API_KEY متضاف في Coolify.'}`
+                  : `مشكلة مؤقتة (${resp.status}).${detail ? ' ' + detail : ''}`;
           setMessages((m) => {
             const cp = m.slice();
-            cp[cp.length - 1] = {
-              role: 'assistant',
-              content: `${apology}\n${errText ? '' : ''}`,
-            };
+            cp[cp.length - 1] = { role: 'assistant', content: apology };
             return cp;
           });
           setStreaming(false);
