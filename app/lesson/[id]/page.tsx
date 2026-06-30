@@ -41,7 +41,7 @@ export default async function LessonPage({ params }: { params: { id: string } })
         id, title_ar, description_ar, video_provider, video_id, video_library_id,
         duration_sec, is_free_preview, course_id, chapter_id, sort_order,
         attachments:lesson_attachments(id, file_name_ar, file_url, file_type, file_size_kb, storage_path, kind),
-        course:courses(id, slug, title_ar, is_published)
+        course:courses(id, slug, title_ar, is_published, ai_knowledge)
       `
     )
     .eq('id', params.id)
@@ -458,6 +458,11 @@ export default async function LessonPage({ params }: { params: { id: string } })
         gate={chatGate}
         courseId={course.id}
         courseTitle={course.title_ar}
+        // Only render the launcher if the admin has populated the AI
+        // knowledge text for this course. An empty knowledge box means
+        // /api/chat would always return the off-topic apology — better
+        // to hide the button entirely than tease a useless assistant.
+        hasKnowledge={Boolean((course as any).ai_knowledge?.trim())}
         suggestions={[
           'لخّصلي الكورس في 3 نقاط',
           'ابدأ من أنهي درس؟',

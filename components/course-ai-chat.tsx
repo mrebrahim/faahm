@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Bot, Send, X, MessageCircle, Sparkles, ArrowLeft } from 'lucide-react';
+import { Smile, Send, X, MessageCircle, Sparkles, ArrowLeft } from 'lucide-react';
 
 /**
  * Floating per-course AI chat. Streams plain-text tokens from
@@ -24,11 +24,17 @@ export function CourseAiChat({
   gate,
   courseId,
   courseTitle,
+  hasKnowledge = true,
   suggestions = [],
 }: {
   gate: Gate;
   courseId: string;
   courseTitle: string;
+  /** When false, the admin hasn't populated the course AI knowledge
+   *  yet. Hide the launcher entirely — a chat with no knowledge would
+   *  always return the off-topic apology and tease a feature that
+   *  isn't ready. Defaults to true so existing call-sites keep working. */
+  hasKnowledge?: boolean;
   /** Optional starter prompts shown as chips inside the panel. */
   suggestions?: string[];
 }) {
@@ -57,17 +63,22 @@ export function CourseAiChat({
   // Don't render anything for unauthenticated visitors. The PRD is
   // explicit: guests must not even see the entry button.
   if (gate === 'none') return null;
+  // And don't render anything for ANY visitor if the course doesn't
+  // have a knowledge base yet — the assistant would have nothing to
+  // answer from, so the launcher would just lie.
+  if (!hasKnowledge) return null;
 
   const launcher = (
     <button
       type="button"
       onClick={() => setOpen(true)}
-      aria-label="افتح المساعد الذكي"
-      className="fixed bottom-5 left-5 z-40 inline-flex items-center gap-2 px-4 py-3 rounded-full bg-brand-500 hover:bg-brand-600 text-white font-bold text-sm shadow-xl shadow-brand-500/30 transition-colors sm:bottom-6 sm:left-6"
+      aria-label="اسأل فاهم"
+      className="fixed bottom-5 left-5 z-40 inline-flex items-center gap-2 ps-2.5 pe-4 py-2 rounded-full bg-brand-500 hover:bg-brand-600 text-white font-bold text-sm shadow-xl shadow-brand-500/30 transition-colors sm:bottom-6 sm:left-6"
     >
-      <Bot className="w-5 h-5" />
-      <span className="hidden sm:inline">اسأل المساعد الذكي</span>
-      <span className="sm:hidden">فاهم</span>
+      <span className="w-9 h-9 rounded-full bg-white text-brand-600 inline-flex items-center justify-center shadow-inner">
+        <Smile className="w-5 h-5" strokeWidth={2.25} />
+      </span>
+      <span>اسأل فاهم</span>
     </button>
   );
 
@@ -83,12 +94,12 @@ export function CourseAiChat({
       {/* Header */}
       <div className="flex items-center justify-between gap-3 p-3 border-b border-gray-200 bg-gray-50 sm:rounded-t-2xl">
         <div className="flex items-center gap-2 min-w-0">
-          <div className="w-8 h-8 rounded-lg bg-brand-500 text-white flex items-center justify-center flex-shrink-0">
-            <Bot className="w-4 h-4" />
+          <div className="w-9 h-9 rounded-full bg-brand-500 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
+            <Smile className="w-5 h-5" strokeWidth={2.25} />
           </div>
           <div className="min-w-0">
             <div className="font-bold text-sm text-foreground truncate">
-              فاهم — المساعد الذكي
+              اسأل فاهم
             </div>
             <div className="text-[11px] text-gray-500 truncate">
               {courseTitle}
@@ -116,10 +127,10 @@ export function CourseAiChat({
 
         {gate === 'yearly' && messages.length === 0 && (
           <div className="text-center py-6">
-            <div className="w-14 h-14 mx-auto rounded-2xl bg-brand-500/15 text-brand-600 flex items-center justify-center mb-3">
-              <Sparkles className="w-7 h-7" />
+            <div className="w-16 h-16 mx-auto rounded-full bg-brand-500/15 text-brand-600 flex items-center justify-center mb-3">
+              <Smile className="w-8 h-8" strokeWidth={2.25} />
             </div>
-            <h3 className="font-bold text-base mb-1">اسألني عن أي حاجة في الكورس</h3>
+            <h3 className="font-bold text-base mb-1">أهلاً! اسألني عن أي حاجة في الكورس</h3>
             <p className="text-xs text-gray-500 leading-relaxed">
               برد بناءً على محتوى الكورس فقط — لو السؤال خارج المنهج هقولك.
             </p>
