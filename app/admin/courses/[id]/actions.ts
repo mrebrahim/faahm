@@ -263,46 +263,94 @@ export async function togglePublishCourse(formData: FormData) {
 export async function reembedCourseKnowledge(formData: FormData) {
   const ctx = await requireAdmin();
   const id = formData.get('id') as string;
-  await loggedAction(
-    ctx,
-    { action: 'course.ai_knowledge_reembed', resourceType: 'course', resourceId: id },
-    async () => {
-      const service = createServiceClient();
-      const { data: course } = await service
-        .from('courses')
-        .select('ai_knowledge')
-        .eq('id', id)
-        .maybeSingle();
-      const text = course?.ai_knowledge ?? '';
 
-      await service.from('course_chunks').delete().eq('course_id', id);
-      const chunks = chunkText(text, 800);
-      if (chunks.length === 0) {
-        return;
-      }
-      const embeddings = await embedMany(chunks);
-      const rows = chunks.map((content, i) => ({
-        course_id: id,
-        content,
-        token_count: Math.ceil(content.length / 4),
-        embedding: embeddings[i] as unknown as string,
-      }));
-      const BATCH = 50;
-      for (let i = 0; i < rows.length; i += BATCH) {
-        const slice = rows.slice(i, i + BATCH);
-        const { error: insErr } = await service.from('course_chunks').insert(slice);
-        if (insErr) throw new Error(insErr.message);
-      }
-      await service
-        .from('courses')
-        .update({ ai_knowledge_updated_at: new Date().toISOString() })
-        .eq('id', id);
+  // Verbose logging so the merchant can read the run in Coolify
+  // logs — the previous version went silent the moment OpenAI
+  // misbehaved.
+  console.log(`[reembed] start course=${id} hasKey=${!!process.env.OPENAI_API_KEY}`);
+
+  let chunkCount = 0;
+  let errorMsg: string | null = null;
+
+  try {
+    const service = createServiceClient();
+    const { data: course } = await service
+      .from('courses')
+      .select('ai_knowledge, title_ar')
+      .eq('id', id)
+      .maybeSingle();
+    const text = (course?.ai_knowledge ?? '').trim();
+    console.log(
+      `[reembed] course=${id} title="${course?.title_ar}" knowledge_len=${text.length}`
+    );
+
+    if (!text) {
+      throw new Error('معلومات المساعد الذكي فاضية — اكتب نص الأول.');
     }
-  ).catch((err) => {
-    redirect(`/admin/courses/${id}?error=${encodeURIComponent(err.message)}`);
-  });
+    if (!process.env.OPENAI_API_KEY) {
+      throw new Error(
+        'OPENAI_API_KEY مش متضاف في Coolify Environment Variables. ضيفه واعمل Redeploy.'
+      );
+    }
+
+    // Wipe-and-rebuild.
+    await service.from('course_chunks').delete().eq('course_id', id);
+
+    const chunks = chunkText(text, 800);
+    console.log(`[reembed] course=${id} chunkText produced ${chunks.length} chunks`);
+    if (chunks.length === 0) {
+      throw new Error('chunkText رجّع 0 chunks (النص ممكن يكون قصير جداً أو فيه مشكلة)');
+    }
+
+    const embeddings = await embedMany(chunks);
+    console.log(`[reembed] course=${id} embedded ${embeddings.length} vectors`);
+
+    const rows = chunks.map((content, i) => ({
+      course_id: id,
+      content,
+      token_count: Math.ceil(content.length / 4),
+      embedding: embeddings[i] as unknown as string,
+    }));
+    const BATCH = 50;
+    for (let i = 0; i < rows.length; i += BATCH) {
+      const slice = rows.slice(i, i + BATCH);
+      const { error: insErr } = await service.from('course_chunks').insert(slice);
+      if (insErr) {
+        console.error(`[reembed] insert batch failed`, insErr);
+        throw new Error(`فشل الـ insert: ${insErr.message}`);
+      }
+    }
+    chunkCount = rows.length;
+
+    await service
+      .from('courses')
+      .update({ ai_knowledge_updated_at: new Date().toISOString() })
+      .eq('id', id);
+
+    console.log(`[reembed] DONE course=${id} chunks=${chunkCount}`);
+
+    // Audit-log the successful run for the admin trail. Failures
+    // are logged below.
+    void loggedAction(
+      ctx,
+      {
+        action: 'course.ai_knowledge_reembed',
+        resourceType: 'course',
+        resourceId: id,
+        metadata: { chunks: chunkCount },
+      },
+      async () => {}
+    );
+  } catch (e) {
+    errorMsg = (e as Error).message;
+    console.error(`[reembed] FAILED course=${id}`, e);
+  }
+
   revalidatePath(`/admin/courses/${id}`);
-  redirect(`/admin/courses/${id}?ok=re-embed`);
+  if (errorMsg) {
+    redirect(`/admin/courses/${id}?error=${encodeURIComponent(errorMsg)}`);
+  }
+  redirect(`/admin/courses/${id}?ok=re-embed&chunks=${chunkCount}`);
 }
 
 export async function deleteCourse(formData: FormData) {

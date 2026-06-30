@@ -44,7 +44,7 @@ export default async function CourseEditPage({
   searchParams,
 }: {
   params: { id: string };
-  searchParams: { error?: string; success?: string };
+  searchParams: { error?: string; success?: string; ok?: string; chunks?: string };
 }) {
   const supabase = createServiceClient();
 
@@ -161,15 +161,23 @@ export default async function CourseEditPage({
 
       {/* Alerts */}
       {searchParams.error && (
-        <div className="mb-6 p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm flex items-center gap-2">
-          <AlertCircle className="w-4 h-4" />
-          {searchParams.error}
+        <div className="mb-6 p-3 rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm flex items-start gap-2">
+          <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+          <div className="leading-relaxed">{searchParams.error}</div>
         </div>
       )}
       {searchParams.success && (
         <div className="mb-6 p-3 rounded-lg bg-brand-500/10 border border-brand-500/30 text-brand-600 text-sm flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4" />
           تم الحفظ بنجاح
+        </div>
+      )}
+      {searchParams.ok === 're-embed' && (
+        <div className="mb-6 p-3 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-800 text-sm flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4" />
+          ✅ المساعد اتجهّز — تم إنشاء{' '}
+          <strong>{searchParams.chunks || '0'}</strong> chunks. المساعد جاهز
+          يرد على أسئلة الطلاب من الكورس ده دلوقتي.
         </div>
       )}
 
