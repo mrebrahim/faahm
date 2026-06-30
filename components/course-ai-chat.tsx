@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { Smile, Send, X, MessageCircle, Sparkles, ArrowLeft } from 'lucide-react';
+import { Bot, Send, X, MessageCircle, Sparkles, ArrowLeft } from 'lucide-react';
 
 /**
  * Floating per-course AI chat. Streams plain-text tokens from
@@ -76,7 +76,7 @@ export function CourseAiChat({
       className="fixed bottom-5 left-5 z-40 inline-flex items-center gap-2 ps-2.5 pe-4 py-2 rounded-full bg-brand-500 hover:bg-brand-600 text-white font-bold text-sm shadow-xl shadow-brand-500/30 transition-colors sm:bottom-6 sm:left-6"
     >
       <span className="w-9 h-9 rounded-full bg-white text-brand-600 inline-flex items-center justify-center shadow-inner">
-        <Smile className="w-5 h-5" strokeWidth={2.25} />
+        <Bot className="w-5 h-5" strokeWidth={2.25} />
       </span>
       <span>اسأل فاهم</span>
     </button>
@@ -95,7 +95,7 @@ export function CourseAiChat({
       <div className="flex items-center justify-between gap-3 p-3 border-b border-gray-200 bg-gray-50 sm:rounded-t-2xl">
         <div className="flex items-center gap-2 min-w-0">
           <div className="w-9 h-9 rounded-full bg-brand-500 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
-            <Smile className="w-5 h-5" strokeWidth={2.25} />
+            <Bot className="w-5 h-5" strokeWidth={2.25} />
           </div>
           <div className="min-w-0">
             <div className="font-bold text-sm text-foreground truncate">
@@ -128,7 +128,7 @@ export function CourseAiChat({
         {gate === 'yearly' && messages.length === 0 && (
           <div className="text-center py-6">
             <div className="w-16 h-16 mx-auto rounded-full bg-brand-500/15 text-brand-600 flex items-center justify-center mb-3">
-              <Smile className="w-8 h-8" strokeWidth={2.25} />
+              <Bot className="w-8 h-8" strokeWidth={2.25} />
             </div>
             <h3 className="font-bold text-base mb-1">أهلاً! اسألني عن أي حاجة في الكورس</h3>
             <p className="text-xs text-gray-500 leading-relaxed">
