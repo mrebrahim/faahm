@@ -172,6 +172,85 @@ export function notInCourseLine(): string {
   return 'المعلومة دي مش موجودة في الكورس ده. ممكن تسأل عن حاجة تانية في الكورس.';
 }
 
+/**
+ * Non-streaming chat completion — returns the full answer as a
+ * string. Use this anywhere streaming is unreliable (e.g. a
+ * standalone Next build behind a buffering reverse proxy on
+ * Coolify, where SSE chunks accumulate and the consumer side never
+ * sees `done:true` until the upstream socket finally closes).
+ *
+ * Same strict system prompt as answerStream, just delivered as one
+ * shot.
+ */
+export async function answerOnce({
+  courseTitle,
+  contextChunks,
+  history,
+  question,
+}: {
+  courseTitle: string;
+  contextChunks: string[];
+  history: ChatMessage[];
+  question: string;
+}): Promise<string> {
+  const context = contextChunks
+    .map((c, i) => `[${i + 1}] ${c}`)
+    .join('\n\n---\n\n');
+  const systemPrompt = buildSystemPrompt(courseTitle, context);
+  const messages = [
+    { role: 'system' as const, content: systemPrompt },
+    ...history.map((m) => ({ role: m.role, content: m.content })),
+    { role: 'user' as const, content: question },
+  ];
+
+  const resp = await fetch(`${OPENAI_BASE}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      authorization: `Bearer ${apiKey()}`,
+    },
+    body: JSON.stringify({
+      model: chatModel(),
+      messages,
+      stream: false,
+      temperature: 0.2,
+      max_tokens: 700,
+    }),
+  });
+  if (!resp.ok) {
+    const errText = await resp.text().catch(() => '');
+    throw new Error(`OpenAI chat failed (${resp.status}): ${errText}`);
+  }
+  const data = (await resp.json()) as {
+    choices: { message: { content: string } }[];
+  };
+  return data.choices?.[0]?.message?.content?.trim() ?? '';
+}
+
+function buildSystemPrompt(courseTitle: string, context: string): string {
+  return [
+    `أنت مساعد ذكي اسمك "فاهم"، بتساعد طلاب كورس "${courseTitle}" على منصة فاهم.`,
+    ``,
+    `هدفك الأساسي: تجاوب أسئلة الطالب بناءً على "معلومات الكورس" المرفقة أدناه. حاول دايماً تستخرج إجابة مفيدة من السياق — حتى لو السياق ما فيهوش جواب مباشر، استخدم أي معلومة متعلقة وكوّن إجابة منها.`,
+    ``,
+    `إرشادات:`,
+    `- اقرأ السياق المرفق بعناية، وجاوب من اللي فيه. ممكن تلخّص، تجمع نقط من أكتر من جزء، أو تشرح بكلامك من المحتوى.`,
+    `- لو السؤال عن مفهوم أساسي في مجال الكورس وفي السياق إشارات ليه، اشرح اللي تقدر تشرحه. ما ترفضش بس عشان مفيش تعريف حرفي.`,
+    `- جاوب بالعربية (عامية مصرية واضحة).`,
+    `- كن مختصراً ومفيداً. لو الإجابة فيها خطوات، رتّبها كنقاط.`,
+    `- ممنوع تخترع أسماء، أرقام، أو تواريخ مش موجودة في السياق.`,
+    ``,
+    `حالات الاعتذار (نادرة):`,
+    `- لو السؤال **بعيد تماماً** عن أي موضوع تعليمي ليه علاقة بالكورس (أمثلة: سعر الدولار، عاصمة دولة، الطقس، نتيجة ماتش، أخبار سياسية، طبخ، أي موضوع عام بعيد)، ارد بالنص الحرفي ده فقط:`,
+    `  "${offTopicApology(courseTitle)}"`,
+    `- لو السؤال داخل مجال الكورس، لكن السياق فعلاً ما فيهوش أي معلومة عنه ولا حتى إشارة، ارد بالنص الحرفي ده فقط:`,
+    `  "${notInCourseLine()}"`,
+    ``,
+    `معلومات الكورس:`,
+    context || '(فاضي — أي سؤال يرد بالاعتذار)',
+  ].join('\n');
+}
+
 export async function answerStream({
   courseTitle,
   contextChunks,

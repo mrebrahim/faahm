@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import {
-  answerStream,
+  answerOnce,
   embedOne,
   offTopicApology,
   type ChatMessage,
@@ -192,32 +192,28 @@ export async function POST(req: NextRequest) {
   // hallucination surface, faster TTFB). The same line the system
   // prompt would have made the model emit, just delivered straight.
   if (chunks.length === 0) {
-    return new Response(offTopicApology(course.title_ar), {
-      status: 200,
-      headers: {
-        'content-type': 'text/plain; charset=utf-8',
-        'cache-control': 'no-store',
-      },
-    });
+    return json({ ok: true, answer: offTopicApology(course.title_ar) }, 200);
   }
 
-  // ---- Stream the answer --------------------------------------------------
+  // Non-streaming reply. Streaming was unreliable on Coolify's
+  // `next start` + standalone-output combo — the SSE socket would
+  // stay half-open after `[DONE]` and the client's reader.read()
+  // loop hung, leaving the composer disabled until a hard refresh.
+  // Trading ~1-2s pre-reply latency for zero stuck-state is worth
+  // it; the per-course assistant isn't a long-form generator.
   try {
-    const stream = await answerStream({
+    const answer = await answerOnce({
       courseTitle: course.title_ar,
       contextChunks: chunks,
       history,
       question,
     });
-    return new Response(stream, {
-      status: 200,
-      headers: {
-        'content-type': 'text/plain; charset=utf-8',
-        'cache-control': 'no-store',
-      },
-    });
+    return json(
+      { ok: true, answer: answer || offTopicApology(course.title_ar) },
+      200
+    );
   } catch (err) {
-    console.error('[chat] stream failed', {
+    console.error('[chat] answer failed', {
       user: user.id,
       courseId,
       chunkCount: chunks.length,
@@ -226,7 +222,7 @@ export async function POST(req: NextRequest) {
       error: (err as Error).message,
     });
     return json(
-      { ok: false, error: 'stream-failed', detail: (err as Error).message },
+      { ok: false, error: 'answer-failed', detail: (err as Error).message },
       502
     );
   }

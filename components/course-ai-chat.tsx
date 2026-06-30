@@ -156,11 +156,32 @@ export function CourseAiChat({
           </div>
         )}
 
-        {messages.map((m, i) => (
-          <Bubble key={i} role={m.role}>
-            {m.content || (streaming && i === messages.length - 1 ? '…' : '')}
-          </Bubble>
-        ))}
+        {messages.map((m, i) => {
+          const isLastAssistant =
+            m.role === 'assistant' &&
+            i === messages.length - 1 &&
+            !m.content &&
+            streaming;
+          return (
+            <Bubble key={i} role={m.role}>
+              {isLastAssistant ? (
+                <span className="inline-flex items-center gap-1 text-gray-400">
+                  <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" />
+                  <span
+                    className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"
+                    style={{ animationDelay: '0.15s' }}
+                  />
+                  <span
+                    className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"
+                    style={{ animationDelay: '0.3s' }}
+                  />
+                </span>
+              ) : (
+                m.content
+              )}
+            </Bubble>
+          );
+        })}
       </div>
 
       {/* Composer */}
@@ -207,44 +228,30 @@ export function CourseAiChat({
 
     const controller = new AbortController();
     abortRef.current = controller;
-    // Safety net: even if the upstream stream never closes, force
-    // the composer back to an enabled state after a generous
-    // timeout. Without this the user is stuck unable to type
-    // anything until a hard refresh.
-    const watchdog = setTimeout(() => {
-      if (!controller.signal.aborted) controller.abort();
-      setStreaming(false);
-    }, 45_000);
 
     fetch('/api/chat', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        courseId,
-        question: text,
-        history,
-      }),
+      body: JSON.stringify({ courseId, question: text, history }),
       signal: controller.signal,
     })
       .then(async (resp) => {
-        if (!resp.ok) {
-          // Try to read a structured {ok:false, detail:'…'} body so
-          // the admin can see the real reason inline instead of just
-          // a status code. Falls back to raw text for non-JSON
-          // responses.
-          let detail = '';
-          try {
-            const raw = await resp.text();
-            try {
-              const parsed = JSON.parse(raw) as { detail?: string; error?: string };
-              detail = parsed.detail || parsed.error || raw;
-            } catch {
-              detail = raw;
-            }
-          } catch {
-            /* nothing readable */
-          }
+        const raw = await resp.text();
+        type ChatJsonBody = {
+          ok?: boolean;
+          answer?: string;
+          error?: string;
+          detail?: string;
+        };
+        let parsed: ChatJsonBody | null = null;
+        try {
+          parsed = raw ? (JSON.parse(raw) as ChatJsonBody) : null;
+        } catch {
+          parsed = null;
+        }
 
+        if (!resp.ok) {
+          const detail = parsed?.detail || parsed?.error || raw;
           const apology =
             resp.status === 402
               ? 'الميزة دي للمشتركين السنويين فقط — رقّي اشتراكك للسنوي.'
@@ -258,35 +265,22 @@ export function CourseAiChat({
             cp[cp.length - 1] = { role: 'assistant', content: apology };
             return cp;
           });
-          clearTimeout(watchdog);
           setStreaming(false);
           return;
         }
-        const reader = resp.body?.getReader();
-        if (!reader) {
-          clearTimeout(watchdog);
-          setStreaming(false);
-          return;
-        }
-        const decoder = new TextDecoder('utf-8');
-        let buf = '';
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          buf += decoder.decode(value, { stream: true });
-          setMessages((m) => {
-            const cp = m.slice();
-            cp[cp.length - 1] = { role: 'assistant', content: buf };
-            return cp;
-          });
-        }
-        clearTimeout(watchdog);
+
+        const answer =
+          parsed?.answer && parsed.answer.trim().length > 0
+            ? parsed.answer
+            : raw || 'مفيش رد. حاول تاني.';
+        setMessages((m) => {
+          const cp = m.slice();
+          cp[cp.length - 1] = { role: 'assistant', content: answer };
+          return cp;
+        });
         setStreaming(false);
       })
       .catch((err) => {
-        clearTimeout(watchdog);
-        // AbortError from the watchdog or the user's reset — leave
-        // any partial answer in place and just re-enable the input.
         if ((err as Error).name === 'AbortError') {
           setStreaming(false);
           return;
