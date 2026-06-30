@@ -1,8 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import Link from 'next/link';
-import { Bot, Send, X, MessageCircle, Sparkles, ArrowLeft } from 'lucide-react';
+import { Bot, Send, X } from 'lucide-react';
 
 /**
  * Floating per-course AI chat. Streams plain-text tokens from
@@ -60,11 +59,21 @@ export function CourseAiChat({
     return () => document.removeEventListener('keydown', onKey);
   }, [open]);
 
-  // Don't render anything for unauthenticated visitors. The PRD is
-  // explicit: guests must not even see the entry button.
-  if (gate === 'none') return null;
-  // And don't render anything for ANY visitor if the course doesn't
-  // have a knowledge base yet — the assistant would have nothing to
+  // Strict yearly-only visibility per merchant request. Three layers
+  // of gating, all decided server-side from Supabase before this
+  // component renders:
+  //
+  //   gate='none'      Guest / not signed in     → nothing rendered.
+  //   gate='monthly'   Active monthly subscriber → nothing rendered.
+  //   gate='yearly'    Active yearly subscriber  → full chat.
+  //
+  // The /api/chat endpoint re-checks the gate on every request too,
+  // so even a monthly user who guessed the URL would get a 402.
+  // Belt + braces.
+  if (gate !== 'yearly') return null;
+
+  // Don't render anything for ANY visitor if the course doesn't have
+  // a knowledge base yet — the assistant would have nothing to
   // answer from, so the launcher would just lie.
   if (!hasKnowledge) return null;
 
@@ -121,11 +130,7 @@ export function CourseAiChat({
         ref={scrollRef}
         className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50"
       >
-        {gate === 'monthly' && (
-          <UpgradeCard />
-        )}
-
-        {gate === 'yearly' && messages.length === 0 && (
+        {messages.length === 0 && (
           <div className="text-center py-6">
             <div className="w-16 h-16 mx-auto rounded-full bg-brand-500/15 text-brand-600 flex items-center justify-center mb-3">
               <Bot className="w-8 h-8" strokeWidth={2.25} />
@@ -158,33 +163,31 @@ export function CourseAiChat({
         ))}
       </div>
 
-      {/* Composer — yearly only */}
-      {gate === 'yearly' && (
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            send(input);
-          }}
-          className="flex items-center gap-2 p-2.5 border-t border-gray-200 bg-white sm:rounded-b-2xl"
+      {/* Composer */}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          send(input);
+        }}
+        className="flex items-center gap-2 p-2.5 border-t border-gray-200 bg-white sm:rounded-b-2xl"
+      >
+        <input
+          type="text"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="اكتب سؤالك…"
+          disabled={streaming}
+          className="flex-1 min-w-0 h-11 px-3 rounded-xl border border-gray-200 bg-white text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none disabled:opacity-60"
+        />
+        <button
+          type="submit"
+          disabled={!input.trim() || streaming}
+          className="w-11 h-11 rounded-xl bg-brand-500 hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed text-white inline-flex items-center justify-center transition-colors"
+          aria-label="ابعت"
         >
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="اكتب سؤالك…"
-            disabled={streaming}
-            className="flex-1 min-w-0 h-11 px-3 rounded-xl border border-gray-200 bg-white text-sm focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 outline-none disabled:opacity-60"
-          />
-          <button
-            type="submit"
-            disabled={!input.trim() || streaming}
-            className="w-11 h-11 rounded-xl bg-brand-500 hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed text-white inline-flex items-center justify-center transition-colors"
-            aria-label="ابعت"
-          >
-            <Send className="w-4 h-4" />
-          </button>
-        </form>
-      )}
+          <Send className="w-4 h-4" />
+        </button>
+      </form>
     </div>
   );
 
@@ -303,62 +306,3 @@ function Bubble({ role, children }: { role: 'user' | 'assistant'; children: Reac
   );
 }
 
-function UpgradeCard() {
-  return (
-    <div className="rounded-2xl border border-brand-500/30 bg-white p-5 text-center">
-      <div className="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 text-white flex items-center justify-center mb-3">
-        <Sparkles className="w-7 h-7" />
-      </div>
-      <h3 className="font-display text-lg font-extrabold mb-1">
-        المساعد الذكي للسنويين فقط
-      </h3>
-      <p className="text-xs text-gray-600 leading-relaxed mb-4">
-        اشتراكك الشهري بيفتحلك كل الكورسات — لكن "فاهم" المساعد الذكي
-        ميزة حصرية للباقة السنوية. رقّي دلوقتي وافتحه على طول.
-      </p>
-      <Link
-        href="/checkout?plan=yearly"
-        className="w-full inline-flex items-center justify-center gap-2 min-h-[44px] rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-bold text-sm transition-colors"
-      >
-        رقّي للسنوي
-        <ArrowLeft className="w-4 h-4" />
-      </Link>
-      <p className="text-[11px] text-gray-400 mt-2">
-        وفّر 67% · ضمان استرداد 7 أيام
-      </p>
-    </div>
-  );
-}
-
-/**
- * Tiny anchor that other pages can render INLINE (e.g. above the
- * fold of /course/[slug] for non-subscribers — 'الميزة دي بتفتح
- * بعد الاشتراك'). Drops to <Link> for non-yearly visitors so it
- * doesn't open a useless chat panel. Re-uses MessageCircle to read
- * as 'chat' at first glance.
- */
-export function CourseAiChatInlineHint({ gate }: { gate: Gate }) {
-  if (gate === 'yearly') return null;
-  return (
-    <div className="rounded-2xl border border-brand-500/30 bg-white p-4 flex items-center gap-3">
-      <span className="w-10 h-10 rounded-lg bg-brand-500/10 text-brand-600 flex items-center justify-center flex-shrink-0">
-        <MessageCircle className="w-5 h-5" />
-      </span>
-      <div className="flex-1 min-w-0">
-        <div className="font-bold text-sm">المساعد الذكي 🤖</div>
-        <div className="text-[11px] text-gray-500">
-          {gate === 'monthly'
-            ? 'حصري للباقة السنوية — رقّي دلوقتي.'
-            : 'اشترك سنوي وافتح مساعد ذكي خاص بكل كورس.'}
-        </div>
-      </div>
-      <Link
-        href="/checkout?plan=yearly"
-        className="inline-flex items-center gap-1 text-xs font-bold text-brand-700 hover:text-brand-800 whitespace-nowrap"
-      >
-        افتحه
-        <ArrowLeft className="w-3.5 h-3.5" />
-      </Link>
-    </div>
-  );
-}
