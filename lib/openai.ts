@@ -257,17 +257,24 @@ export async function answerStream({
   }
 
   // Strip OpenAI SSE framing and emit only the content tokens as
-  // bytes — the client renders raw text via TextDecoder.
+  // bytes. Crucially: we now close the output stream the moment we
+  // see OpenAI's `data: [DONE]` sentinel — the source's HTTP body
+  // doesn't always return done:true cleanly after [DONE], so the
+  // client's reader.read() loop would otherwise hang and the
+  // composer stayed disabled until a hard refresh.
   const reader = resp.body.getReader();
   const encoder = new TextEncoder();
   const decoder = new TextDecoder('utf-8');
   let buf = '';
+  let closed = false;
 
   return new ReadableStream<Uint8Array>({
     async pull(controller) {
+      if (closed) return;
       try {
         const { value, done } = await reader.read();
         if (done) {
+          closed = true;
           controller.close();
           return;
         }
@@ -278,23 +285,45 @@ export async function answerStream({
           const trimmed = line.trim();
           if (!trimmed.startsWith('data:')) continue;
           const payload = trimmed.slice(5).trim();
-          if (!payload || payload === '[DONE]') continue;
+          if (!payload) continue;
+          // OpenAI signals end-of-stream with `data: [DONE]`. Close
+          // the consumer side immediately — the source HTTP body
+          // may or may not return done:true after this, and we
+          // can't rely on it to unblock the client.
+          if (payload === '[DONE]') {
+            closed = true;
+            reader.cancel().catch(() => {});
+            controller.close();
+            return;
+          }
           try {
             const json = JSON.parse(payload) as {
-              choices: { delta?: { content?: string } }[];
+              choices: { delta?: { content?: string }; finish_reason?: string }[];
             };
-            const token = json.choices?.[0]?.delta?.content;
+            const choice = json.choices?.[0];
+            const token = choice?.delta?.content;
             if (token) controller.enqueue(encoder.encode(token));
+            // Some OpenAI-compatible providers send finish_reason on
+            // the last delta but never send [DONE]. Treat any non-
+            // null finish_reason as end-of-stream too.
+            if (choice?.finish_reason) {
+              closed = true;
+              reader.cancel().catch(() => {});
+              controller.close();
+              return;
+            }
           } catch {
             // Skip a malformed chunk — never let one bad line kill
             // the whole stream.
           }
         }
       } catch (err) {
+        closed = true;
         controller.error(err);
       }
     },
     cancel() {
+      closed = true;
       reader.cancel().catch(() => {});
     },
   });

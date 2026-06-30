@@ -207,6 +207,14 @@ export function CourseAiChat({
 
     const controller = new AbortController();
     abortRef.current = controller;
+    // Safety net: even if the upstream stream never closes, force
+    // the composer back to an enabled state after a generous
+    // timeout. Without this the user is stuck unable to type
+    // anything until a hard refresh.
+    const watchdog = setTimeout(() => {
+      if (!controller.signal.aborted) controller.abort();
+      setStreaming(false);
+    }, 45_000);
 
     fetch('/api/chat', {
       method: 'POST',
@@ -250,11 +258,13 @@ export function CourseAiChat({
             cp[cp.length - 1] = { role: 'assistant', content: apology };
             return cp;
           });
+          clearTimeout(watchdog);
           setStreaming(false);
           return;
         }
         const reader = resp.body?.getReader();
         if (!reader) {
+          clearTimeout(watchdog);
           setStreaming(false);
           return;
         }
@@ -270,10 +280,17 @@ export function CourseAiChat({
             return cp;
           });
         }
+        clearTimeout(watchdog);
         setStreaming(false);
       })
       .catch((err) => {
-        if ((err as Error).name === 'AbortError') return;
+        clearTimeout(watchdog);
+        // AbortError from the watchdog or the user's reset — leave
+        // any partial answer in place and just re-enable the input.
+        if ((err as Error).name === 'AbortError') {
+          setStreaming(false);
+          return;
+        }
         setMessages((m) => {
           const cp = m.slice();
           cp[cp.length - 1] = {
