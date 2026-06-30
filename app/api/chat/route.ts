@@ -126,19 +126,29 @@ export async function POST(req: NextRequest) {
 
   // Cast to PostgREST-compatible payload — pgvector accepts the
   // bracket-string form from a JS array via supabase-js.
-  // Threshold 0.2 — text-embedding-3-small + Arabic question vs.
-  // Arabic chunks routinely scores 0.25–0.40 even when the chunk is
-  // a direct answer (the embedder was trained primarily on English).
-  // The PRD's suggested 0.4 was filtering out legitimate matches.
-  // The strict system prompt is the real guardrail; the threshold is
-  // just here to skip the LLM call when nothing remotely resembles
-  // the question.
+  // Two-pass retrieval — work around text-embedding-3-small's weak
+  // Arabic short-query performance:
+  //
+  //   pass 1: similarity ≥ 0.1 (very loose) so even a 3-word Arabic
+  //           question lands on something the model can sift through.
+  //           The strict system prompt is the actual relevance filter;
+  //           the threshold is only here so a truly off-topic question
+  //           (the embedding falls below 0.1 = essentially noise) can
+  //           short-circuit without an LLM call.
+  //
+  //   pass 2 (debug): also fetch the unfiltered top-6 so we can log
+  //           the highest similarity score the course's chunks even
+  //           reach for this question. Lets the merchant tell from
+  //           Coolify logs whether the embedder is the problem
+  //           (max < 0.1 means even the best chunk is unrelated) or
+  //           the knowledge is the problem (max ≥ 0.1 but our cutoff
+  //           skipped it).
   const { data: matches, error: matchErr } = await service.rpc(
     'match_course_chunks',
     {
       query_embedding: qVec as unknown as string,
       p_course_id: courseId,
-      match_threshold: 0.2,
+      match_threshold: 0.1,
       match_count: 6,
     }
   );
@@ -146,7 +156,34 @@ export async function POST(req: NextRequest) {
     return json({ ok: false, error: matchErr.message }, 500);
   }
 
-  const chunks = ((matches ?? []) as { content: string }[]).map((m) => m.content);
+  const matchRows = (matches ?? []) as { content: string; similarity: number }[];
+  const chunks = matchRows.map((m) => m.content);
+
+  // Diagnostic — top similarity per question, so we can tell from
+  // Coolify logs whether to keep lowering the threshold or whether
+  // the embedder genuinely can't pair the question with the chunks.
+  if (matchRows.length > 0) {
+    const top = matchRows.map((m) => m.similarity.toFixed(3)).join(', ');
+    console.log(
+      `[chat] course=${courseId} q="${question.slice(0, 60)}" matches=${matchRows.length} top_sims=[${top}]`
+    );
+  } else {
+    // Probe with threshold 0 to find the highest score we'd have
+    // gotten without the filter — pure observability, no behaviour
+    // change.
+    const { data: probe } = await service.rpc('match_course_chunks', {
+      query_embedding: qVec as unknown as string,
+      p_course_id: courseId,
+      match_threshold: 0,
+      match_count: 3,
+    });
+    const probeTop = ((probe ?? []) as { similarity: number }[])
+      .map((m) => m.similarity.toFixed(3))
+      .join(', ');
+    console.log(
+      `[chat] course=${courseId} q="${question.slice(0, 60)}" matches=0 (below 0.1). best_overall=[${probeTop || 'none'}]`
+    );
+  }
 
   // Zero chunks crossed the similarity threshold → the question is
   // almost certainly off-topic for this course. PRD §5: return the
