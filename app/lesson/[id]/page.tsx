@@ -8,6 +8,7 @@ import { resolveVideoEmbed } from '@/lib/video';
 import { canAccessCourse } from '@/lib/access';
 import { signLessonAttachment } from '@/lib/storage';
 import { LessonPlayer } from './player';
+import { CourseAiChat } from '@/components/course-ai-chat';
 import { LessonCompleteBar, LessonNav } from './lesson-actions';
 import {
   ArrowLeft,
@@ -58,6 +59,25 @@ export default async function LessonPage({ params }: { params: { id: string } })
     ? await canAccessCourse(user.id, lesson.course_id)
     : { subscribed: false, enrolled: false };
   const canAccess = subscribed || enrolled || lesson.is_free_preview;
+
+  // AI chat gate. The chat panel is YEARLY-only per PRD — we surface
+  // an 'upgrade' card to monthly subs and hide it entirely for guests.
+  // The auth checked here is just for the visibility decision; the
+  // /api/chat endpoint re-checks server-side before answering.
+  let chatGate: 'none' | 'monthly' | 'yearly' = 'none';
+  if (user) {
+    const service = createServiceClient();
+    const { data: planRow } = await service
+      .from('subscriptions')
+      .select('plan')
+      .eq('user_id', user.id)
+      .in('status', ['active', 'trialing'])
+      .gt('current_period_end', new Date().toISOString())
+      .order('current_period_end', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    chatGate = planRow?.plan === 'yearly' ? 'yearly' : planRow ? 'monthly' : 'none';
+  }
 
   // Stored attachments are in a private bucket — generate short-lived
   // signed URLs for any that don't have an external file_url already.
@@ -429,6 +449,21 @@ export default async function LessonPage({ params }: { params: { id: string } })
           </div>
         </aside>
       </main>
+
+      {/* Per-course AI chat. Floating launcher bottom-left. Guests
+          render nothing; monthly subs see an upgrade card inside;
+          yearly subs get the full streaming RAG chat. Server-side
+          /api/chat re-checks the gate before answering. */}
+      <CourseAiChat
+        gate={chatGate}
+        courseId={course.id}
+        courseTitle={course.title_ar}
+        suggestions={[
+          'لخّصلي الكورس في 3 نقاط',
+          'ابدأ من أنهي درس؟',
+          'إيه أهم حاجة في الكورس ده؟',
+        ]}
+      />
     </div>
   );
 }

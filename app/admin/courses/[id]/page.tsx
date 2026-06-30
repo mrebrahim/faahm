@@ -316,6 +316,41 @@ export default async function CourseEditPage({
             </div>
           </div>
 
+          {/* AI Knowledge — the source-of-truth text the per-course
+              chat assistant retrieves from. Save triggers a fire-and-
+              forget re-embed on the API side; the timestamp + status
+              below refresh when the page reloads. */}
+          <div className="space-y-2 p-4 rounded-2xl border border-brand-500/30 bg-brand-500/5">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <Label htmlFor="ai_knowledge" className="font-bold">
+                🤖 معلومات المساعد الذكي (RAG)
+              </Label>
+              {(course as any).ai_knowledge_updated_at && (
+                <span className="text-[11px] text-gray-500">
+                  آخر تحديث:{' '}
+                  {new Date(
+                    (course as any).ai_knowledge_updated_at as string
+                  ).toLocaleString('ar-EG')}
+                </span>
+              )}
+            </div>
+            <textarea
+              id="ai_knowledge"
+              name="ai_knowledge"
+              rows={14}
+              defaultValue={(course as any).ai_knowledge || ''}
+              placeholder={`الصق هنا كل المعلومات اللي المساعد هيرد منها — ملخص، أسئلة شائعة، تعريفات، إلخ.\nمثال:\n\nالكورس بيشرح أساسيات n8n من الصفر…\n\nالأسئلة الشائعة:\n- إيه هو n8n؟ هو أداة أتمتة بدون كود…\n- ازاي أبدأ workflow؟ …`}
+              className="flex w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-foreground leading-relaxed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+            />
+            <p className="text-[11px] text-gray-600 leading-relaxed">
+              المساعد يرد <strong>فقط</strong> من النص ده — لو السؤال خارج
+              المحتوى، يرد "المعلومة دي مش موجودة في الكورس ده". لما تحفظ
+              التغييرات، النظام يقسّم النص لـ chunks ويعمل embeddings في
+              الخلفية (يستغرق ~10–30 ثانية حسب الطول). الميزة بتظهر
+              <strong> للمشتركين السنويين فقط</strong>.
+            </p>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div className="space-y-2">
               <Label htmlFor="trailer_video_provider">مزوّد الفيديو التشويقي</Label>

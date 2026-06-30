@@ -125,6 +125,13 @@ export async function updateCourse(formData: FormData) {
         thumbnailUrl = uploaded.publicUrl;
       }
 
+      // AI knowledge text — the RAG source-of-truth for the per-
+      // course assistant. Re-ingested below if it changed since the
+      // last save so the chunks + embeddings stay in lockstep with
+      // what the admin sees in the textarea.
+      const aiKnowledgeRaw = (formData.get('ai_knowledge') as string | null) ?? '';
+      const ai_knowledge = aiKnowledgeRaw.trim() || null;
+
       const updates: Record<string, unknown> = {
         title_ar: formData.get('title_ar') as string,
         description_ar: (formData.get('description_ar') as string) || null,
@@ -134,12 +141,61 @@ export async function updateCourse(formData: FormData) {
         rating_count,
         what_you_learn: linesToArray(formData.get('what_you_learn') as string | null),
         requirements: linesToArray(formData.get('requirements') as string | null),
+        ai_knowledge,
         ...trailerFields,
       };
       if (thumbnailUrl !== undefined) updates.thumbnail_url = thumbnailUrl;
 
+      // Detect whether ai_knowledge changed so we know whether to
+      // schedule a re-ingest after the row is updated. Doing the
+      // comparison against the *pre-update* DB value is the simplest
+      // way to avoid embedding the same text twice on a no-op save.
+      const { data: pre } = await service
+        .from('courses')
+        .select('ai_knowledge')
+        .eq('id', id)
+        .maybeSingle();
+      const knowledgeChanged =
+        (pre?.ai_knowledge ?? null) !== (ai_knowledge ?? null);
+
+      if (knowledgeChanged) {
+        updates.ai_knowledge_updated_at = new Date().toISOString();
+      }
+
       const { error } = await service.from('courses').update(updates).eq('id', id);
       if (error) throw new Error(error.message);
+
+      // Fire the re-ingest in the background — embedding can take a
+      // few seconds and we don't want the admin's save form blocking
+      // on it. The endpoint is admin-gated so we re-invoke ourselves
+      // via the resolved app URL.
+      if (knowledgeChanged) {
+        try {
+          const { resolveAppUrl } = await import('@/lib/app-url');
+          // Forward the admin's auth cookies so /api/courses/[id]/
+          // ingest passes its own admin check.
+          const { cookies, headers } = await import('next/headers');
+          const cookieHeader = cookies()
+            .getAll()
+            .map((c) => `${c.name}=${c.value}`)
+            .join('; ');
+          await fetch(`${resolveAppUrl()}/api/courses/${id}/ingest`, {
+            method: 'POST',
+            headers: {
+              'content-type': 'application/json',
+              cookie: cookieHeader,
+              'x-forwarded-for': headers().get('x-forwarded-for') ?? '',
+            },
+            body: JSON.stringify({ knowledge: ai_knowledge ?? '' }),
+            // Don't await — fire-and-forget. revalidatePath below
+            // will rebuild the admin page anyway.
+          }).catch((e) => {
+            console.error('[ingest] background re-embed failed', e);
+          });
+        } catch (e) {
+          console.error('[ingest] kickoff failed', e);
+        }
+      }
     }
   ).catch((err) => {
     redirect(`/admin/courses/${id}?error=${encodeURIComponent(err.message)}`);
