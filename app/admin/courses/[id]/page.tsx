@@ -25,6 +25,7 @@ import {
   updateCourse,
   togglePublishCourse,
   deleteCourse,
+  reembedCourseKnowledge,
   createChapter,
   deleteChapter,
   deleteLesson,
@@ -55,6 +56,13 @@ export default async function CourseEditPage({
     .single();
 
   if (!course) notFound();
+
+  // Live chunk count — the admin needs to see whether the AI
+  // assistant is actually ready or whether the last ingest failed.
+  const { count: aiChunkCount } = await supabase
+    .from('course_chunks')
+    .select('id', { count: 'exact', head: true })
+    .eq('course_id', params.id);
 
   const { data: categories } = await supabase
     .from('categories')
@@ -317,22 +325,40 @@ export default async function CourseEditPage({
           </div>
 
           {/* AI Knowledge — the source-of-truth text the per-course
-              chat assistant retrieves from. Save triggers a fire-and-
-              forget re-embed on the API side; the timestamp + status
-              below refresh when the page reloads. */}
+              chat assistant retrieves from. Save now runs the embed
+              INLINE so the chunk count below is accurate as soon as
+              the page reloads. If something fails the action throws
+              and the admin sees the error in the URL bar. */}
           <div className="space-y-2 p-4 rounded-2xl border border-brand-500/30 bg-brand-500/5">
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <Label htmlFor="ai_knowledge" className="font-bold">
                 🤖 معلومات المساعد الذكي (RAG)
               </Label>
-              {(course as any).ai_knowledge_updated_at && (
-                <span className="text-[11px] text-gray-500">
-                  آخر تحديث:{' '}
-                  {new Date(
-                    (course as any).ai_knowledge_updated_at as string
-                  ).toLocaleString('ar-EG')}
-                </span>
-              )}
+              <div className="flex items-center gap-2 flex-wrap text-[11px]">
+                {/* Live chunk count — the source of truth on whether
+                    the assistant will actually answer. 0 with non-
+                    empty text == the last ingest failed; the admin
+                    needs to click 'Re-prepare' below. */}
+                {(course as any).ai_knowledge && (
+                  <span
+                    className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-bold ${
+                      (aiChunkCount ?? 0) > 0
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                        : 'bg-amber-100 text-amber-900 border border-amber-300'
+                    }`}
+                  >
+                    {(aiChunkCount ?? 0) > 0 ? '✓' : '⚠️'} {aiChunkCount ?? 0} chunks
+                  </span>
+                )}
+                {(course as any).ai_knowledge_updated_at && (
+                  <span className="text-gray-500">
+                    آخر تحديث:{' '}
+                    {new Date(
+                      (course as any).ai_knowledge_updated_at as string
+                    ).toLocaleString('ar-EG')}
+                  </span>
+                )}
+              </div>
             </div>
             <textarea
               id="ai_knowledge"
@@ -342,13 +368,30 @@ export default async function CourseEditPage({
               placeholder={`الصق هنا كل المعلومات اللي المساعد هيرد منها — ملخص، أسئلة شائعة، تعريفات، إلخ.\nمثال:\n\nالكورس بيشرح أساسيات n8n من الصفر…\n\nالأسئلة الشائعة:\n- إيه هو n8n؟ هو أداة أتمتة بدون كود…\n- ازاي أبدأ workflow؟ …`}
               className="flex w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm text-foreground leading-relaxed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
             />
-            <p className="text-[11px] text-gray-600 leading-relaxed">
-              المساعد يرد <strong>فقط</strong> من النص ده — لو السؤال خارج
-              المحتوى، يرد "المعلومة دي مش موجودة في الكورس ده". لما تحفظ
-              التغييرات، النظام يقسّم النص لـ chunks ويعمل embeddings في
-              الخلفية (يستغرق ~10–30 ثانية حسب الطول). الميزة بتظهر
-              <strong> للمشتركين السنويين فقط</strong>.
-            </p>
+            <div className="flex items-center justify-between gap-3 flex-wrap pt-1">
+              <p className="text-[11px] text-gray-600 leading-relaxed flex-1">
+                المساعد يرد <strong>فقط</strong> من النص ده. الحفظ بيعمل
+                chunks + embeddings تلقائياً (يستغرق 5–30 ثانية). لو الـ
+                chunks فوق = 0 رغم وجود نص، يبقى الـ embed فشل (تحقق من
+                <code className="px-1 py-0.5 bg-white border border-gray-200 rounded text-[10px]">OPENAI_API_KEY</code>
+                في Coolify) ودوس الزر اللي على اليمين. الميزة للمشتركين{' '}
+                <strong>السنويين فقط</strong>.
+              </p>
+              {/* Manual re-embed — useful when the admin needs to
+                  re-run after fixing the OpenAI key without editing
+                  the textarea. Posts to the existing /api/courses/
+                  [id]/ingest endpoint which uses the saved
+                  ai_knowledge as source. */}
+              <form action={reembedCourseKnowledge} className="flex-shrink-0">
+                <input type="hidden" name="id" value={params.id} />
+                <button
+                  type="submit"
+                  className="px-3 py-1.5 rounded-lg bg-brand-500 hover:bg-brand-600 text-white text-xs font-bold whitespace-nowrap"
+                >
+                  🔄 إعادة تحضير المساعد
+                </button>
+              </form>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">

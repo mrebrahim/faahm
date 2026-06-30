@@ -7,6 +7,7 @@ import { requireAdmin } from '@/lib/admin-guard';
 import { loggedAction, formDataForLog } from '@/lib/admin-audit';
 import { parseVideoInput, type VideoProvider } from '@/lib/video';
 import { uploadCourseThumbnail } from '@/lib/storage';
+import { chunkText, embedMany } from '@/lib/openai';
 
 /**
  * Resolve a Bunny library id when the admin only pasted a GUID.
@@ -165,35 +166,50 @@ export async function updateCourse(formData: FormData) {
       const { error } = await service.from('courses').update(updates).eq('id', id);
       if (error) throw new Error(error.message);
 
-      // Fire the re-ingest in the background — embedding can take a
-      // few seconds and we don't want the admin's save form blocking
-      // on it. The endpoint is admin-gated so we re-invoke ourselves
-      // via the resolved app URL.
+      // Re-embed INLINE — the previous fire-and-forget self-fetch was
+      // unreliable (the runtime cancels pending fetches when the
+      // action redirects), so we just call the openai helpers
+      // directly here. Admin save now takes ~5-30s on a fresh
+      // ingest, but it's atomic: when the page reloads, chunks ARE
+      // there, no 'why is the assistant empty?' debugging.
       if (knowledgeChanged) {
         try {
-          const { resolveAppUrl } = await import('@/lib/app-url');
-          // Forward the admin's auth cookies so /api/courses/[id]/
-          // ingest passes its own admin check.
-          const { cookies, headers } = await import('next/headers');
-          const cookieHeader = cookies()
-            .getAll()
-            .map((c) => `${c.name}=${c.value}`)
-            .join('; ');
-          await fetch(`${resolveAppUrl()}/api/courses/${id}/ingest`, {
-            method: 'POST',
-            headers: {
-              'content-type': 'application/json',
-              cookie: cookieHeader,
-              'x-forwarded-for': headers().get('x-forwarded-for') ?? '',
-            },
-            body: JSON.stringify({ knowledge: ai_knowledge ?? '' }),
-            // Don't await — fire-and-forget. revalidatePath below
-            // will rebuild the admin page anyway.
-          }).catch((e) => {
-            console.error('[ingest] background re-embed failed', e);
-          });
+          // Always start clean — even when the new knowledge is empty
+          // (admin cleared the field), drop the old chunks so the
+          // chat returns the off-topic apology instead of stale
+          // matches.
+          await service.from('course_chunks').delete().eq('course_id', id);
+
+          const chunks = chunkText(ai_knowledge ?? '', 800);
+          if (chunks.length > 0) {
+            const embeddings = await embedMany(chunks);
+            const rows = chunks.map((content, i) => ({
+              course_id: id,
+              content,
+              token_count: Math.ceil(content.length / 4),
+              embedding: embeddings[i] as unknown as string,
+            }));
+            const BATCH = 50;
+            for (let i = 0; i < rows.length; i += BATCH) {
+              const slice = rows.slice(i, i + BATCH);
+              const { error: insErr } = await service
+                .from('course_chunks')
+                .insert(slice);
+              if (insErr) throw new Error(insErr.message);
+            }
+            console.log(
+              `[ingest] course=${id} embedded ${rows.length} chunks`
+            );
+          } else {
+            console.log(`[ingest] course=${id} cleared (no knowledge)`);
+          }
         } catch (e) {
-          console.error('[ingest] kickoff failed', e);
+          // Surface ingest failure to the admin via the error
+          // redirect — they need to know the assistant isn't ready.
+          console.error('[ingest] inline re-embed failed', e);
+          throw new Error(
+            `معلومات الكورس اتحفظت لكن تحضير المساعد فشل: ${(e as Error).message}`
+          );
         }
       }
     }
@@ -232,6 +248,61 @@ export async function togglePublishCourse(formData: FormData) {
 
   revalidatePath(`/admin/courses/${id}`);
   revalidatePath('/admin/courses');
+}
+
+/**
+ * Manual re-embed of the saved ai_knowledge text. Useful when:
+ *   - The first save's embed failed because OPENAI_API_KEY wasn't
+ *     set yet, and the admin fixed the env without changing the
+ *     textarea.
+ *   - A bulk import populated ai_knowledge directly in the DB and
+ *     the chunks were never built.
+ *   - The model or chunking logic changed and the admin wants to
+ *     rebuild with the new pipeline.
+ */
+export async function reembedCourseKnowledge(formData: FormData) {
+  const ctx = await requireAdmin();
+  const id = formData.get('id') as string;
+  await loggedAction(
+    ctx,
+    { action: 'course.ai_knowledge_reembed', resourceType: 'course', resourceId: id },
+    async () => {
+      const service = createServiceClient();
+      const { data: course } = await service
+        .from('courses')
+        .select('ai_knowledge')
+        .eq('id', id)
+        .maybeSingle();
+      const text = course?.ai_knowledge ?? '';
+
+      await service.from('course_chunks').delete().eq('course_id', id);
+      const chunks = chunkText(text, 800);
+      if (chunks.length === 0) {
+        return;
+      }
+      const embeddings = await embedMany(chunks);
+      const rows = chunks.map((content, i) => ({
+        course_id: id,
+        content,
+        token_count: Math.ceil(content.length / 4),
+        embedding: embeddings[i] as unknown as string,
+      }));
+      const BATCH = 50;
+      for (let i = 0; i < rows.length; i += BATCH) {
+        const slice = rows.slice(i, i + BATCH);
+        const { error: insErr } = await service.from('course_chunks').insert(slice);
+        if (insErr) throw new Error(insErr.message);
+      }
+      await service
+        .from('courses')
+        .update({ ai_knowledge_updated_at: new Date().toISOString() })
+        .eq('id', id);
+    }
+  ).catch((err) => {
+    redirect(`/admin/courses/${id}?error=${encodeURIComponent(err.message)}`);
+  });
+  revalidatePath(`/admin/courses/${id}`);
+  redirect(`/admin/courses/${id}?ok=re-embed`);
 }
 
 export async function deleteCourse(formData: FormData) {

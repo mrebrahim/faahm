@@ -126,12 +126,19 @@ export async function POST(req: NextRequest) {
 
   // Cast to PostgREST-compatible payload — pgvector accepts the
   // bracket-string form from a JS array via supabase-js.
+  // Threshold 0.2 — text-embedding-3-small + Arabic question vs.
+  // Arabic chunks routinely scores 0.25–0.40 even when the chunk is
+  // a direct answer (the embedder was trained primarily on English).
+  // The PRD's suggested 0.4 was filtering out legitimate matches.
+  // The strict system prompt is the real guardrail; the threshold is
+  // just here to skip the LLM call when nothing remotely resembles
+  // the question.
   const { data: matches, error: matchErr } = await service.rpc(
     'match_course_chunks',
     {
       query_embedding: qVec as unknown as string,
       p_course_id: courseId,
-      match_threshold: 0.4,
+      match_threshold: 0.2,
       match_count: 6,
     }
   );
