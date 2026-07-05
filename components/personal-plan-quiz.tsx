@@ -370,7 +370,7 @@ export function PersonalPlanQuiz() {
                   بـ
                 </p>
                 <p className="font-display text-3xl sm:text-4xl font-extrabold text-brand-700 mb-1">
-                  12.5 ر.س <span className="text-base text-gray-500 font-medium">/ شهر</span>
+                  $3.33 <span className="text-base text-gray-500 font-medium">/ شهر</span>
                 </p>
                 <p className="text-[11px] text-gray-500">
                   اشتراك واحد يفتح كل الكورسات · ضمان 7 أيام

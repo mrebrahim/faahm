@@ -39,12 +39,11 @@ export default async function PricingPage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Single-currency funnel: every visitor sees riyals on /pricing.
-  // Saudi is the target market and there's no toggle / no auto-detect
-  // here — the page just runs the SAR pricing table. (The Region type
-  // and pricingFor() helper stay around so the downstream Stripe price
-  // ID lookup keeps working.)
-  const region: Region = 'sa';
+  // Single-currency funnel: every visitor sees USD on /pricing. There's
+  // no toggle / no auto-detect here — the page just runs the USD pricing
+  // table. (The Region type and pricingFor() helper stay around so the
+  // downstream Stripe price ID lookup keeps working.)
+  const region: Region = 'us';
   const pricing = pricingFor(region);
 
   // Soft-fail banner: /api/checkout redirects here with ?err=stripe_*

@@ -135,7 +135,7 @@ export async function activatePayPalSubscription(
   // Report the SAR amount the visitor actually paid, not the legacy
   // USD figure baked into PLANS — see /billing/success for the same
   // reasoning. Meta + TikTok bid optimisation use this value.
-  const saPricing = pricingFor('sa');
+  const saPricing = pricingFor('us');
   const trackingValue = Number(
     plan === 'yearly' ? saPricing.yearlyAmount : saPricing.monthlyAmount
   );
@@ -154,7 +154,7 @@ export async function activatePayPalSubscription(
     eventSourceUrl: h.get('referer') ?? undefined,
     custom: {
       value: trackingValue,
-      currency: 'SAR',
+      currency: 'USD',
       contentName: planInfo.name,
       contentIds: [plan],
     },

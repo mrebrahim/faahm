@@ -74,8 +74,8 @@ export default async function PayPalCheckoutPage({
                 <SARMoney
                   value={
                     planParam === 'yearly'
-                      ? pricingFor('sa').yearlyAmount
-                      : pricingFor('sa').monthlyAmount
+                      ? pricingFor('us').yearlyAmount
+                      : pricingFor('us').monthlyAmount
                   }
                 />
                 <span className="text-base text-gray-400 ms-1">

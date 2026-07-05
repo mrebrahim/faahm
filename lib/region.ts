@@ -101,22 +101,26 @@ export type PlanPricing = {
 };
 
 const PRICING: Record<Region, PlanPricing> = {
+  // Global USD funnel — every visitor sees dollars, no region
+  // toggle. Monthly $10, yearly $40 (owner-set). Yearly anchor is
+  // 12 × monthly ($120) so the strikethrough reads as 'what you'd
+  // pay billing monthly for a year'. yearlyPerMonth $3.33 = 40/12.
   us: {
     currency: 'USD',
     currencyLabel: 'USD',
     symbol: '$',
-    monthlyAmount: 9.99,
+    monthlyAmount: 10,
     yearlyAmount: 40,
-    yearlyAnchor: 119,
-    yearlyPerMonth: 3.3,
+    yearlyAnchor: 120,
+    yearlyPerMonth: 3.33,
     savings: 80,
     savingsPct: 67,
   },
+  // SAR pricing kept in place for the region infra + Stripe SAR
+  // env vars, but no marketing surface points at it anymore.
   sa: {
     currency: 'SAR',
     currencyLabel: 'ر.س',
-    // Empty — SAR amounts are rendered with the SARSymbol SVG, not a
-    // text-prefixed character like '$'.
     symbol: '',
     monthlyAmount: 39,
     yearlyAmount: 149,

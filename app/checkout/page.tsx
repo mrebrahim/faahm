@@ -52,7 +52,7 @@ export default async function CheckoutPage({
   // Single-currency funnel: SAR everywhere. The Region machinery still
   // lives in /lib for future flexibility, but every checkout / Stripe
   // call here is locked to 'sa' so display + collection stay in riyals.
-  const pricing = pricingFor('sa');
+  const pricing = pricingFor('us');
 
   // PRD §3.1: target market is Saudi. Showing 'تحويل من بنك مصري' to a
   // Saudi visitor at the payment step is a documented cause of bounce —
@@ -107,18 +107,16 @@ export default async function CheckoutPage({
       <main className="container mx-auto px-4 py-10 max-w-2xl">
         <CheckoutTracker
           eventId={`checkout-picker-${user?.id ?? checkoutEmail ?? 'guest'}-${planParam}`}
-          // Track the actual SAR amount the visitor will pay, NOT the
-          // legacy USD figure baked into PLANS — Meta + TikTok bid
-          // optimisation use the value bucket to allocate spend, and
-          // iOS Aggregated Event Measurement collapses small-value
-          // events together. Reporting USD 9.99 / 40 instead of SAR
-          // 39 / 149 mis-anchors every optimisation downstream.
+          // Track the actual USD amount the visitor will pay via the
+          // pricingFor('us') helper — Meta + TikTok bid optimisation
+          // use the value bucket to allocate spend, so this must match
+          // the sticker price on /pricing exactly.
           value={Number(
             planParam === 'yearly'
               ? pricing.yearlyAmount
               : pricing.monthlyAmount
           )}
-          currency="SAR"
+          currency="USD"
           contentName={plan.name}
           contentIds={[planParam]}
           step="picker"
@@ -282,7 +280,7 @@ export default async function CheckoutPage({
                 href={`/offline/barq?plan=${planParam}${emailQs}`}
                 icon={Globe2}
                 title="Barq (من السعودية)"
-                subtitle="تحويل بالريال من حسابك السعودي"
+                subtitle="تحويل من حسابك السعودي"
               />
 
               {/* 4. Egyptian combo — InstaPay + Vodafone Cash (EGP). PRD

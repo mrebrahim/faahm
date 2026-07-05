@@ -163,14 +163,13 @@ export default async function BillingSuccessPage({
     const plan = subscription.plan as 'monthly' | 'yearly';
     const planInfo = PLANS[plan];
     // Tracking value must match what the visitor actually paid — every
-    // subscription on this site is in SAR (149 / 39). The legacy
-    // PLANS.price = 40/9.99 USD is kept only for back-compat on
-    // non-tracking surfaces; never feed it to ad networks again.
-    const saPricing = pricingFor('sa');
+    // subscription on this site is priced in USD ($10 / $40) via the
+    // pricingFor('us') helper.
+    const saPricing = pricingFor('us');
     const trackingValue = Number(
       plan === 'yearly' ? saPricing.yearlyAmount : saPricing.monthlyAmount
     );
-    const trackingCurrency = 'SAR';
+    const trackingCurrency = 'USD';
     const eventId =
       subscription.gateway === 'paypal'
         ? `purchase-paypal-${txnId}`

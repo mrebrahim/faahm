@@ -537,7 +537,7 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
                 اشترك واحصل على كل الكورسات
               </h3>
               <p className="text-sm text-gray-600 mb-4">
-                مفيش شراء كل كورس لوحده. اشتراك سنوي بـ <strong>~12 ر.س/شهر</strong>
+                مفيش شراء كل كورس لوحده. اشتراك سنوي بـ <strong>~$3.33/شهر</strong>
                 {' '}بيفتحلك كل المحتوى + المساعد الذكي + الشهادة.
               </p>
               <ul className="space-y-2 mb-5 text-sm">

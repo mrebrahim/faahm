@@ -506,7 +506,7 @@ function CourseCard({ course }: { course: any }) {
 
 /**
  * Home-page pricing card. Reads SAR amounts straight off the
- * region-aware pricingFor('sa') helper — same source-of-truth the
+ * region-aware pricingFor('us') helper — same source-of-truth the
  * /pricing surface uses, so the two pages can't drift. CTAs link
  * directly to /checkout (guest-checkout aware), never /signup, so the
  * visitor isn't bounced through a sign-up gate before paying.
@@ -518,7 +518,7 @@ function PricingCard({
   kind: 'monthly' | 'yearly';
   featured?: boolean;
 }) {
-  const p = pricingFor('sa');
+  const p = pricingFor('us');
   const isYearly = kind === 'yearly';
 
   return (

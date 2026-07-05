@@ -54,8 +54,8 @@ export default async function BarqOfflinePage({
   // matches what they saw on /pricing and /checkout.
   const sarAmount =
     planParam === 'yearly'
-      ? Number(pricingFor('sa').yearlyAmount)
-      : Number(pricingFor('sa').monthlyAmount);
+      ? Number(pricingFor('us').yearlyAmount)
+      : Number(pricingFor('us').monthlyAmount);
 
   const vodafoneNumber = OFFLINE_PAYMENTS.vodafoneCash.phone;
 
@@ -64,7 +64,7 @@ export default async function BarqOfflinePage({
       <CheckoutTracker
         eventId={`checkout-barq-${user?.id ?? ownerEmail ?? 'guest'}-${planParam}`}
         value={sarAmount}
-        currency="SAR"
+        currency="USD"
         contentName={plan.name}
         contentIds={[planParam]}
         step="barq"
@@ -160,7 +160,7 @@ export default async function BarqOfflinePage({
               email={ownerEmail}
               plan={planParam}
               amount={sarAmount}
-              currencyLabel="ر.س"
+              currencyLabel="$"
               channel="Barq"
             />
           </div>

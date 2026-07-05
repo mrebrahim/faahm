@@ -117,7 +117,7 @@ export default async function PersonalPlanPage() {
     rating: 4.8,
   };
 
-  const p = pricingFor('sa');
+  const p = pricingFor('us');
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-white">
@@ -566,7 +566,7 @@ export default async function PersonalPlanPage() {
               </div>
               <div className="flex items-baseline gap-1 mb-1">
                 <span className="text-3xl font-extrabold text-gray-700">
-                  <SARMoney value={750} symbolClassName="w-[0.6em] h-[0.6em] mx-1" />
+                  <SARMoney value={200} />
                 </span>
                 <span className="text-xs text-gray-500">/ كورس مفرد</span>
               </div>
@@ -649,7 +649,7 @@ export default async function PersonalPlanPage() {
             />
             <FAQItem
               q="طرق الدفع المتاحة إيه؟"
-              a="بطاقات Visa / Mastercard، Apple Pay، PayPal، تحويل عبر براق (Barq) من السعودية، أو InstaPay / Vodafone Cash من مصر. كل الأسعار بالريال السعودي."
+              a="بطاقات Visa / Mastercard، Apple Pay، PayPal، تحويل عبر براق (Barq) من السعودية، أو InstaPay / Vodafone Cash من مصر. كل الأسعار بالدولار الأمريكي."
             />
             <FAQItem
               q="في ضمان استرجاع؟"
@@ -740,7 +740,7 @@ const TESTIMONIALS: TestimonialItem[] = [
     plan: 'سنوي',
     tone: 'emerald',
     quote:
-      'اشتركت سنوي ووفّرت 300 ر.س — والـ Vibe Coding بدأ يجيب نتائج فعلية في مشاريعي بعد أول كورسين.',
+      'اشتركت سنوي ووفّرت $80 — والـ Vibe Coding بدأ يجيب نتائج فعلية في مشاريعي بعد أول كورسين.',
   },
   {
     name: 'سارة',

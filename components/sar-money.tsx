@@ -1,29 +1,29 @@
-import { SARSymbol } from './sar-symbol';
-
 /**
- * Renders a SAR amount with the official 2025 Saudi Riyal symbol next
- * to the number. Keeps the symbol's size in sync with the surrounding
- * text by sizing it as a fraction of the parent's em — pricing cards
- * with `text-5xl` get a big symbol, an inline body sentence gets a
- * small one, no extra props needed.
+ * Currency renderer. Historically this rendered SAR with the
+ * official 2025 Saudi Riyal SVG glyph. The site has since moved to
+ * USD pricing across every surface, so the component now emits a
+ * plain `$X` (dir=ltr) instead. The name is kept because every
+ * pricing page + the marketing pages already import it — swapping
+ * the internals here means the callers didn't have to change.
  *
- * `symbolClassName` lets specific call sites nudge the symbol's size
- * up or down independently of the number (e.g. shrink it a touch on
- * the giant headline price so the digits remain dominant).
+ * `symbolClassName` and other props are accepted-and-ignored so
+ * old JSX (`<SARMoney value={40} symbolClassName="w-4 h-4" />`)
+ * keeps compiling.
  */
 export function SARMoney({
   value,
-  symbolClassName = 'w-[0.7em] h-[0.7em] mx-0.5',
   className = '',
 }: {
   value: number | string;
+  /** Kept for backwards compatibility — no-op now that the SAR
+   *  glyph is gone. */
   symbolClassName?: string;
   className?: string;
 }) {
   return (
-    <span dir="ltr" className={`inline-flex items-center ${className}`}>
+    <span dir="ltr" className={`inline-flex items-baseline ${className}`}>
+      <span className="opacity-90">$</span>
       <span>{value}</span>
-      <SARSymbol className={symbolClassName} />
     </span>
   );
 }
