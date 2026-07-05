@@ -148,7 +148,7 @@ export async function POST(req: NextRequest) {
         minutes: String(minutes),
       },
       success_url: `${origin}/service-thankyou?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/dubbing`,
+      cancel_url: `${origin}/video-dubbing`,
     });
 
     // Persist the session id so the webhook can look the order up.

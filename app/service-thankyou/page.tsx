@@ -150,7 +150,7 @@ export default async function ServiceThankyouPage({
         </a>
 
         <Button asChild size="lg" variant="outline" className="w-full">
-          <Link href="/dubbing">اطلب دبلجة تانية</Link>
+          <Link href="/video-dubbing">اطلب دبلجة تانية</Link>
         </Button>
 
         <p className="text-[11px] text-gray-400 text-center mt-6 leading-relaxed">
@@ -194,7 +194,7 @@ function NotFoundLayout({ title, body }: { title: string; body: string }) {
         <h1 className="font-display text-2xl font-bold mb-2">{title}</h1>
         <p className="text-sm text-gray-500 mb-6 leading-relaxed">{body}</p>
         <Button asChild>
-          <Link href="/dubbing">ارجع لصفحة الخدمة</Link>
+          <Link href="/video-dubbing">ارجع لصفحة الخدمة</Link>
         </Button>
       </div>
     </main>
