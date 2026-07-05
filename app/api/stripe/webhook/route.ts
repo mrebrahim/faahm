@@ -102,6 +102,47 @@ export async function POST(request: NextRequest) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object as Stripe.Checkout.Session;
+
+        // Dubbing service: one-off payment checkouts stamped with
+        // metadata.service='dubbing'. Same endpoint as subscriptions
+        // so the merchant only maintains one Stripe webhook config +
+        // one signing secret. Payload matches whatever the dubbing
+        // /api/dubbing/checkout endpoint put on the session.
+        if (
+          session.mode === 'payment' &&
+          (session.metadata?.service as string | undefined) === 'dubbing'
+        ) {
+          const orderId = session.metadata?.order_id;
+          if (orderId) {
+            const patch: Record<string, unknown> = {
+              status: 'paid',
+              paid_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            };
+            if (session.customer_email) {
+              patch.email = session.customer_email;
+            }
+            const { error: dubErr } = await service
+              .from('dubbing_orders')
+              .update(patch)
+              .eq('id', orderId)
+              .in('status', ['pending_payment', 'paid']);
+            if (dubErr) {
+              console.error('[stripe-webhook] dubbing update failed', dubErr);
+            } else {
+              console.log(
+                `[stripe-webhook] dubbing order=${orderId} → paid (session=${session.id})`
+              );
+            }
+          } else {
+            console.warn(
+              '[stripe-webhook] dubbing session missing order_id',
+              session.id
+            );
+          }
+          break;
+        }
+
         if (session.mode === 'subscription' && session.subscription) {
           const subId =
             typeof session.subscription === 'string'
