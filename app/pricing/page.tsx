@@ -128,7 +128,7 @@ export default async function PricingPage({
             user={user}
             region={region}
             anchorYear={pricing.yearlyAnchor}
-            perMonth={pricing.yearlyPerMonth}
+            perMonth={pricing.yearlyAmount}
             yearTotal={pricing.yearlyAmount}
             savings={pricing.savings}
             savingsPct={pricing.savingsPct}
@@ -245,15 +245,15 @@ function YearlyCard({
               />
             </span>
           </div>
-          <div className="text-sm text-gray-500 mt-1">/ شهر</div>
+          <div className="text-sm text-gray-500 mt-1">/ سنة</div>
         </div>
 
         <p className="text-xs sm:text-sm text-center text-brand-700 font-medium mb-2">
           ☕ أقل من سعر قهوة في اليوم
         </p>
 
-        {/* Total + savings line — anchor = what billing monthly for 12mo
-            would cost, framed against the actual yearly charge. */}
+        {/* Savings line — anchor = what billing monthly for 12mo would
+            cost, framed against the actual yearly charge. */}
         <p className="text-xs sm:text-sm text-center text-gray-700 bg-brand-500/5 border border-brand-500/20 rounded-lg py-2 px-3 mb-5 leading-relaxed">
           * تدفع{' '}
           <span className="font-bold">

@@ -126,8 +126,8 @@ export const OFFLINE_PAYMENTS = {
  * it only fires for real Subscription objects.
  */
 export const STRIPE_PAYMENT_LINKS = {
-  monthly: 'https://buy.stripe.com/4gM7sL5MO3RAgMU1ak53O1J',
-  yearly: 'https://buy.stripe.com/eVq9ATfno87QfIQbOY53O1I',
+  monthly: 'https://buy.stripe.com/eVqaEXfno0Fo408dX653O1H',
+  yearly: 'https://buy.stripe.com/4gM8wPejkafYfIQdX653O1E',
 } as const;
 
 /**

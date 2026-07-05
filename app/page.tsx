@@ -549,17 +549,16 @@ function PricingCard({
       <div className="flex items-baseline gap-2 mb-3">
         <span className="text-5xl font-extrabold font-display">
           <SARMoney
-            value={isYearly ? p.yearlyPerMonth : p.monthlyAmount}
+            value={isYearly ? p.yearlyAmount : p.monthlyAmount}
             symbolClassName="w-[0.55em] h-[0.55em] mx-1"
           />
         </span>
-        <span className="text-gray-500">/ شهر</span>
+        <span className="text-gray-500">{isYearly ? '/ سنة' : '/ شهر'}</span>
       </div>
 
       {isYearly && (
         <p className="text-xs text-brand-700 bg-brand-500/5 border border-brand-500/20 rounded-lg py-2 px-3 mb-5 leading-relaxed">
-          تدفع <SARMoney value={p.yearlyAmount} /> سنوياً — وفّر{' '}
-          <SARMoney value={p.savings} /> ({p.savingsPct}%)
+          وفّر <SARMoney value={p.savings} /> ({p.savingsPct}%) مقابل الدفع الشهري
         </p>
       )}
       {!isYearly && <div className="mb-5 h-[36px]" />}

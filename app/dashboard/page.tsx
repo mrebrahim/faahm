@@ -144,7 +144,7 @@ export default async function DashboardPage() {
               <div>
                 <h3 className="font-bold text-lg mb-1">ابدأ رحلة التعلّم الكاملة</h3>
                 <p className="text-sm text-gray-600">
-                  اشترك دلوقتي واحصل على وصول كامل لكل الكورسات بـ ~$3.33/شهر مع الباقة السنوية
+                  اشترك دلوقتي واحصل على وصول كامل لكل الكورسات بـ $40/سنة مع الباقة السنوية
                 </p>
               </div>
               <Button asChild>

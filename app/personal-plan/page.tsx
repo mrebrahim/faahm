@@ -204,13 +204,13 @@ export default async function PersonalPlanPage() {
               كل ده بـ{' '}
               <span className="font-display text-3xl sm:text-4xl font-extrabold text-brand-700 align-baseline">
                 <SARMoney
-                  value={p.yearlyPerMonth}
+                  value={p.yearlyAmount}
                   symbolClassName="w-[0.6em] h-[0.6em] mx-1"
                 />
               </span>{' '}
-              <span className="text-sm text-gray-500">/ شهر</span>
+              <span className="text-sm text-gray-500">/ سنة</span>
               <span className="block text-[11px] text-gray-400 mt-0.5">
-                <SARMoney value={p.yearlyAmount} /> للسنة كاملة · ضمان 7 أيام
+                وصول كامل لكل الكورسات · ضمان 7 أيام
               </span>
             </div>
             <Button
@@ -982,12 +982,12 @@ function YearlyCard({ p }: { p: ReturnType<typeof pricingFor> }) {
           <div className="flex items-baseline justify-center">
             <span className="text-5xl sm:text-6xl font-extrabold font-display text-foreground">
               <SARMoney
-                value={p.yearlyPerMonth}
+                value={p.yearlyAmount}
                 symbolClassName="w-[0.55em] h-[0.55em] mx-1"
               />
             </span>
           </div>
-          <div className="text-sm text-gray-500 mt-1">/ شهر</div>
+          <div className="text-sm text-gray-500 mt-1">/ سنة</div>
         </div>
         {/* Coffee-a-day anchor — the PRD's anti-dead-zone copy. Turns
             'is 12.5 riyals expensive?' into 'less than a coffee a
