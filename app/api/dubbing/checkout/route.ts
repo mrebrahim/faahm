@@ -34,11 +34,10 @@ export async function POST(req: NextRequest) {
     email?: string;
     whatsapp?: string;
     videoLinks?: string;
-    videoCount?: number | string;
     minutes?: number | string;
     sourceLang?: string;
     targetLang?: string;
-    dialect?: string;
+    dialect?: string | null;
   };
   try {
     body = await req.json();
@@ -51,19 +50,19 @@ export async function POST(req: NextRequest) {
   const whatsapp = (body.whatsapp ?? '').trim();
   const videoLinks = String(body.videoLinks ?? '').trim();
   const links = normaliseLinks(videoLinks);
-  const videoCount = Math.max(
-    1,
-    Math.min(
-      100,
-      typeof body.videoCount === 'number'
-        ? Math.floor(body.videoCount)
-        : parseInt(String(body.videoCount ?? '1'), 10) || 1
-    )
-  );
+  // Derive video count from the number of pasted lines so the merchant
+  // still sees it in Supabase for scheduling, without asking the
+  // customer to type a redundant number.
+  const videoCount = Math.max(1, links.length);
   const minutes = validateMinutes(body.minutes);
   const sourceLang = (body.sourceLang ?? '').trim().slice(0, 60) || null;
   const targetLang = (body.targetLang ?? '').trim().slice(0, 60) || null;
-  const dialect = (body.dialect ?? '').trim().slice(0, 60) || null;
+  // Dialect only matters when the target is Arabic. Any dialect
+  // string arriving with a non-Arabic target is discarded so we don't
+  // stash 'مصري' next to a French dubbing order.
+  const rawDialect = typeof body.dialect === 'string' ? body.dialect.trim() : '';
+  const dialect =
+    targetLang === 'العربية' && rawDialect ? rawDialect.slice(0, 60) : null;
 
   if (!name) {
     return NextResponse.json({ ok: false, error: 'name-required' }, { status: 400 });
@@ -135,7 +134,6 @@ export async function POST(req: NextRequest) {
                 sourceLang ? `من: ${sourceLang}` : null,
                 targetLang ? `إلى: ${targetLang}` : null,
                 dialect ? `اللهجة: ${dialect}` : null,
-                `عدد الفيديوهات: ${videoCount}`,
                 `إجمالي الدقائق: ${minutes}`,
               ]
                 .filter(Boolean)

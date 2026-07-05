@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
   const { data: order, error } = await service
     .from('dubbing_orders')
     .select(
-      'id, name, email, whatsapp, video_count, minutes, source_lang, target_lang, dialect, amount_usd, status, paid_at, created_at'
+      'id, name, email, whatsapp, minutes, source_lang, target_lang, dialect, amount_usd, status, paid_at, created_at'
     )
     .eq('stripe_session_id', sessionId)
     .maybeSingle();

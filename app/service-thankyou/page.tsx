@@ -6,7 +6,6 @@ import {
   MessageCircle,
   Clock,
   Languages,
-  Video,
   ArrowLeft,
 } from 'lucide-react';
 import {
@@ -57,7 +56,7 @@ export default async function ServiceThankyouPage({
   const { data: order } = await service
     .from('dubbing_orders')
     .select(
-      'name, minutes, video_count, source_lang, target_lang, dialect, amount_usd, status'
+      'name, minutes, source_lang, target_lang, dialect, amount_usd, status'
     )
     .eq('stripe_session_id', sessionId)
     .maybeSingle();
@@ -126,9 +125,6 @@ export default async function ServiceThankyouPage({
               {order.dialect ? (
                 <span className="text-gray-500"> · اللهجة: {order.dialect}</span>
               ) : null}
-            </Row>
-            <Row icon={Video} label="عدد الفيديوهات">
-              {order.video_count} فيديو
             </Row>
             <Row icon={Clock} label="إجمالي الدقائق">
               {order.minutes} دقيقة

@@ -4,13 +4,13 @@ import { useMemo, useState } from 'react';
 import {
   ArrowLeft,
   Video,
-  Sparkles,
   Mail,
   User,
   Phone,
   Link as LinkIcon,
   ShieldCheck,
   Loader2,
+  Languages as LanguagesIcon,
 } from 'lucide-react';
 import {
   DUBBING_USD_PER_MINUTE,
@@ -60,13 +60,18 @@ export function DubbingForm() {
   const [email, setEmail] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
   const [links, setLinks] = useState('');
-  const [videoCount, setVideoCount] = useState(1);
   const [minutes, setMinutes] = useState(10);
-  const [sourceLang, setSourceLang] = useState('العربية');
-  const [targetLang, setTargetLang] = useState('الإنجليزية');
-  const [dialect, setDialect] = useState('حسب الطلب');
+  const [sourceLang, setSourceLang] = useState('الإنجليزية');
+  const [targetLang, setTargetLang] = useState('العربية');
+  const [dialect, setDialect] = useState('مصري');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Dialect only makes sense when the customer is dubbing INTO
+  // Arabic — an English-to-French job doesn't need an Arabic
+  // dialect picker. When target isn't Arabic we drop the field
+  // entirely and clear the state so it doesn't ride along.
+  const needsDialect = targetLang === 'العربية';
 
   const clampedMinutes = Math.max(
     DUBBING_MIN_MINUTES,
@@ -81,7 +86,8 @@ export function DubbingForm() {
     isEmailish(email) &&
     whatsapp.trim().length > 0 &&
     validLinks &&
-    clampedMinutes >= DUBBING_MIN_MINUTES;
+    clampedMinutes >= DUBBING_MIN_MINUTES &&
+    (!needsDialect || dialect.trim().length > 0);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -97,11 +103,10 @@ export function DubbingForm() {
           email: email.trim(),
           whatsapp: whatsapp.trim(),
           videoLinks: links,
-          videoCount,
           minutes: clampedMinutes,
           sourceLang,
           targetLang,
-          dialect,
+          dialect: needsDialect ? dialect : null,
         }),
       });
       const data = (await resp.json()) as {
@@ -124,22 +129,28 @@ export function DubbingForm() {
 
   return (
     <form onSubmit={submit} className="space-y-6">
-      {/* Language pickers */}
+      {/* Language pickers. Dialect only surfaces when the target
+          language is Arabic — otherwise it's an English-to-French
+          job and there's no Arabic dialect to pick. */}
       <section className="rounded-2xl border border-gray-200 bg-white p-5 sm:p-6 space-y-4">
         <h2 className="font-display text-lg font-extrabold flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-brand-600" />
-          اللغة واللهجة
+          <LanguagesIcon className="w-4 h-4 text-brand-600" />
+          اللغة {needsDialect && 'واللهجة'}
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div
+          className={`grid grid-cols-1 gap-4 ${needsDialect ? 'sm:grid-cols-3' : 'sm:grid-cols-2'}`}
+        >
           <Field label="من لغة">
             <Select value={sourceLang} onChange={setSourceLang} options={LANGUAGES} />
           </Field>
           <Field label="إلى لغة">
             <Select value={targetLang} onChange={setTargetLang} options={LANGUAGES} />
           </Field>
-          <Field label="اللهجة">
-            <Select value={dialect} onChange={setDialect} options={DIALECTS} />
-          </Field>
+          {needsDialect && (
+            <Field label="اللهجة (مطلوبة للعربي)">
+              <Select value={dialect} onChange={setDialect} options={DIALECTS} />
+            </Field>
+          )}
         </div>
       </section>
 
@@ -175,18 +186,6 @@ export function DubbingForm() {
               placeholder="+201xxxxxxxxx"
               dir="ltr"
               icon={<Phone className="w-4 h-4" />}
-            />
-          </Field>
-          <Field label="عدد الفيديوهات">
-            <TextIn
-              value={String(videoCount)}
-              onChange={(v) => {
-                const n = Math.max(1, Math.min(100, parseInt(v, 10) || 1));
-                setVideoCount(n);
-              }}
-              type="number"
-              dir="ltr"
-              icon={<Video className="w-4 h-4" />}
             />
           </Field>
         </div>
