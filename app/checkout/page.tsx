@@ -41,7 +41,7 @@ const isPlan = (v: unknown): v is PlanId => v === 'monthly' || v === 'yearly';
 export default async function CheckoutPage({
   searchParams,
 }: {
-  searchParams: { plan?: string; eg?: string };
+  searchParams: { plan?: string };
 }) {
   const planParam = searchParams.plan;
   if (!isPlan(planParam)) {
@@ -49,19 +49,8 @@ export default async function CheckoutPage({
   }
   const plan = PLANS[planParam];
 
-  // Single-currency funnel: SAR everywhere. The Region machinery still
-  // lives in /lib for future flexibility, but every checkout / Stripe
-  // call here is locked to 'sa' so display + collection stay in riyals.
+  // Single-currency funnel — every visitor sees USD via pricingFor('us').
   const pricing = pricingFor('us');
-
-  // PRD §3.1: target market is Saudi. Showing 'تحويل من بنك مصري' to a
-  // Saudi visitor at the payment step is a documented cause of bounce —
-  // they read 'مصري' and assume they hit the wrong country. Default to
-  // SA-only methods (Visa/Mastercard/Apple Pay/PayPal/Barq); the EGP
-  // rail stays accessible behind a small 'أنا من مصر' link that flips
-  // ?eg=1 in the URL. No-one in Saudi sees the Egyptian options unless
-  // they explicitly ask for them.
-  const showEgyptian = searchParams.eg === '1';
 
   // Guest checkout: we no longer redirect anonymous visitors to /signup.
   // Logged-in users still get their email baked into all the payment
@@ -283,32 +272,14 @@ export default async function CheckoutPage({
                 subtitle="تحويل من حسابك السعودي"
               />
 
-              {/* 4. Egyptian combo — InstaPay + Vodafone Cash (EGP). PRD
-                  §3.1: hidden by default because the target market is
-                  Saudi and showing 'مصري' here was a bounce trigger.
-                  Surfaced only behind the small 'أنا من مصر' link below
-                  (?eg=1), so any visitor who genuinely needs it can
-                  still get to it in one tap. */}
-              {showEgyptian && (
-                <PaymentMethod
-                  href={`/offline/egp?plan=${planParam}${emailQs}`}
-                  icon={Smartphone}
-                  title="من مصر — InstaPay أو Vodafone Cash"
-                  subtitle="تحويل فوري بالجنيه المصري"
-                />
-              )}
+              {/* 4. Egyptian combo — InstaPay + Vodafone Cash (EGP). */}
+              <PaymentMethod
+                href={`/offline/egp?plan=${planParam}${emailQs}`}
+                icon={Smartphone}
+                title="من مصر — InstaPay أو Vodafone Cash"
+                subtitle="تحويل فوري بالجنيه المصري"
+              />
             </div>
-
-            {!showEgyptian && (
-              <div className="text-center mt-3">
-                <Link
-                  href={`?plan=${planParam}&eg=1`}
-                  className="text-[11px] text-gray-400 hover:text-gray-600 underline underline-offset-2"
-                >
-                  أنا من مصر — عرض InstaPay / Vodafone Cash
-                </Link>
-              </div>
-            )}
 
             {/* Trust strip — replaces the WhatsApp button that used to
                 live floating in this corner. The PRD's #1 distraction
