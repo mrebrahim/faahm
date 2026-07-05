@@ -8,11 +8,13 @@ const GUEST_EMAIL_COOKIE = 'guest_checkout_email';
 /**
  * Subscription checkout entry point. Instead of calling the Stripe API
  * to mint a Checkout Session, we redirect straight to the pre-built
- * Stripe Payment Link for the chosen plan. The Payment Link is wired
- * to the SAR-priced recurring price in Stripe Dashboard, so the
- * visitor lands on the right currency without us having to manage
- * STRIPE_PRICE_ID_* env vars at runtime. Subscription activation
- * still rides on the existing webhook handler at /api/stripe/webhook.
+ * Stripe Payment Link for the chosen plan. Each Payment Link MUST be
+ * a subscription Payment Link (mode=subscription) wired to a recurring
+ * USD price in Stripe Dashboard — $10/month with interval=month for
+ * the monthly plan, $40/year with interval=year for the yearly plan.
+ * Stripe then charges the card automatically at the interval; renewals
+ * arrive here via 'customer.subscription.updated' + 'invoice.payment_
+ * succeeded' webhooks handled by /api/stripe/webhook.
  *
  *   GET /api/checkout?plan=monthly|yearly[&email=user@example.com]
  *

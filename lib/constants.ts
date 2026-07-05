@@ -111,12 +111,19 @@ export const OFFLINE_PAYMENTS = {
 } as const;
 
 /**
- * Stripe-hosted Payment Links for the SAR funnel. These are pre-built
- * subscription checkouts created in Stripe Dashboard with SAR-priced
- * recurring prices baked in — we just redirect the visitor to them
- * with prefilled_email so they land on the right currency without us
- * having to call the Stripe API ourselves. Subscription activation
- * still rides on the existing Stripe webhook.
+ * Stripe-hosted Payment Links for the USD funnel. Each one MUST be a
+ * SUBSCRIPTION Payment Link (mode=subscription) attached to a
+ * RECURRING Price in Stripe Dashboard:
+ *   - monthly link → $10 USD price, billing_scheme=per_unit,
+ *     recurring={interval:'month', interval_count:1}
+ *   - yearly  link → $40 USD price, billing_scheme=per_unit,
+ *     recurring={interval:'year',  interval_count:1}
+ * If you swap either for a one-time (mode=payment) Payment Link, Stripe
+ * will charge the card once and NEVER auto-renew — the customer will
+ * silently lose access after a month/year with no renewal invoice.
+ * The webhook below (case 'customer.subscription.updated' / '.deleted'
+ * and 'invoice.payment_succeeded') already handles renewals & cancels;
+ * it only fires for real Subscription objects.
  */
 export const STRIPE_PAYMENT_LINKS = {
   monthly: 'https://buy.stripe.com/4gM7sL5MO3RAgMU1ak53O1J',
