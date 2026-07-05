@@ -17,6 +17,7 @@ import {
   Ticket,
   TrendingUp,
   Inbox,
+  Video,
 } from 'lucide-react';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -68,6 +69,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             )}
             <NavLink href="/admin/payments" icon={CreditCard}>المدفوعات</NavLink>
             <NavLink href="/admin/subscriptions" icon={CreditCard}>الاشتراكات</NavLink>
+            <NavLink href="/admin/dubbing" icon={Video}>طلبات الدبلجة</NavLink>
             <NavLink href="/admin/coupons" icon={Ticket}>الكوبونات</NavLink>
           </NavSection>
 
