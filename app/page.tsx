@@ -179,6 +179,15 @@ export default async function HomePage({
                 <CourseCard key={course.id} course={course} />
               ))}
             </div>
+
+            <div className="mt-10 text-center">
+              <Button asChild size="lg" variant="outline">
+                <Link href={ROUTES.courses}>
+                  عرض كل الكورسات
+                  <ArrowLeft className="w-4 h-4" />
+                </Link>
+              </Button>
+            </div>
           </div>
         </section>
       )}
