@@ -253,29 +253,46 @@ function MobilePanel({
             </span>
           </Link>
 
-          <div className="pt-2 pb-1 text-[11px] font-bold uppercase tracking-wider text-gray-400 px-3">
-            الاختبارات
-          </div>
-          {TESTS.map((t) => (
-            <Link
-              key={t.href}
-              href={t.href}
-              onClick={onClose}
-              className="flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors"
-            >
-              <span
-                className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${t.iconBg}`}
-              >
-                <t.icon className={`w-4.5 h-4.5 ${t.iconColor}`} />
+          {/* Tests — collapsible toggle instead of the previous
+              expanded card list. The 8 assessment cards were burying
+              the primary nav items below the fold on a phone;
+              wrapping them in a <details> gives us a free
+              open/close chevron with zero JS. */}
+          <details className="group rounded-xl border border-gray-100">
+            <summary className="flex items-center justify-between gap-3 p-3 cursor-pointer list-none text-sm font-medium text-gray-700">
+              <span className="flex items-center gap-2">
+                <span>الاختبارات</span>
+                <span className="text-[10px] font-bold text-gray-400">
+                  {TESTS.length}
+                </span>
               </span>
-              <div className="min-w-0">
-                <div className="font-bold text-sm text-foreground">{t.title}</div>
-                <div className="text-xs text-gray-500 mt-0.5 leading-relaxed">
-                  {t.subtitle}
-                </div>
-              </div>
-            </Link>
-          ))}
+              <ChevronDown className="w-4 h-4 text-gray-400 transition-transform group-open:rotate-180" />
+            </summary>
+            <div className="px-1 pb-2 space-y-0.5 border-t border-gray-100">
+              {TESTS.map((t) => (
+                <Link
+                  key={t.href}
+                  href={t.href}
+                  onClick={onClose}
+                  className="flex items-start gap-3 p-2.5 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <span
+                    className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${t.iconBg}`}
+                  >
+                    <t.icon className={`w-4 h-4 ${t.iconColor}`} />
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-bold text-sm text-foreground leading-tight">
+                      {t.title}
+                    </div>
+                    <div className="text-[11px] text-gray-500 mt-0.5 leading-snug">
+                      {t.subtitle}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </details>
 
           <div className="pt-2 pb-1 text-[11px] font-bold uppercase tracking-wider text-gray-400 px-3">
             عام
