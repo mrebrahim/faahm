@@ -222,6 +222,64 @@ export default async function HomePage({
         </div>
       </section>
 
+      {/* ========== SERVICE: DUBBING ========== */}
+      <section className="relative px-4 py-20 border-t border-gray-200 bg-gradient-to-br from-brand-500/8 via-white to-white overflow-hidden">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -top-32 right-1/4 w-[500px] h-[500px] rounded-full bg-brand-500/10 blur-[120px]"
+        />
+        <div className="container mx-auto max-w-4xl relative">
+          <div className="rounded-3xl border border-brand-500/30 bg-white shadow-2xl shadow-brand-500/10 p-6 sm:p-10 grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-10 items-center">
+            <div className="lg:col-span-3 text-center lg:text-start">
+              <div className="inline-flex items-center gap-2 px-3 py-1 mb-4 rounded-full bg-brand-500/10 border border-brand-500/30 text-[11px] font-extrabold uppercase tracking-wider text-brand-700">
+                🎬 خدمة جديدة
+              </div>
+              <h2
+                className="font-display font-extrabold leading-[1.15] mb-3 text-balance"
+                style={{ fontSize: 'clamp(1.5rem, 5vw, 2.5rem)' }}
+              >
+                دبلج{' '}
+                <span className="text-gradient-brand">أي فيديو</span> لأي لغة
+              </h2>
+              <p className="text-sm sm:text-base text-gray-600 leading-relaxed mb-5 max-w-xl">
+                ارفعلنا لينك فيديوك، اختار من لغة لأي لغة وأي لهجة، ادفع بالدقيقة،
+                واستلم الدبلجة في وقتها. أسرع، أرخص، وبدون تعقيدات.
+              </p>
+              <div className="flex flex-wrap gap-x-4 gap-y-2 mb-6 text-xs text-gray-600 justify-center lg:justify-start">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-500" />
+                  $2 للدقيقة
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-500" />
+                  دفع أونلاين
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-500" />
+                  ميعاد تسليم فوري
+                </span>
+              </div>
+              <Button asChild size="lg" className="font-bold min-h-[52px] w-full sm:w-auto">
+                <Link href="/video-dubbing">
+                  دبلج فيديوك دلوقتي
+                  <ArrowLeft className="w-4 h-4" />
+                </Link>
+              </Button>
+            </div>
+            <div className="lg:col-span-2 order-first lg:order-last">
+              <div className="relative aspect-square max-w-[240px] mx-auto rounded-3xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-2xl shadow-brand-500/30">
+                <span className="text-8xl sm:text-9xl select-none" aria-hidden>
+                  🎬
+                </span>
+                <span className="absolute -top-3 -end-3 bg-white text-brand-700 rounded-full px-3 py-1 text-xs font-extrabold shadow-lg border border-brand-500/30">
+                  🌍 أي لغة
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ========== COMING SOON: ذكاء لايف ========== */}
       <section className="relative px-4 py-20 border-t border-gray-200 bg-gradient-to-br from-gray-50 via-white to-brand-50/30 overflow-hidden">
         {/* Background decorative elements */}

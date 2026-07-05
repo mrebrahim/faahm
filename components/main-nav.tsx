@@ -90,6 +90,16 @@ export function MainNav({
           <Link href={ROUTES.pricing} className="hover:text-foreground transition-colors">
             الأسعار
           </Link>
+          <Link
+            href="/video-dubbing"
+            className="inline-flex items-center gap-1.5 text-brand-700 hover:text-brand-800 font-bold transition-colors"
+          >
+            <span className="text-base leading-none">🎬</span>
+            دبلج فيديو
+            <span className="text-[10px] font-extrabold uppercase tracking-wide bg-brand-500 text-white rounded-full px-1.5 py-0.5">
+              جديد
+            </span>
+          </Link>
           <div className="relative" ref={testsRef}>
             <button
               type="button"
@@ -231,6 +241,17 @@ function MobilePanel({
         <div className="p-4 space-y-1">
           <MobileLink href={ROUTES.courses} label="الكورسات" onClick={onClose} />
           <MobileLink href={ROUTES.pricing} label="الأسعار" onClick={onClose} />
+          <Link
+            href="/video-dubbing"
+            onClick={onClose}
+            className="flex items-center gap-2 p-3 rounded-xl bg-brand-500/10 hover:bg-brand-500/15 text-brand-700 font-bold text-sm transition-colors"
+          >
+            <span className="text-lg">🎬</span>
+            دبلج فيديو لأي لغة
+            <span className="ms-auto text-[10px] font-extrabold uppercase tracking-wide bg-brand-500 text-white rounded-full px-1.5 py-0.5">
+              جديد
+            </span>
+          </Link>
 
           <div className="pt-2 pb-1 text-[11px] font-bold uppercase tracking-wider text-gray-400 px-3">
             الاختبارات
