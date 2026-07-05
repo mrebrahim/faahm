@@ -5,22 +5,24 @@ import { useEffect, useState } from 'react';
 
 /**
  * Floating WhatsApp button — opens wa.me with a context-aware
- * pre-filled message:
+ * pre-filled message. Route-scoped so the admin gets a message
+ * that already says WHY the visitor is writing:
  *
- *   - On /course/<slug>: "اريد الاستفسار عن كورس <name>" — the course
- *     name is pulled off `document.title` after metadata applies, so
- *     visitors who hit the WhatsApp button from inside a course page
- *     land in a conversation already scoped to that course (and the
- *     admin can answer without a back-and-forth on "أي كورس؟").
- *   - Anywhere else: the generic enquiry message.
+ *   - /course/<slug>       "اريد الاستفسار عن كورس <name>" (course
+ *                          name lifted from document.title)
+ *   - /video-dubbing       "اريد الاستفسار عن دبلجة الفيديوهات
+ *                          وترجمتها الى اي لغة"
+ *   - everything else      generic enquiry
  *
  * Hidden inside the checkout funnel (/checkout, /billing/success,
  * /offline/*) because tapping it on a phone hard-exits Safari to the
- * WhatsApp app — the classic "I'll do it later" exit that's worth ~25%
- * of cart-abandonment per Baymard's 2025 funnel report.
+ * WhatsApp app — the classic "I'll do it later" exit that's worth
+ * ~25% of cart-abandonment per Baymard's 2025 funnel report.
  */
 const WHATSAPP_PHONE = '201027555789';
 const DEFAULT_MESSAGE = 'اريد الاستفسار عن كورسات الذكاء الاصطناعي';
+const DUBBING_MESSAGE =
+  'اريد الاستفسار عن دبلجة الفيديوهات وترجمتها الى اي لغة';
 
 const HIDDEN_PREFIXES = ['/checkout', '/billing', '/offline'];
 
@@ -48,9 +50,12 @@ export function WhatsAppButton() {
     return null;
   }
 
+  const isDubbing = pathname.startsWith('/video-dubbing');
   const message = courseTitle
     ? `اريد الاستفسار عن كورس ${courseTitle}`
-    : DEFAULT_MESSAGE;
+    : isDubbing
+      ? DUBBING_MESSAGE
+      : DEFAULT_MESSAGE;
   const href = `https://wa.me/${WHATSAPP_PHONE}?text=${encodeURIComponent(message)}`;
 
   return (
@@ -59,7 +64,11 @@ export function WhatsAppButton() {
       target="_blank"
       rel="noopener noreferrer"
       aria-label={
-        courseTitle ? `استفسار عن كورس ${courseTitle} عبر واتساب` : 'تواصل معنا عبر واتساب'
+        courseTitle
+          ? `استفسار عن كورس ${courseTitle} عبر واتساب`
+          : isDubbing
+            ? 'استفسار عن دبلجة الفيديوهات عبر واتساب'
+            : 'تواصل معنا عبر واتساب'
       }
       className="fixed bottom-5 right-5 z-50 flex h-11 w-11 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg shadow-black/20 transition hover:scale-110 hover:bg-[#1ebe5b] focus:outline-none focus:ring-2 focus:ring-[#25D366] focus:ring-offset-2"
     >
