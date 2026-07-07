@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { requireAdmin, isSuperAdmin } from '@/lib/admin-guard';
 import { auditLog } from '@/lib/admin-audit';
 import { DeletePaymentButton } from '../delete-payment-button';
+import { updatePayment } from '../actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,6 +18,7 @@ import {
   RefreshCcw,
   StickyNote,
   User as UserIcon,
+  Pencil,
 } from 'lucide-react';
 
 export const metadata = { title: 'تفاصيل دفعة — إدارة فاهم!' };
@@ -128,7 +130,9 @@ export default async function PaymentDetailPage({
               ? 'تم حفظ الملاحظة.'
               : searchParams.success === 'refund_recorded'
                 ? 'تم تسجيل الاسترداد.'
-                : 'تم.'
+                : searchParams.success === 'payment_updated'
+                  ? 'تم تعديل الدفعة.'
+                  : 'تم.'
           }
         />
       )}
@@ -169,6 +173,112 @@ export default async function PaymentDetailPage({
               </span>
             </Row>
           </Card>
+
+          {/* Super-admin edit form: correct wrongly-recorded amount /
+              status / gateway reference. Not for real business changes
+              (a refund still uses the refund form below). */}
+          {canDelete && (
+            <Card title="تعديل الدفعة (سوبر أدمن)">
+              <details>
+                <summary className="text-sm font-medium text-brand-600 cursor-pointer">
+                  <Pencil className="w-4 h-4 inline-block ms-1" /> عرض نموذج التعديل
+                </summary>
+                <div className="mt-3 p-3 rounded-lg border border-amber-200 bg-amber-50 text-xs text-amber-900 mb-4">
+                  ⚠ التعديل ده بيغيّر السجل نفسه في قاعدة البيانات. استخدمه
+                  لو الدفعة اتسجّلت بمبلغ غلط أو ببوابة غلط. لو محتاج ترجّع
+                  فلوس للعميل استخدم "تسجيل استرداد يدوي" تحت.
+                </div>
+                <form action={updatePayment} className="space-y-3 text-sm">
+                  <input type="hidden" name="payment_id" value={payment.id} />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label htmlFor="edit_amount">المبلغ (بالوحدة الأساسية)</Label>
+                      <Input
+                        id="edit_amount"
+                        name="amount"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        defaultValue={((payment.amount_cents || 0) / 100).toFixed(2)}
+                        dir="ltr"
+                        required
+                      />
+                      <p className="text-[11px] text-gray-500">
+                        مثلاً 10.00 يعني ١٠ دولار. المبلغ بيتحوّل تلقائي لـ cents.
+                      </p>
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="edit_currency">العملة</Label>
+                      <select
+                        id="edit_currency"
+                        name="currency"
+                        defaultValue={payment.currency || 'USD'}
+                        className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                        dir="ltr"
+                      >
+                        <option value="USD">USD</option>
+                        <option value="EGP">EGP</option>
+                        <option value="SAR">SAR</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="edit_status">الحالة</Label>
+                      <select
+                        id="edit_status"
+                        name="status"
+                        defaultValue={payment.status}
+                        className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                      >
+                        <option value="paid">مدفوع (paid)</option>
+                        <option value="pending">معلّق (pending)</option>
+                        <option value="failed">فشل (failed)</option>
+                        <option value="refunded">مسترد (refunded)</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="edit_gateway">البوابة</Label>
+                      <select
+                        id="edit_gateway"
+                        name="gateway"
+                        defaultValue={payment.gateway}
+                        className="flex h-10 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                        dir="ltr"
+                      >
+                        <option value="stripe">stripe</option>
+                        <option value="paypal">paypal</option>
+                        <option value="paymob">paymob</option>
+                        <option value="manual">manual</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="edit_gateway_payment_id">معرّف البوابة</Label>
+                      <Input
+                        id="edit_gateway_payment_id"
+                        name="gateway_payment_id"
+                        defaultValue={payment.gateway_payment_id || ''}
+                        dir="ltr"
+                        placeholder="pi_… / ch_… / …"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label htmlFor="edit_gateway_order_id">رقم الطلب</Label>
+                      <Input
+                        id="edit_gateway_order_id"
+                        name="gateway_order_id"
+                        defaultValue={payment.gateway_order_id || ''}
+                        dir="ltr"
+                        placeholder="اختياري"
+                      />
+                    </div>
+                  </div>
+                  <Button type="submit">
+                    <Pencil className="w-4 h-4" />
+                    حفظ التعديلات
+                  </Button>
+                </form>
+              </details>
+            </Card>
+          )}
 
           {/* Subscription */}
           {subscription && (
