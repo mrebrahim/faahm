@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireAdmin } from '@/lib/admin-guard';
+import { requireAdmin, isSuperAdmin } from '@/lib/admin-guard';
 import { auditLog } from '@/lib/admin-audit';
+import { DeletePaymentButton } from '../delete-payment-button';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,6 +29,7 @@ export default async function PaymentDetailPage({
   searchParams: { success?: string; error?: string };
 }) {
   const ctx = await requireAdmin();
+  const canDelete = isSuperAdmin(ctx.userEmail);
   const service = createServiceClient();
 
   const { data: payment } = await service
@@ -305,6 +307,25 @@ export default async function PaymentDetailPage({
                 </pre>
               </details>
             </Card>
+          )}
+
+          {/* Super-admin danger zone: hard-delete the payment row.
+              Reserved for entries that shouldn't exist at all (recorded
+              by mistake). NOT for refunds — use the refund form above. */}
+          {canDelete && (
+            <section className="rounded-2xl border-2 border-rose-200 bg-rose-50 p-5">
+              <h2 className="font-bold text-rose-800 mb-1">منطقة الخطر (سوبر أدمن)</h2>
+              <p className="text-xs text-rose-700 mb-4 leading-relaxed">
+                لو الدفعة دي اتسجّلت غلط وعايز تشيلها من قاعدة البيانات نهائي،
+                استخدم الزر ده. <strong>مش هترجع تاني</strong>. لو محتاج ترجّع
+                فلوس للعميل استخدم "تسجيل استرداد يدوي" فوق بدل ما تحذف.
+              </p>
+              <DeletePaymentButton
+                paymentId={payment.id}
+                redirectTo={`/admin/payments/${payment.id}`}
+                size="lg"
+              />
+            </section>
           )}
 
           {/* Timeline */}

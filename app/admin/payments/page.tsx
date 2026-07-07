@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireAdmin } from '@/lib/admin-guard';
+import { requireAdmin, isSuperAdmin } from '@/lib/admin-guard';
 import { auditLog } from '@/lib/admin-audit';
+import { DeletePaymentButton } from './delete-payment-button';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -35,6 +36,8 @@ type SearchParams = {
   status?: string;
   gateway?: string;
   page?: string;
+  success?: string;
+  error?: string;
 };
 
 const PAGE_SIZE = 50;
@@ -45,6 +48,7 @@ export default async function PaymentsPage({
   searchParams: SearchParams;
 }) {
   const ctx = await requireAdmin();
+  const showDelete = isSuperAdmin(ctx.userEmail);
   void auditLog(ctx, {
     action: 'payments.list_viewed',
     metadata: { filters: searchParams },
@@ -153,6 +157,17 @@ export default async function PaymentsPage({
           </Link>
         </Button>
       </div>
+
+      {searchParams.success === 'payment_deleted' && (
+        <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-800">
+          ✅ اتحذفت الدفعة بنجاح.
+        </div>
+      )}
+      {searchParams.error && (
+        <div className="mb-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-2 text-sm text-rose-800">
+          ⚠️ {decodeURIComponent(searchParams.error)}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <Kpi icon={CreditCard} label="إيرادات اليوم" value={`$${todayUsd.toFixed(2)}`} />
@@ -273,9 +288,12 @@ export default async function PaymentsPage({
                     </span>
                   </Td>
                   <Td>
-                    <Button asChild variant="ghost" size="sm">
-                      <Link href={`/admin/payments/${p.id}`}>تفاصيل</Link>
-                    </Button>
+                    <div className="inline-flex items-center gap-1">
+                      <Button asChild variant="ghost" size="sm">
+                        <Link href={`/admin/payments/${p.id}`}>تفاصيل</Link>
+                      </Button>
+                      {showDelete && <DeletePaymentButton paymentId={p.id} />}
+                    </div>
                   </Td>
                 </tr>
               ))}

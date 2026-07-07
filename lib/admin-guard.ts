@@ -18,6 +18,31 @@ export const ADMIN_ROLES = new Set([
 export const FINANCE_ROLES = new Set(['admin', 'super_admin', 'billing_admin']);
 
 /**
+ * Super-admin allow-list — hardcoded emails plus an optional comma-separated
+ * SUPER_ADMIN_EMAILS env var for adding without a code push. Super admins get
+ * DESTRUCTIVE actions the normal 'admin' role is deliberately locked out of
+ * (e.g. hard-deleting a mistakenly-recorded payment row). Keep this list
+ * SHORT — one or two people who own the money surface.
+ */
+const HARDCODED_SUPER_ADMIN_EMAILS = ['ibrahim@digitalsolutionegy.com'];
+
+function loadSuperAdminEmails(): Set<string> {
+  const fromEnv = (process.env.SUPER_ADMIN_EMAILS || '')
+    .split(',')
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean);
+  return new Set([
+    ...HARDCODED_SUPER_ADMIN_EMAILS.map((e) => e.toLowerCase()),
+    ...fromEnv,
+  ]);
+}
+
+export function isSuperAdmin(email: string | null | undefined): boolean {
+  if (!email) return false;
+  return loadSuperAdminEmails().has(email.toLowerCase());
+}
+
+/**
  * /admin sub-paths that show aggregated revenue / profit dashboards.
  * Moderators are blocked from these but keep access to operational
  * money-adjacent pages (payments list, subscriptions, coupons).
@@ -98,6 +123,24 @@ export async function requireFinanceAdmin(): Promise<AuditContext> {
       action: 'admin.access_denied',
       result: 'failure',
       metadata: { reason: 'role_cannot_view_finance' },
+    });
+    redirect('/admin');
+  }
+  return ctx;
+}
+
+/**
+ * Same as requireAdmin but also rejects any admin who isn't in the super-admin
+ * allow-list. Use on destructive operations (delete a payment, wipe a row)
+ * that a normal 'admin' role must NOT be able to run.
+ */
+export async function requireSuperAdmin(): Promise<AuditContext> {
+  const ctx = await requireAdmin();
+  if (!isSuperAdmin(ctx.userEmail)) {
+    void auditLog(ctx, {
+      action: 'admin.access_denied',
+      result: 'failure',
+      metadata: { reason: 'not_super_admin' },
     });
     redirect('/admin');
   }
