@@ -6,7 +6,6 @@ import { PAYPAL, PLANS, type PlanId } from '@/lib/constants';
 import { fetchSubscription } from '@/lib/paypal';
 import { ensureUserForEmail } from '@/lib/billing';
 import { trackServerEvent } from '@/lib/tracking';
-import { pricingFor } from '@/lib/region';
 
 const GUEST_EMAIL_COOKIE = 'guest_checkout_email';
 
@@ -96,6 +95,16 @@ export async function activatePayPalSubscription(
 
   // --- 3. Persist subscription + payment -----------------------------------
   const planInfo = PLANS[plan];
+  // Actual amount charged depends on which yearly plan_id PayPal used —
+  // the merchant switches between yearly_mid ($80) and yearly_deep ($40)
+  // based on the day-of-month. Read it off the sub so the payments row
+  // reflects the true charge, not the constants.ts default.
+  const actualAmountCents =
+    plan === 'yearly'
+      ? sub.plan_id === PAYPAL.plans.yearly_mid
+        ? 8000
+        : 4000
+      : planInfo.priceCents;
   const now = new Date();
   const periodEnd = sub.billing_info?.next_billing_time
     ? new Date(sub.billing_info.next_billing_time)
@@ -121,7 +130,7 @@ export async function activatePayPalSubscription(
 
   await service.from('payments').insert({
     user_id: userId,
-    amount_cents: planInfo.priceCents,
+    amount_cents: actualAmountCents,
     currency: planInfo.currency,
     gateway: 'paypal',
     status: 'paid',
@@ -139,13 +148,12 @@ export async function activatePayPalSubscription(
   const ipChain = h.get('x-forwarded-for') ?? '';
   const ipAddress = ipChain.split(',')[0]?.trim() || h.get('x-real-ip') || null;
   const eventId = `purchase-paypal-${subscriptionId}`;
-  // Report the SAR amount the visitor actually paid, not the legacy
-  // USD figure baked into PLANS — see /billing/success for the same
-  // reasoning. Meta + TikTok bid optimisation use this value.
-  const saPricing = pricingFor('us');
-  const trackingValue = Number(
-    plan === 'yearly' ? saPricing.yearlyAmount : saPricing.monthlyAmount
-  );
+  // Report the exact USD amount PayPal actually charged (tier-dependent
+  // for yearly). Reading pricingFor() here would be wrong on the tier
+  // boundary — the visitor could have subscribed to yearly_mid at 23:59
+  // of day 20 and land here at 00:01 of day 21 (deep tier). Use the
+  // authoritative amount computed above from sub.plan_id instead.
+  const trackingValue = actualAmountCents / 100;
   void trackServerEvent({
     eventName: 'Purchase',
     eventId,

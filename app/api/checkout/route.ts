@@ -12,7 +12,8 @@ const GUEST_EMAIL_COOKIE = 'guest_checkout_email';
  * Stripe Payment Link for the chosen plan. Each Payment Link MUST be
  * a subscription Payment Link (mode=subscription) wired to a recurring
  * USD price in Stripe Dashboard — $10/month with interval=month for
- * the monthly plan, $40/year with interval=year for the yearly plan.
+ * the monthly plan, and TWO yearly links ($80 mid + $40 deep) that swap
+ * based on the promo tier live at request time.
  * Stripe then charges the card automatically at the interval; renewals
  * arrive here via 'customer.subscription.updated' + 'invoice.payment_
  * succeeded' webhooks handled by /api/stripe/webhook.

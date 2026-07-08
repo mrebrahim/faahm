@@ -163,8 +163,8 @@ export default async function BillingSuccessPage({
     const plan = subscription.plan as 'monthly' | 'yearly';
     const planInfo = PLANS[plan];
     // Tracking value must match what the visitor actually paid — every
-    // subscription on this site is priced in USD ($10 / $40) via the
-    // pricingFor('us') helper.
+    // subscription on this site is priced in USD (monthly $10, yearly
+    // $80 mid / $40 deep) via the pricingFor('us') helper.
     const saPricing = pricingFor('us');
     const trackingValue = Number(
       plan === 'yearly' ? saPricing.yearlyAmount : saPricing.monthlyAmount

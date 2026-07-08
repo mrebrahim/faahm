@@ -21,13 +21,14 @@ export const dynamic = 'force-dynamic';
  *    catches the "best deal" before scanning the monthly comparison.
  *  - Yearly headline price is shown as a per-month figure (40÷12 ≈ 3.33)
  *    to remove the sticker shock of the annual total — the small print
- *    underneath spells out the real $40/year charge.
- *  - Yearly card carries an anchored $5/month strikethrough that
- *    establishes the comparison price BEFORE the $3.33 figure is shown.
+ *    underneath spells out the real yearly charge (tier-dependent).
+ *  - Yearly card carries an anchored $120/year strikethrough that
+ *    establishes the list price BEFORE the current-tier figure is shown.
  *  - Monthly card is intentionally neutral (gray/dark CTA) so it works
  *    as a comparison anchor rather than a competing call-to-action.
- *  Real price ($40/year) and the Stripe Price IDs are unchanged — only
- *  the way the deal is presented changes.
+ *  Real price switches by tier via pricingFor('us') → getPromoState():
+ *  MID ($80) on days 6-20, DEEP ($40) on days 21-5. Stripe Payment Links
+ *  and PayPal plan IDs both flip at the same boundary.
  */
 export default async function PricingPage({
   searchParams,
