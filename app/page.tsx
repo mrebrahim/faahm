@@ -549,7 +549,7 @@ function PricingCard({
         {isYearly ? 'الاشتراك السنوي' : 'الاشتراك الشهري'}
       </h3>
 
-      {isYearly && (
+      {isYearly && p.promoActive && (
         <div className="text-sm text-gray-400 line-through font-medium mb-1">
           <SARMoney value={p.yearlyAnchor} />/سنة
         </div>
@@ -565,12 +565,12 @@ function PricingCard({
         <span className="text-gray-500">{isYearly ? '/ سنة' : '/ شهر'}</span>
       </div>
 
-      {isYearly && (
+      {isYearly && p.promoActive && (
         <p className="text-xs text-brand-700 bg-brand-500/5 border border-brand-500/20 rounded-lg py-2 px-3 mb-5 leading-relaxed">
-          وفّر <SARMoney value={p.savings} /> ({p.savingsPct}%) مقابل الدفع الشهري
+          وفّر <SARMoney value={p.savings} /> ({p.savingsPct}%) لفترة محدودة
         </p>
       )}
-      {!isYearly && <div className="mb-5 h-[36px]" />}
+      {(!isYearly || !p.promoActive) && <div className="mb-5 h-[36px]" />}
 
       <ul className="space-y-3 mb-8">
         {isYearly ? (

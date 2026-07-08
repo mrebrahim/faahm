@@ -5,6 +5,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { applyPendingInvitesForCurrentUser } from '@/lib/invites';
 import { Button } from '@/components/ui/button';
 import { ROUTES, APP_NAME } from '@/lib/constants';
+import { pricingFor } from '@/lib/region';
 import {
   BookOpen,
   Award,
@@ -82,6 +83,7 @@ export default async function DashboardPage() {
 
   const hasSubscription = !!subscription;
   const isAdmin = profile?.role === 'admin';
+  const pricing = pricingFor('us');
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -144,7 +146,7 @@ export default async function DashboardPage() {
               <div>
                 <h3 className="font-bold text-lg mb-1">ابدأ رحلة التعلّم الكاملة</h3>
                 <p className="text-sm text-gray-600">
-                  اشترك دلوقتي واحصل على وصول كامل لكل الكورسات بـ $40/سنة مع الباقة السنوية
+                  اشترك دلوقتي واحصل على وصول كامل لكل الكورسات بـ ${pricing.yearlyAmount}/سنة{pricing.promoActive ? ` (بدل $${pricing.yearlyAnchor} — خصم ${pricing.savingsPct}%)` : ''}
                 </p>
               </div>
               <Button asChild>
@@ -197,7 +199,7 @@ export default async function DashboardPage() {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
               <div>
                 <div className="text-gray-500 mb-1">الخطة</div>
-                <div className="font-medium">{subscription.plan === 'yearly' ? 'سنوي ($40)' : 'شهري ($10)'}</div>
+                <div className="font-medium">{subscription.plan === 'yearly' ? 'سنوي' : 'شهري'}</div>
               </div>
               <div>
                 <div className="text-gray-500 mb-1">يتجدد في</div>

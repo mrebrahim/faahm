@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { APP_NAME, PLANS, ROUTES, type PlanId } from '@/lib/constants';
+import { APP_NAME, PLANS, ROUTES, paypalPlanId, type PlanId } from '@/lib/constants';
+import { getPromoState } from '@/lib/promo';
 import { ArrowRight, CheckCircle2, Wallet } from 'lucide-react';
 import { pricingFor } from '@/lib/region';
 import { SARMoney } from '@/components/sar-money';
@@ -99,7 +100,10 @@ export default async function PayPalCheckoutPage({
               هتدفع عبر PayPal مباشرة. الاشتراك بيتجدّد تلقائياً وتقدر تلغيه
               في أي وقت من حسابك في PayPal.
             </p>
-            <PayPalButton plan={planParam} />
+            <PayPalButton
+              plan={planParam}
+              planId={paypalPlanId(planParam, getPromoState().active)}
+            />
           </div>
 
           {/* Footnote */}

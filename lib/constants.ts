@@ -125,9 +125,19 @@ export const OFFLINE_PAYMENTS = {
  * and 'invoice.payment_succeeded') already handles renewals & cancels;
  * it only fires for real Subscription objects.
  */
+/**
+ * Two-tier Stripe Payment Links for the yearly plan:
+ *   - yearly_promo   → $40/yr recurring price. Used only during the
+ *     day-6-to-day-20 promo window (see lib/promo.ts).
+ *   - yearly_regular → $120/yr recurring price. Used the rest of the month.
+ * The /api/checkout route picks the right one at request time based on the
+ * live promo state so the payment page never disagrees with the sticker
+ * price the visitor just saw. Monthly ($10) is not affected by the promo.
+ */
 export const STRIPE_PAYMENT_LINKS = {
   monthly: 'https://buy.stripe.com/eVqaEXfno0Fo408dX653O1H',
-  yearly: 'https://buy.stripe.com/4gM8wPejkafYfIQdX653O1E',
+  yearly_promo: 'https://buy.stripe.com/4gM8wPejkafYfIQdX653O1E',
+  yearly_regular: 'https://buy.stripe.com/cNi00j0su4VE0NW8CM53O1L',
 } as const;
 
 /**
@@ -143,12 +153,28 @@ export const STRIPE_PAYMENT_LINKS = {
  * activation route can call PayPal's /v1/billing/subscriptions/{id}
  * endpoint to confirm payment state before granting access.
  */
+/**
+ * Resolve a PayPal plan_id for the (plan, promo state) tuple. Used by both
+ * server (activation verify) and client (button createSubscription) so the
+ * choice can't drift between the two paths.
+ */
+export function paypalPlanId(
+  plan: 'monthly' | 'yearly',
+  promoActive: boolean
+): string {
+  if (plan === 'monthly') return PAYPAL.plans.monthly;
+  return promoActive ? PAYPAL.plans.yearly_promo : PAYPAL.plans.yearly_regular;
+}
+
 export const PAYPAL = {
   clientId:
     process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID ||
     'Aa2JYhQE0BrpujlmTjeAnBOj8ZbbaV43lwMgJWpE-nAg0X2wED_nUCoLJvK-sP-wn1I-ewF6F-_FRZ3s',
   plans: {
     monthly: 'P-41703329EL039891VNITKHGQ',
-    yearly: 'P-81768794T3699470VNITKGCY',
+    // Two yearly plans mirror STRIPE_PAYMENT_LINKS above — /checkout/paypal
+    // picks between them at request time based on the live promo state.
+    yearly_promo: 'P-81768794T3699470VNITKGCY',
+    yearly_regular: 'P-4HH13228MH387715ANJHB6NA',
   },
 } as const;

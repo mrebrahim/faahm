@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
 import { ROUTES, APP_NAME } from '@/lib/constants';
+import { pricingFor } from '@/lib/region';
 import { formatDuration } from '@/lib/utils';
 import { resolveVideoEmbed } from '@/lib/video';
 import { canAccessCourse } from '@/lib/access';
@@ -487,6 +488,7 @@ function UnplayableBlock() {
 }
 
 function PaywallBlock({ lessonId, loggedIn }: { lessonId: string; loggedIn: boolean }) {
+  const pricing = pricingFor('us');
   // Logged-in but unsubscribed users see a subscribe CTA. Anonymous
   // visitors get the guest-checkout funnel (/personal-plan) — they
   // can pay before signing up, and the post-payment claim form
@@ -505,7 +507,7 @@ function PaywallBlock({ lessonId, loggedIn }: { lessonId: string; loggedIn: bool
         </h2>
         <p className="text-sm text-gray-300 mb-6">
           {loggedIn
-            ? 'اشترك دلوقتي بـ $40/سنة واحصل على كل دروس الكورس + كل كورسات فاهم!'
+            ? `اشترك دلوقتي بـ $${pricing.yearlyAmount}/سنة${pricing.promoActive ? ` (بدل $${pricing.yearlyAnchor} — خصم ${pricing.savingsPct}%)` : ''} واحصل على كل دروس الكورس + كل كورسات فاهم!`
             : 'سجّل حساب مجاني عشان تشوف الدروس المجانية، أو اشترك للوصول الكامل.'}
         </p>
         <Button asChild size="lg" className="bg-white text-gray-900 hover:bg-gray-100 shadow-none">

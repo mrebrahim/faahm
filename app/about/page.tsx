@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { APP_NAME, APP_TAGLINE, ROUTES } from '@/lib/constants';
+import { pricingFor } from '@/lib/region';
 import {
   Sparkles,
   Target,
@@ -15,7 +16,10 @@ export const metadata = {
   description: `${APP_NAME} — ${APP_TAGLINE}. تعرّف على رسالتنا، رؤيتنا، والطريقة اللي بنبني بيها أول منصة عربية لكورسات الذكاء الاصطناعي.`,
 };
 
+export const dynamic = 'force-dynamic';
+
 export default function AboutPage() {
+  const pricing = pricingFor('us');
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
@@ -103,7 +107,7 @@ export default function AboutPage() {
             <Bullet
               n="03"
               title="اشتراك واحد، وصول لكل حاجة"
-              body="بدل ما تدفع لكل كورس لوحده، اشترك بـ $40/سنة وافتح كل المحتوى. تقدر تلغي في أي وقت."
+              body={`بدل ما تدفع لكل كورس لوحده، اشترك بـ $${pricing.yearlyAmount}/سنة${pricing.promoActive ? ` (بدل $${pricing.yearlyAnchor} — خصم ${pricing.savingsPct}% لفترة محدودة)` : ''} وافتح كل المحتوى. تقدر تلغي في أي وقت.`}
             />
             <Bullet
               n="04"

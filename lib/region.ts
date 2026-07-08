@@ -81,56 +81,61 @@ export function setRegionCookie(region: Region) {
  */
 export type PlanPricing = {
   currency: 'USD' | 'SAR';
-  /** Plain string for the currency suffix in callers that want one. */
   currencyLabel: string;
-  /** Single character that introduces a USD number ($) — empty for SAR
-   *  because the riyal symbol is rendered as an SVG via SARSymbol. */
   symbol: string;
-  /** Raw monetary amounts. Use these with <SARMoney value={...} /> for
-   *  SAR callers so the official 2025 SAMA riyal glyph sits next to
-   *  the number; USD callers prefix `symbol` themselves. */
   monthlyAmount: number | string;
   yearlyAmount: number | string;
   yearlyAnchor: number | string;
-  /** Yearly price split into a per-month figure. SAR shows 12.5 (i.e.
-   *  149 ÷ 12 = 12.42 rounded one decimal up so the eye reads it as a
-   *  clean "twelve and a half"); USD shows 3.3. */
   yearlyPerMonth: number | string;
   savings: number;
   savingsPct: number;
+  /** True when the day-6-to-day-20 promo is currently live for USD. Off for
+   *  the SAR row (legacy — no marketing surface points there anymore). */
+  promoActive: boolean;
 };
 
-const PRICING: Record<Region, PlanPricing> = {
-  // Global USD funnel — every visitor sees dollars, no region
-  // toggle. Monthly $10, yearly $40 (owner-set). Yearly anchor is
-  // 12 × monthly ($120) so the strikethrough reads as 'what you'd
-  // pay billing monthly for a year'. yearlyPerMonth $3.33 = 40/12.
-  us: {
+import { getPromoState } from '@/lib/promo';
+
+/**
+ * Static SAR row — legacy, no marketing surface points there anymore.
+ * Kept so pricingFor('sa') never crashes and the Region type stays useful
+ * for the Stripe SAR env-var lookup.
+ */
+const SA_PRICING: PlanPricing = {
+  currency: 'SAR',
+  currencyLabel: 'ر.س',
+  symbol: '',
+  monthlyAmount: 39,
+  yearlyAmount: 149,
+  yearlyAnchor: 449,
+  yearlyPerMonth: 12.5,
+  savings: 300,
+  savingsPct: 67,
+  promoActive: false,
+};
+
+/**
+ * USD row is computed per-request from the promo state so home / pricing /
+ * personal-plan / checkout / faq / course / lesson / dashboard all switch
+ * together on the Cairo-day-of-month boundary. Days 6–20 → yearly $40
+ * with a $120 strikethrough. Other days → yearly $120, no anchor.
+ */
+function usPricing(): PlanPricing {
+  const p = getPromoState();
+  return {
     currency: 'USD',
     currencyLabel: 'USD',
     symbol: '$',
     monthlyAmount: 10,
-    yearlyAmount: 40,
-    yearlyAnchor: 120,
-    yearlyPerMonth: 3.33,
-    savings: 80,
-    savingsPct: 67,
-  },
-  // SAR pricing kept in place for the region infra + Stripe SAR
-  // env vars, but no marketing surface points at it anymore.
-  sa: {
-    currency: 'SAR',
-    currencyLabel: 'ر.س',
-    symbol: '',
-    monthlyAmount: 39,
-    yearlyAmount: 149,
-    yearlyAnchor: 449,
-    yearlyPerMonth: 12.5,
-    savings: 300,
-    savingsPct: 67,
-  },
-};
+    yearlyAmount: p.yearlyAmount,
+    yearlyAnchor: p.yearlyAnchor ?? p.yearlyAmount,
+    yearlyPerMonth: p.yearlyPerMonth,
+    savings: p.savings,
+    savingsPct: p.savingsPct,
+    promoActive: p.active,
+  };
+}
 
 export function pricingFor(region: Region): PlanPricing {
-  return PRICING[region];
+  return region === 'us' ? usPricing() : SA_PRICING;
 }

@@ -8,6 +8,13 @@ import { PAYPAL, type PlanId } from '@/lib/constants';
 import { activatePayPalSubscription } from './actions';
 
 /**
+ * `plan` picks the funnel (monthly vs yearly). `planId` is the PayPal
+ * plan_id resolved on the server so the same promo state that drove
+ * the /pricing sticker drives the actual charge — see paypalPlanId()
+ * in lib/constants.ts.
+ */
+
+/**
  * PayPal Subscriptions SDK button. Loads PayPal's JS once with
  * `vault=true&intent=subscription`, then renders a Subscribe button
  * bound to the plan_id for the selected plan. On approval the SDK
@@ -15,14 +22,12 @@ import { activatePayPalSubscription } from './actions';
  * action — the server verifies it with PayPal's billing API before
  * unlocking the user.
  */
-export function PayPalButton({ plan }: { plan: PlanId }) {
+export function PayPalButton({ plan, planId }: { plan: PlanId; planId: string }) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [sdkReady, setSdkReady] = useState(false);
   const [pending, startTransition] = useTransition();
   const [err, setErr] = useState<string | null>(null);
-
-  const planId = PAYPAL.plans[plan];
 
   useEffect(() => {
     if (!sdkReady) return;

@@ -81,9 +81,16 @@ export async function activatePayPalSubscription(
   if (sub.status !== 'ACTIVE' && sub.status !== 'APPROVED') {
     return { ok: false, error: `حالة الاشتراك مش مفعّلة (${sub.status}).` };
   }
-  const expectedPlanId = PAYPAL.plans[plan];
-  if (sub.plan_id !== expectedPlanId) {
-    console.error('[paypal] plan mismatch', { got: sub.plan_id, want: expectedPlanId });
+  // Accept either yearly plan_id (promo or regular) — the promo state
+  // may have flipped between the SDK's createSubscription() call and this
+  // verify running (visitor lingered on the button past midnight). Monthly
+  // only has one plan_id, so it's a straight equality check.
+  const acceptable: string[] =
+    plan === 'yearly'
+      ? [PAYPAL.plans.yearly_promo, PAYPAL.plans.yearly_regular]
+      : [PAYPAL.plans.monthly];
+  if (!acceptable.includes(sub.plan_id)) {
+    console.error('[paypal] plan mismatch', { got: sub.plan_id, want: acceptable });
     return { ok: false, error: 'الخطة المُختارة مش مطابقة.' };
   }
 

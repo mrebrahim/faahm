@@ -202,6 +202,11 @@ export default async function PersonalPlanPage() {
           <div className="mx-auto max-w-md rounded-2xl border border-brand-500/30 bg-white shadow-sm px-4 py-4 sm:px-5 sm:py-5">
             <div className="text-sm text-gray-600 mb-3">
               كل ده بـ{' '}
+              {p.promoActive && (
+                <span className="text-sm text-gray-400 line-through font-medium mx-1" dir="ltr">
+                  ${p.yearlyAnchor}
+                </span>
+              )}
               <span className="font-display text-3xl sm:text-4xl font-extrabold text-brand-700 align-baseline">
                 <SARMoney
                   value={p.yearlyAmount}
@@ -210,7 +215,9 @@ export default async function PersonalPlanPage() {
               </span>{' '}
               <span className="text-sm text-gray-500">/ سنة</span>
               <span className="block text-[11px] text-gray-400 mt-0.5">
-                وصول كامل لكل الكورسات · ضمان 7 أيام
+                {p.promoActive
+                  ? `خصم ${p.savingsPct}% لفترة محدودة · ضمان 7 أيام`
+                  : 'وصول كامل لكل الكورسات · ضمان 7 أيام'}
               </span>
             </div>
             <Button
@@ -314,7 +321,12 @@ export default async function PersonalPlanPage() {
       {/* 3-question recommender quiz. Below the hero + preview rail
           so it can't push the price/CTA past the fold, close enough
           that a confused visitor finds it on first scroll. */}
-      <PersonalPlanQuiz />
+      <PersonalPlanQuiz
+        yearlyAmount={Number(p.yearlyAmount)}
+        yearlyAnchor={Number(p.yearlyAnchor)}
+        promoActive={p.promoActive}
+        savingsPct={p.savingsPct}
+      />
 
       {/* Real DB-backed numbers strip — demoted out of the hero so it
           doesn't push the CTA past the fold on a 375×667 viewport,
@@ -964,9 +976,11 @@ function AssistantMockup() {
 function YearlyCard({ p }: { p: ReturnType<typeof pricingFor> }) {
   return (
     <div className="relative rounded-2xl overflow-hidden border-2 border-brand-500 bg-white shadow-2xl shadow-brand-500/20 md:scale-[1.03]">
-      <div className="absolute top-3 start-3 z-10 px-2 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-extrabold shadow">
-        وفّر {p.savingsPct}%
-      </div>
+      {p.promoActive && (
+        <div className="absolute top-3 start-3 z-10 px-2 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-extrabold shadow">
+          وفّر {p.savingsPct}%
+        </div>
+      )}
       <div className="bg-brand-500 text-white text-center py-4 px-4">
         <div className="font-display text-xl sm:text-2xl font-extrabold">سنوي</div>
         <div className="inline-flex items-center gap-1 mt-1 text-xs font-bold opacity-95">
@@ -975,9 +989,13 @@ function YearlyCard({ p }: { p: ReturnType<typeof pricingFor> }) {
         </div>
       </div>
       <div className="p-6 sm:p-8">
-        <div className="text-sm text-gray-400 line-through font-medium text-center mb-1">
-          <SARMoney value={p.yearlyAnchor} />/سنة
-        </div>
+        {p.promoActive ? (
+          <div className="text-sm text-gray-400 line-through font-medium text-center mb-1">
+            <SARMoney value={p.yearlyAnchor} />/سنة
+          </div>
+        ) : (
+          <div className="h-5 mb-1" />
+        )}
         <div className="text-center mb-3">
           <div className="flex items-baseline justify-center">
             <span className="text-5xl sm:text-6xl font-extrabold font-display text-foreground">
@@ -989,20 +1007,25 @@ function YearlyCard({ p }: { p: ReturnType<typeof pricingFor> }) {
           </div>
           <div className="text-sm text-gray-500 mt-1">/ سنة</div>
         </div>
-        {/* Coffee-a-day anchor — the PRD's anti-dead-zone copy. Turns
-            'is 12.5 riyals expensive?' into 'less than a coffee a
-            day' without inventing a number. */}
-        <p className="text-xs sm:text-sm text-center text-brand-700 font-medium mb-2">
-          ☕ أقل من سعر قهوة في اليوم
-        </p>
-        <p className="text-xs sm:text-sm text-center text-gray-700 bg-brand-500/5 border border-brand-500/20 rounded-lg py-2 px-3 mb-5 leading-relaxed">
-          * تدفع <span className="font-bold"><SARMoney value={p.yearlyAmount} /></span>{' '}
-          للسنة كاملة — اشتراك واحد يفتح كل الكورسات. وفّر{' '}
-          <span className="font-bold text-brand-700">
-            <SARMoney value={p.savings} />
-          </span>{' '}
-          ({p.savingsPct}%)
-        </p>
+        {p.promoActive && (
+          <p className="text-xs sm:text-sm text-center text-brand-700 font-medium mb-2">
+            ☕ أقل من سعر قهوة في اليوم
+          </p>
+        )}
+        {p.promoActive ? (
+          <p className="text-xs sm:text-sm text-center text-gray-700 bg-brand-500/5 border border-brand-500/20 rounded-lg py-2 px-3 mb-5 leading-relaxed">
+            * تدفع <span className="font-bold"><SARMoney value={p.yearlyAmount} /></span>{' '}
+            للسنة كاملة — اشتراك واحد يفتح كل الكورسات. وفّر{' '}
+            <span className="font-bold text-brand-700">
+              <SARMoney value={p.savings} />
+            </span>{' '}
+            ({p.savingsPct}%)
+          </p>
+        ) : (
+          <p className="text-xs sm:text-sm text-center text-gray-500 mb-5 leading-relaxed">
+            اشتراك سنوي واحد يفتح كل الكورسات · إلغاء في أي وقت
+          </p>
+        )}
         <ul className="space-y-2.5 mb-6">
           <Feat ok text="وصول كامل لكل الكورسات" />
           <Feat ok text="المساعد الذكي فاهم" />

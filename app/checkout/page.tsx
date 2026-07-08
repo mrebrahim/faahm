@@ -120,7 +120,7 @@ export default async function CheckoutPage({
               <h1 className="font-display text-xl font-bold">{plan.name}</h1>
             </div>
             <div className="text-right">
-              {planParam === 'yearly' && (
+              {planParam === 'yearly' && pricing.promoActive && (
                 <div className="text-sm text-gray-400 line-through font-medium">
                   <SARMoney value={pricing.yearlyAnchor} />
                 </div>
@@ -149,9 +149,10 @@ export default async function CheckoutPage({
           </ul>
         </div>
 
-        {/* Coupon — visual only; the standing yearly discount that's
-            already baked into the price. */}
-        {planParam === 'yearly' && (
+        {/* Coupon — visual only; shown only during the day-6-to-day-20
+            promo. Outside that window the yearly price is regular so
+            there is nothing to "save". */}
+        {planParam === 'yearly' && pricing.promoActive && (
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 mb-6">
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-2 min-w-0">

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { APP_NAME, ROUTES } from '@/lib/constants';
+import { pricingFor } from '@/lib/region';
 import { HelpCircle, ArrowLeft } from 'lucide-react';
 
 export const metadata = {
@@ -8,7 +9,16 @@ export const metadata = {
   description: `إجابات لأكثر الأسئلة شيوعاً عن منصة ${APP_NAME}: الاشتراك، الدفع، الكورسات، الشهادات، والدعم.`,
 };
 
-const FAQS: Array<{ section: string; items: Array<{ q: string; a: React.ReactNode }> }> = [
+export const dynamic = 'force-dynamic';
+
+function buildFaqs(p: ReturnType<typeof pricingFor>) {
+  // Yearly vs monthly copy depends on the live promo state so the FAQ
+  // never advertises $40 while /pricing is showing $120 (or vice-versa).
+  const yearlyVsMonthlyAnswer = p.promoActive
+    ? `آه فيه فرق كبير. الشهري بـ $${p.monthlyAmount}/شهر وفيه الكورسات بس. السنوي دلوقتي بـ $${p.yearlyAmount}/سنة بدل $${p.yearlyAnchor} — وفّر ${p.savingsPct}% لفترة محدودة — وفيه كل حاجة: الكورسات + المساعد الذكي فاهم + شهادة الإتمام + أولوية الدعم الفني.`
+    : `آه فيه فرق كبير. الشهري بـ $${p.monthlyAmount}/شهر وفيه الكورسات بس. السنوي بـ $${p.yearlyAmount}/سنة وفيه كل حاجة: الكورسات + المساعد الذكي فاهم + شهادة الإتمام + أولوية الدعم الفني.`;
+
+  const FAQS: Array<{ section: string; items: Array<{ q: string; a: React.ReactNode }> }> = [
   {
     section: 'الاشتراك والوصول',
     items: [
@@ -38,7 +48,7 @@ const FAQS: Array<{ section: string; items: Array<{ q: string; a: React.ReactNod
       },
       {
         q: 'هل في فرق بين الاشتراك الشهري والسنوي؟',
-        a: 'آه فيه فرق كبير. الشهري بـ $10/شهر وفيه الكورسات بس. السنوي بـ $40/سنة (وفّر 67% مقابل الدفع الشهري) وفيه كل حاجة: الكورسات + المساعد الذكي فاهم + شهادة الإتمام + أولوية الدعم الفني.',
+        a: yearlyVsMonthlyAnswer,
       },
     ],
   },
@@ -186,8 +196,11 @@ const FAQS: Array<{ section: string; items: Array<{ q: string; a: React.ReactNod
     ],
   },
 ];
+  return FAQS;
+}
 
 export default function FaqPage() {
+  const FAQS = buildFaqs(pricingFor('us'));
   return (
     <div className="min-h-screen bg-white">
       <header className="border-b border-gray-200 bg-white/80 backdrop-blur-xl sticky top-0 z-40">

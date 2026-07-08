@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { ROUTES, PLANS, STRIPE_PAYMENT_LINKS, type PlanId } from '@/lib/constants';
 import { resolveAppUrl } from '@/lib/app-url';
+import { getPromoState } from '@/lib/promo';
 
 const GUEST_EMAIL_COOKIE = 'guest_checkout_email';
 
@@ -41,7 +42,16 @@ export async function GET(request: NextRequest) {
     cookies().get(GUEST_EMAIL_COOKIE)?.value?.trim().toLowerCase() || null;
   const email = guestEmailParam || guestEmailCookie || null;
 
-  const target = new URL(STRIPE_PAYMENT_LINKS[plan]);
+  // Pick the yearly link based on the live promo state so the payment
+  // page never charges a different amount than what was on the sticker.
+  // Monthly is not affected by the promo.
+  const linkKey: keyof typeof STRIPE_PAYMENT_LINKS =
+    plan === 'yearly'
+      ? getPromoState().active
+        ? 'yearly_promo'
+        : 'yearly_regular'
+      : 'monthly';
+  const target = new URL(STRIPE_PAYMENT_LINKS[linkKey]);
   if (email) {
     // Stripe Payment Links accept ?prefilled_email=... to seed the
     // customer's email field on the hosted page.

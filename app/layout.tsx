@@ -5,6 +5,9 @@ import { APP_NAME, APP_TAGLINE, APP_URL } from '@/lib/constants';
 import { Analytics } from '@/components/analytics';
 import { WhatsAppButton } from '@/components/whatsapp-button';
 import { LearnerCountBar } from '@/components/learner-count-bar';
+import { PromoBanner } from '@/components/promo-banner';
+import { PromoPopup } from '@/components/promo-popup';
+import { getPromoState, PROMO_TIMEZONE } from '@/lib/promo';
 
 const cairo = Cairo({
   subsets: ['arabic', 'latin'],
@@ -71,6 +74,15 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const promo = getPromoState();
+  // Month key so a new promo cycle re-shows the popup even if the
+  // visitor dismissed it last month.
+  const promoMonth = new Intl.DateTimeFormat('en-CA', {
+    timeZone: PROMO_TIMEZONE,
+    year: 'numeric',
+    month: '2-digit',
+  }).format(new Date());
+
   return (
     <html
       lang="ar"
@@ -79,12 +91,24 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="font-sans min-h-screen bg-background text-foreground">
+        {/* Promo banner — appears on every page during the day-6-to-day-20
+            window. Above the '+4000 متعلّم' strip so it's the first thing
+            the visitor reads on ANY page during the sale. */}
+        <PromoBanner />
         {/* Site-wide '+4,000 متعلّم' trust strip — first thing every
             visitor reads. Hides itself on checkout / billing / offline
             so it doesn't compete with the payment moment. */}
         <LearnerCountBar />
         {children}
         <WhatsAppButton />
+        {promo.active && (
+          <PromoPopup
+            yearlyAmount={promo.yearlyAmount}
+            yearlyAnchor={promo.yearlyAnchor ?? 0}
+            savingsPct={promo.savingsPct}
+            promoMonth={promoMonth}
+          />
+        )}
         <Analytics />
       </body>
     </html>

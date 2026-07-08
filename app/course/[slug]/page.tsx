@@ -5,6 +5,7 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
 import { MainNav } from '@/components/main-nav';
 import { ROUTES } from '@/lib/constants';
+import { pricingFor } from '@/lib/region';
 import { formatDuration } from '@/lib/utils';
 import { resolveVideoEmbed } from '@/lib/video';
 import { canAccessCourse } from '@/lib/access';
@@ -59,6 +60,7 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
   const supabase = createClient();
   const service = createServiceClient();
   const { data: { user } } = await supabase.auth.getUser();
+  const pricing = pricingFor('us');
 
   // Cheap admin-role lookup so the shared MainNav can show the
   // 'لوحة الإدارة' shortcut to admins. Non-admins / guests get the
@@ -537,7 +539,7 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
                 اشترك واحصل على كل الكورسات
               </h3>
               <p className="text-sm text-gray-600 mb-4">
-                مفيش شراء كل كورس لوحده. اشتراك سنوي بـ <strong>$40/سنة</strong>
+                مفيش شراء كل كورس لوحده. اشتراك سنوي بـ <strong>${pricing.yearlyAmount}/سنة</strong>
                 {' '}بيفتحلك كل المحتوى + المساعد الذكي + الشهادة.
               </p>
               <ul className="space-y-2 mb-5 text-sm">
