@@ -5,12 +5,12 @@ import { APP_NAME, ROUTES } from '@/lib/constants';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PhoneInput } from '@/components/phone-input';
 import {
   Ticket,
   Mail,
   KeyRound,
   User as UserIcon,
-  Phone,
   AlertCircle,
   ArrowLeft,
   CheckCircle2,
@@ -239,20 +239,16 @@ function DetailsForm({
 
       <div className="space-y-1">
         <Label htmlFor="phone">رقم الموبايل</Label>
-        <div className="relative">
-          <Phone className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <Input
-            id="phone"
-            name="phone"
-            type="tel"
-            defaultValue={defaultPhone}
-            required
-            dir="ltr"
-            placeholder="+201012345678"
-            className="ps-10 h-11"
-          />
-        </div>
-        <p className="text-[11px] text-gray-500 mt-1">مع كود الدولة (مثل +2 لمصر).</p>
+        <PhoneInput
+          id="phone"
+          countryFieldName="country"
+          phoneFieldName="phone"
+          defaultPhone={defaultPhone}
+          required
+        />
+        <p className="text-[11px] text-gray-500 mt-1">
+          اختار كود دولتك من القائمة على الشمال، وبعدين اكتب رقمك بدون الصفر.
+        </p>
       </div>
 
       <Button type="submit" size="lg" className="w-full font-bold">

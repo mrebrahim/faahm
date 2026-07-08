@@ -71,23 +71,27 @@ export async function sendRedemptionOtp(formData: FormData) {
   const email = String(formData.get('email') || '').trim().toLowerCase();
   const fullName = String(formData.get('full_name') || '').trim();
   const phone = String(formData.get('phone') || '').trim();
+  const country = String(formData.get('country') || '').trim().toUpperCase();
 
   const params = new URLSearchParams({ stage: 'details' });
   if (email) params.set('email', email);
   if (fullName) params.set('name', fullName);
   if (phone) params.set('phone', phone);
+  if (country) params.set('country', country);
 
-  if (!EMAIL_REGEX.test(email)) {
-    params.set('error', 'الإيميل غير صحيح.');
-    redirect(`/redeem?${params.toString()}`);
-  }
   if (!fullName || fullName.length < 2) {
     params.set('error', 'اكتب اسمك بالكامل.');
     redirect(`/redeem?${params.toString()}`);
   }
-  // Phone required. E.164-ish: 8–15 digits, optional leading +.
-  if (!/^\+?[0-9]{8,15}$/.test(phone)) {
-    params.set('error', 'رقم الموبايل غير صحيح. اكتبه بالأرقام الدولية.');
+  if (!EMAIL_REGEX.test(email)) {
+    params.set('error', 'الإيميل غير صحيح.');
+    redirect(`/redeem?${params.toString()}`);
+  }
+  // PhoneInput emits an E.164 value ('+<dial><digits>') that must include
+  // the country code and 8–15 total digits. Blank / missing code catches
+  // the visitor who never touched the country picker.
+  if (!/^\+[1-9][0-9]{7,14}$/.test(phone)) {
+    params.set('error', 'رقم الموبايل غير صحيح. تأكد إنك اخترت كود الدولة.');
     redirect(`/redeem?${params.toString()}`);
   }
 
@@ -109,6 +113,7 @@ export async function sendRedemptionOtp(formData: FormData) {
       data: {
         full_name: fullName,
         phone,
+        country,
         redeem_coupon: code,
       },
     },
