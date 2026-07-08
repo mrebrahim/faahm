@@ -16,6 +16,7 @@ import {
   CreditCard,
   ArrowLeft,
   Shield,
+  PlayCircle,
 } from 'lucide-react';
 
 export default async function DashboardPage() {
@@ -81,7 +82,30 @@ export default async function DashboardPage() {
     .order('sort_order')
     .limit(6);
 
+  // Get the user's per-course grants (coupon/promo enrollments etc).
+  // A subscribed user already sees the whole catalog, so we only surface
+  // the 'الكورسات بتاعتك' rail when they have à-la-carte access.
+  const { data: enrollments } = await service
+    .from('enrollments')
+    .select(
+      'id, course:course_id ( id, slug, title_ar, thumbnail_url, total_lessons )'
+    )
+    .eq('user_id', user.id)
+    .or('expires_at.is.null,expires_at.gt.' + new Date().toISOString())
+    .order('granted_at', { ascending: false });
+
+  const myCourses = (enrollments || [])
+    .map((e: any) => e.course)
+    .filter(Boolean) as Array<{
+    id: string;
+    slug: string;
+    title_ar: string;
+    thumbnail_url: string | null;
+    total_lessons: number;
+  }>;
+
   const hasSubscription = !!subscription;
+  const hasAnyAccess = hasSubscription || myCourses.length > 0;
   const isAdmin = profile?.role === 'admin';
   const pricing = pricingFor('us');
 
@@ -139,8 +163,65 @@ export default async function DashboardPage() {
           <p className="text-gray-500">{new Date().toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
         </div>
 
-        {/* Subscription banner */}
-        {!hasSubscription && (
+        {/* My courses — surfaced first for anyone with per-course grants
+            (coupon / promo / manual enrollment). Skipped for subscribers
+            because their access covers the whole catalog below already. */}
+        {!hasSubscription && myCourses.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-display text-2xl font-bold flex items-center gap-2">
+                <PlayCircle className="w-6 h-6 text-brand-500" />
+                الكورسات بتاعتك
+              </h2>
+              <span className="text-xs bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full font-bold">
+                {myCourses.length} كورس مفتوح
+              </span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {myCourses.map((course) => (
+                <Link
+                  key={course.id}
+                  href={ROUTES.course(course.slug)}
+                  className="group rounded-xl bg-white border-2 border-brand-500/40 hover:border-brand-500 overflow-hidden transition-all shadow-sm hover:shadow-md"
+                >
+                  <div className="aspect-video bg-gray-100 relative overflow-hidden">
+                    {course.thumbnail_url ? (
+                      <Image
+                        src={course.thumbnail_url}
+                        alt={course.title_ar}
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 280px"
+                        className="object-cover"
+                        quality={70}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <BookOpen className="w-10 h-10 text-brand-500/40" />
+                      </div>
+                    )}
+                    <div className="absolute top-2 end-2 bg-brand-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                      مفتوح
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-bold mb-1 line-clamp-2 group-hover:text-brand-600 transition-colors">
+                      {course.title_ar}
+                    </h3>
+                    <p className="text-sm text-gray-500 flex items-center gap-1">
+                      <BookOpen className="w-3.5 h-3.5" />
+                      {course.total_lessons} درس
+                    </p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Subscription banner — hidden when the user already has any
+            access (subscription OR per-course grant). Otherwise nudges
+            them to unlock the rest of the catalog. */}
+        {!hasAnyAccess && (
           <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-brand-500/10 to-brand-500/5 border border-brand-500/30">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div>
@@ -152,6 +233,27 @@ export default async function DashboardPage() {
               <Button asChild>
                 <Link href={ROUTES.pricing}>
                   اشترك دلوقتي
+                  <ArrowLeft className="w-4 h-4" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Upsell for users who redeemed a single-course coupon but
+            don't yet have a full subscription — softer copy. */}
+        {!hasSubscription && myCourses.length > 0 && (
+          <div className="mb-8 p-5 rounded-2xl bg-gradient-to-r from-amber-50 to-white border border-amber-200">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div>
+                <h3 className="font-bold mb-1">افتح كل الكورسات — مش بس اللي معاك</h3>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  بـ ${pricing.yearlyAmount}/سنة تفتحلك المنصة كلها + المساعد الذكي فاهم في كل درس.
+                </p>
+              </div>
+              <Button asChild variant="outline" size="sm">
+                <Link href={ROUTES.pricing}>
+                  شوف الباقات
                   <ArrowLeft className="w-4 h-4" />
                 </Link>
               </Button>
@@ -235,7 +337,9 @@ export default async function DashboardPage() {
         {/* Featured Courses */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display text-2xl font-bold">كورسات مختارة لك</h2>
+            <h2 className="font-display text-2xl font-bold">
+              {hasSubscription ? 'كورسات مختارة لك' : 'كل الكورسات على فاهم'}
+            </h2>
             <Link href={ROUTES.courses} className="text-sm text-brand-600 hover:text-brand-600 flex items-center gap-1">
               عرض الكل
               <ArrowLeft className="w-4 h-4" />
