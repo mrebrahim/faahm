@@ -204,13 +204,23 @@ export async function verifyRedemptionOtp(formData: FormData) {
 
   if (grantsCourse) {
     // 1. Enroll the user in this single course. canAccessCourse picks it up.
+    //    source='promo' — the enrollments CHECK constraint only allows
+    //    ('manual','promo','bundle','compensation'), so anything coupon-
+    //    granted rides on 'promo'. The coupon code goes into notes so
+    //    admins can still trace individual redemptions.
     const { error: enrollErr } = await service.from('enrollments').insert({
       user_id: userId,
       course_id: coupon.course_id,
-      source: 'coupon',
+      source: 'promo',
       notes: `Redeemed coupon: ${coupon.code}`,
     });
-    if (enrollErr && !enrollErr.message.toLowerCase().includes('duplicate')) {
+    // Unique-index or duplicate-key errors are fine (the user already
+    // has the enrollment) — anything else surfaces as a hard failure.
+    const isDup =
+      !!enrollErr &&
+      ((enrollErr as any).code === '23505' ||
+        /duplicate|unique/i.test(enrollErr.message));
+    if (enrollErr && !isDup) {
       void auditLog(
         { userId, userEmail: email, userRole: null },
         { action: 'redeem.enrollment_failed', result: 'failure', errorMessage: enrollErr.message }
