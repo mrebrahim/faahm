@@ -249,6 +249,112 @@ export async function unenrollStudent(formData: FormData) {
   redirect(`/admin/students/${studentId}?tab=enrollments&success=unenrolled`);
 }
 
+/**
+ * Change a student's subscription plan (monthly ↔ yearly) and reset the
+ * billing period from a chosen start date. The period-end is computed
+ * server-side (+30 days for monthly, +365 for yearly) so admins can't
+ * accidentally hand out a 3-year comp by dragging a date picker.
+ *
+ * If the user already has an active subscription, that row is updated in
+ * place (plan + current_period_start + current_period_end are overwritten).
+ * If they don't, a fresh row is created with gateway='manual' and a
+ * sentinel stripe_subscription_id so it's obvious in the DB this wasn't a
+ * paid conversion.
+ *
+ * Works for BOTH old and new students because the write hits the same
+ * subscriptions table every access check already reads from.
+ */
+export async function editStudentSubscription(formData: FormData) {
+  const ctx = await requireAdmin();
+  const targetId = String(formData.get('id') || '');
+  const plan = String(formData.get('plan') || '');
+  const startsAtRaw = String(formData.get('starts_at') || '').trim();
+
+  if (!targetId) redirect('/admin/students');
+  if (plan !== 'monthly' && plan !== 'yearly') {
+    redirect(
+      `/admin/students/${targetId}?error=${encodeURIComponent('اختار الخطة الصح.')}`
+    );
+  }
+  if (!startsAtRaw) {
+    redirect(
+      `/admin/students/${targetId}?error=${encodeURIComponent('حدّد تاريخ بداية الاشتراك.')}`
+    );
+  }
+  const startsAt = new Date(`${startsAtRaw}T00:00:00Z`);
+  if (Number.isNaN(startsAt.getTime())) {
+    redirect(
+      `/admin/students/${targetId}?error=${encodeURIComponent('تاريخ البداية غير صحيح.')}`
+    );
+  }
+
+  const days = plan === 'yearly' ? 365 : 30;
+  const endsAt = new Date(startsAt.getTime() + days * 86_400_000);
+
+  await loggedAction(
+    ctx,
+    {
+      action: 'student.subscription_edited',
+      resourceType: 'profile',
+      resourceId: targetId,
+      metadata: {
+        plan,
+        starts_at: startsAt.toISOString(),
+        ends_at: endsAt.toISOString(),
+      },
+    },
+    async () => {
+      const service = createServiceClient();
+
+      // Pick the most recent active subscription — if any exists, update it
+      // in place so we don't leave two 'active' rows around.
+      const { data: existing } = await service
+        .from('subscriptions')
+        .select('id')
+        .eq('user_id', targetId)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .maybeSingle();
+
+      if (existing) {
+        const { error } = await service
+          .from('subscriptions')
+          .update({
+            plan,
+            status: 'active',
+            current_period_start: startsAt.toISOString(),
+            current_period_end: endsAt.toISOString(),
+            cancelled_at: null,
+          })
+          .eq('id', existing.id);
+        if (error) throw new Error(error.message);
+      } else {
+        // Fresh grant — coupon-style sentinel so it's obvious this wasn't
+        // paid through Stripe/PayPal.
+        const { error } = await service.from('subscriptions').insert({
+          user_id: targetId,
+          plan,
+          status: 'active',
+          current_period_start: startsAt.toISOString(),
+          current_period_end: endsAt.toISOString(),
+          gateway: 'manual',
+          stripe_subscription_id: `admin-${targetId}-${Date.now()}`,
+        });
+        if (error) throw new Error(error.message);
+      }
+    }
+  ).catch((err) => {
+    redirect(
+      `/admin/students/${targetId}?error=${encodeURIComponent(
+        err instanceof Error ? err.message : 'فشل تعديل الاشتراك.'
+      )}`
+    );
+  });
+
+  revalidatePath(`/admin/students/${targetId}`);
+  redirect(`/admin/students/${targetId}?success=subscription_edited`);
+}
+
 export async function saveStudentNotes(formData: FormData) {
   const ctx = await requireAdmin();
   const targetId = String(formData.get('id') || '');

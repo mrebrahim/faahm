@@ -5,6 +5,7 @@ import { requireAdmin } from '@/lib/admin-guard';
 import { auditLog } from '@/lib/admin-audit';
 import { Button } from '@/components/ui/button';
 import { RefundButton } from './refund-button';
+import { EditSubscriptionButton } from './edit-subscription';
 import {
   banStudent,
   unbanStudent,
@@ -84,6 +85,17 @@ export default async function StudentDetailPage({
     .limit(1)
     .maybeSingle();
 
+  // Current-period-start for the edit-subscription popover to prefill
+  // the date field. The admin_students_v view only exposes end/plan/status,
+  // so we grab the raw row here.
+  const { data: activeSub } = await service
+    .from('subscriptions')
+    .select('current_period_start')
+    .eq('user_id', params.id)
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+    .maybeSingle();
+
   void auditLog(ctx, {
     action: 'student.viewed',
     resourceType: 'profile',
@@ -155,7 +167,7 @@ export default async function StudentDetailPage({
         </div>
 
         {/* Subscription status */}
-        <div className="mt-4 pt-4 border-t border-gray-100 text-sm">
+        <div className="mt-4 pt-4 border-t border-gray-100 text-sm flex items-center gap-2 flex-wrap">
           <span className="text-gray-500">حالة الاشتراك: </span>
           {student.subscription_status ? (
             <>
@@ -182,6 +194,13 @@ export default async function StudentDetailPage({
           ) : (
             <span className="text-gray-400">لم يشترك</span>
           )}
+          <EditSubscriptionButton
+            studentId={student.id}
+            currentPlan={
+              (student.subscription_plan as 'monthly' | 'yearly' | null) ?? null
+            }
+            currentStart={activeSub?.current_period_start ?? null}
+          />
         </div>
 
         {/* Actions */}
@@ -931,6 +950,7 @@ function SuccessBanner({ code }: { code: string }) {
     sessions_revoked: 'تم إنهاء كل جلسات الطالب.',
     enrolled: 'تم تسجيل الطالب في الكورس.',
     unenrolled: 'تم إلغاء تسجيل الطالب من الكورس.',
+    subscription_edited: 'تم تعديل الاشتراك.',
   };
   const msg = messages[code] || 'تم.';
   return (
