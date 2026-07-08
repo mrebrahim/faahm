@@ -13,6 +13,8 @@ import {
   Phone,
   AlertCircle,
   ArrowLeft,
+  CheckCircle2,
+  Sparkles,
 } from 'lucide-react';
 import { applyCoupon, sendRedemptionOtp, verifyRedemptionOtp } from './actions';
 
@@ -32,6 +34,7 @@ type SearchParams = {
   phone?: string;
   sent?: string;
   error?: string;
+  plan?: string;
 };
 
 export default async function RedeemPage({
@@ -45,6 +48,11 @@ export default async function RedeemPage({
   } = await supabase.auth.getUser();
 
   const stage = searchParams.stage || 'code';
+
+  if (stage === 'success') {
+    const plan = searchParams.plan === 'yearly' ? 'yearly' : 'monthly';
+    return <SuccessView plan={plan} />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -93,6 +101,63 @@ export default async function RedeemPage({
           <OtpForm email={searchParams.email || ''} />
         )}
       </main>
+    </div>
+  );
+}
+
+function SuccessView({ plan }: { plan: 'monthly' | 'yearly' }) {
+  const durationLabel = plan === 'yearly' ? 'سنة كاملة' : 'شهر كامل';
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-brand-500 via-brand-600 to-emerald-700 flex items-center justify-center px-4 py-10">
+      <div className="w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden">
+        <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white text-center py-10 px-6">
+          <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-white/20 flex items-center justify-center">
+            <CheckCircle2 className="w-11 h-11" strokeWidth={2.5} />
+          </div>
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 text-white text-[11px] font-bold mb-3">
+            <Sparkles className="w-3.5 h-3.5" />
+            كوبون مفعّل
+          </div>
+          <h1 className="font-display text-3xl sm:text-4xl font-extrabold mb-2">
+            مبروك!
+          </h1>
+          <p className="text-base opacity-95 leading-relaxed">
+            تم تفعيل اشتراكك بنجاح لمدة{' '}
+            <span className="font-bold">{durationLabel}</span> — كل الكورسات دلوقتي مفتوحة لك مجاناً.
+          </p>
+        </div>
+
+        <div className="p-6 text-center">
+          <ul className="space-y-2.5 text-start text-sm text-gray-700 mb-6">
+            <li className="flex items-start gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+              <span>وصول كامل لكل الكورسات على فاهم</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+              <span>المساعد الذكي فاهم في كل درس</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
+              <span>شهادة إتمام لكل كورس تخلّصه</span>
+            </li>
+          </ul>
+
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center justify-center gap-2 w-full rounded-xl bg-brand-500 hover:bg-brand-600 text-white font-bold py-4 text-base transition-colors"
+          >
+            ابدأ الآن
+            <ArrowLeft className="w-5 h-5" />
+          </Link>
+          <Link
+            href="/courses"
+            className="block mt-3 text-xs text-gray-400 hover:text-gray-600 underline"
+          >
+            أو تصفّح الكورسات الأول
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }

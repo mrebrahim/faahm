@@ -13,15 +13,18 @@ function parseCouponForm(formData: FormData) {
   const discount_type = String(formData.get('discount_type') || 'percent') as
     | 'percent'
     | 'fixed'
-    | 'free_course';
+    | 'free_course'
+    | 'free_subscription';
   const discount_value = parseInt(String(formData.get('discount_value') || '0'), 10);
-  const applies_to =
-    discount_type === 'free_course'
-      ? null
-      : String(formData.get('applies_to') || 'all');
+  const isGrant = discount_type === 'free_course' || discount_type === 'free_subscription';
+  const applies_to = isGrant ? null : String(formData.get('applies_to') || 'all');
   const course_id =
     discount_type === 'free_course'
       ? String(formData.get('course_id') || '').trim() || null
+      : null;
+  const subscription_plan =
+    discount_type === 'free_subscription'
+      ? (String(formData.get('subscription_plan') || 'monthly') as 'monthly' | 'yearly')
       : null;
   const max_uses_raw = String(formData.get('max_uses') || '').trim();
   const max_uses = max_uses_raw === '' ? null : Math.max(1, parseInt(max_uses_raw, 10));
@@ -45,6 +48,9 @@ function parseCouponForm(formData: FormData) {
   if (discount_type === 'free_course' && !course_id) {
     throw new Error('اختار الكورس اللي هيتفتح مجاناً.');
   }
+  if (discount_type === 'free_subscription' && !subscription_plan) {
+    throw new Error('اختار مدة الاشتراك المجاني.');
+  }
   if (expires_at && new Date(expires_at).getTime() < Date.now()) {
     throw new Error('تاريخ الانتهاء لازم يكون في المستقبل.');
   }
@@ -55,6 +61,7 @@ function parseCouponForm(formData: FormData) {
     discount_value,
     applies_to,
     course_id,
+    subscription_plan,
     max_uses,
     max_uses_per_user,
     expires_at,

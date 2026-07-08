@@ -29,9 +29,14 @@ export async function applyCoupon(formData: FormData) {
     );
   }
 
-  if (result.coupon.discount_type !== 'free_course' || !result.coupon.course_id) {
-    // We only support the free-course flow on /redeem for now. Discount
-    // coupons still ride through /checkout as before.
+  const grantsCourse =
+    result.coupon.discount_type === 'free_course' && !!result.coupon.course_id;
+  const grantsSubscription =
+    result.coupon.discount_type === 'free_subscription' &&
+    !!result.coupon.subscription_plan;
+  if (!grantsCourse && !grantsSubscription) {
+    // /redeem only supports the two grant types. Percent/fixed discount
+    // coupons ride through /checkout as before.
     redirect(
       `/redeem?stage=code&error=${encodeURIComponent(
         'الكوبون ده مش من نوع دخول مجاني. لو خصم استعمله في صفحة الدفع.'
@@ -88,7 +93,11 @@ export async function sendRedemptionOtp(formData: FormData) {
 
   // Re-validate the code — reject on any change since step 1.
   const result = await validateCouponCode(code);
-  if (!result.ok || result.coupon.discount_type !== 'free_course') {
+  const isGrant =
+    result.ok &&
+    (result.coupon.discount_type === 'free_course' ||
+      result.coupon.discount_type === 'free_subscription');
+  if (!isGrant) {
     redirect('/redeem?stage=code&error=' + encodeURIComponent('الكوبون مش صالح.'));
   }
 
@@ -170,47 +179,69 @@ export async function verifyRedemptionOtp(formData: FormData) {
   // Re-validate coupon under the new session — this is where per-user
   // "already redeemed" also gets caught cleanly.
   const result = await validateCouponCode(code, userId);
-  if (!result.ok || result.coupon.discount_type !== 'free_course' || !result.coupon.course_id) {
+  const grantsCourse =
+    result.ok && result.coupon.discount_type === 'free_course' && !!result.coupon.course_id;
+  const grantsSub =
+    result.ok &&
+    result.coupon.discount_type === 'free_subscription' &&
+    !!result.coupon.subscription_plan;
+  if (!grantsCourse && !grantsSub) {
     const reason =
       result.ok === false && result.reason === 'already_redeemed'
-        ? 'الكوبون ده مستخدم بالفعل على حسابك — الكورس مفتوح.'
+        ? 'الكوبون ده مستخدم بالفعل على حسابك — الوصول مفتوح.'
         : 'الكوبون مش صالح.';
-    // Clear the cookie so a subsequent attempt starts fresh.
     c.delete(CODE_COOKIE);
-    // Route them to the course they already have or the courses list.
-    const courseSlug = await lookupCourseSlug(result.ok ? result.coupon.course_id : null);
-    redirect(courseSlug ? `/course/${courseSlug}?msg=${encodeURIComponent(reason)}` : '/courses');
+    redirect(`/dashboard?msg=${encodeURIComponent(reason)}`);
   }
 
   const service = createServiceClient();
-  const { coupon } = result;
+  const { coupon } = result!;
 
-  // 1. Insert the enrollment. source='coupon' → canAccessCourse picks it up.
-  const { error: enrollErr } = await service.from('enrollments').insert({
-    user_id: userId,
-    course_id: coupon.course_id,
-    source: 'coupon',
-    notes: `Redeemed coupon: ${coupon.code}`,
-  });
-  // If a duplicate enrollment already exists, that's fine — proceed.
-  if (enrollErr && !enrollErr.message.toLowerCase().includes('duplicate')) {
-    void auditLog(
-      { userId, userEmail: email, userRole: null },
-      { action: 'redeem.enrollment_failed', result: 'failure', errorMessage: enrollErr.message }
-    );
-    back('فشل تفعيل الكورس. جرّب تاني.');
+  if (grantsCourse) {
+    // 1. Enroll the user in this single course. canAccessCourse picks it up.
+    const { error: enrollErr } = await service.from('enrollments').insert({
+      user_id: userId,
+      course_id: coupon.course_id,
+      source: 'coupon',
+      notes: `Redeemed coupon: ${coupon.code}`,
+    });
+    if (enrollErr && !enrollErr.message.toLowerCase().includes('duplicate')) {
+      void auditLog(
+        { userId, userEmail: email, userRole: null },
+        { action: 'redeem.enrollment_failed', result: 'failure', errorMessage: enrollErr.message }
+      );
+      back('فشل تفعيل الكورس. جرّب تاني.');
+    }
+  } else {
+    // Grant a real subscription row for the chosen duration. gateway='manual'
+    // + a metadata flag so it's obvious in the DB that this wasn't paid for.
+    const days = coupon.subscription_plan === 'yearly' ? 365 : 30;
+    const now = new Date();
+    const periodEnd = new Date(now.getTime() + days * 86_400_000);
+    const { error: subErr } = await service.from('subscriptions').insert({
+      user_id: userId,
+      plan: coupon.subscription_plan,
+      status: 'active',
+      current_period_start: now.toISOString(),
+      current_period_end: periodEnd.toISOString(),
+      gateway: 'manual',
+      stripe_subscription_id: `coupon-${coupon.code}-${userId}`,
+    });
+    if (subErr) {
+      void auditLog(
+        { userId, userEmail: email, userRole: null },
+        { action: 'redeem.subscription_failed', result: 'failure', errorMessage: subErr.message }
+      );
+      back('فشل تفعيل الاشتراك. جرّب تاني.');
+    }
   }
 
-  // 2. Insert the redemption row — unique index on (coupon_id, user_id)
-  //    will surface a duplicate-key error if the same user retries.
+  // Common: record the redemption + bump the counter.
   await service.from('coupon_redemptions').insert({
     coupon_id: coupon.id,
     user_id: userId,
     email,
   });
-
-  // 3. Bump used_count. Racy under heavy contention but fine for a hand-run
-  //    campaign — the real cap lives on the unique index above.
   await service
     .from('coupons')
     .update({ used_count: (coupon.used_count || 0) + 1 })
@@ -218,14 +249,26 @@ export async function verifyRedemptionOtp(formData: FormData) {
 
   void auditLog(
     { userId, userEmail: email, userRole: null },
-    { action: 'redeem.success', metadata: { coupon_code: coupon.code, course_id: coupon.course_id } }
+    {
+      action: 'redeem.success',
+      metadata: {
+        coupon_code: coupon.code,
+        grant_type: coupon.discount_type,
+        course_id: coupon.course_id,
+        subscription_plan: coupon.subscription_plan,
+      },
+    }
   );
 
   c.delete(CODE_COOKIE);
-
-  const slug = await lookupCourseSlug(coupon.course_id);
   revalidatePath('/', 'layout');
-  redirect(slug ? `/course/${slug}?welcome=coupon` : '/courses?welcome=coupon');
+
+  if (grantsCourse) {
+    const slug = await lookupCourseSlug(coupon.course_id);
+    redirect(slug ? `/course/${slug}?welcome=coupon` : '/courses?welcome=coupon');
+  }
+  // Subscription grant → land on the success page with a big CTA to /dashboard.
+  redirect(`/redeem?stage=success&plan=${coupon.subscription_plan}`);
 }
 
 async function lookupCourseSlug(courseId: string | null | undefined): Promise<string | null> {

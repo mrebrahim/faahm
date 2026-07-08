@@ -3,10 +3,11 @@ import { createServiceClient } from '@/lib/supabase/server';
 export type Coupon = {
   id: string;
   code: string;
-  discount_type: 'percent' | 'fixed' | 'free_course';
+  discount_type: 'percent' | 'fixed' | 'free_course' | 'free_subscription';
   discount_value: number;
   applies_to: string | null;
   course_id: string | null;
+  subscription_plan: 'monthly' | 'yearly' | null;
   max_uses: number | null;
   used_count: number;
   expires_at: string | null;
@@ -47,7 +48,7 @@ export async function validateCouponCode(
   const { data } = await service
     .from('coupons')
     .select(
-      'id, code, discount_type, discount_value, applies_to, course_id, max_uses, used_count, expires_at, is_active, description'
+      'id, code, discount_type, discount_value, applies_to, course_id, subscription_plan, max_uses, used_count, expires_at, is_active, description'
     )
     .eq('code', code)
     .maybeSingle();

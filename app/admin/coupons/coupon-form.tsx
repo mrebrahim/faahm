@@ -12,6 +12,7 @@ type Coupon = {
   discount_value?: number;
   applies_to?: string;
   course_id?: string | null;
+  subscription_plan?: string | null;
   max_uses?: number | null;
   max_uses_per_user?: number | null;
   expires_at?: string | null;
@@ -41,6 +42,8 @@ export function CouponForm({
     d.discount_type || 'percent'
   );
   const isFreeCourse = discountType === 'free_course';
+  const isFreeSubscription = discountType === 'free_subscription';
+  const isGrantType = isFreeCourse || isFreeSubscription;
 
   return (
     <form
@@ -78,23 +81,24 @@ export function CouponForm({
           >
             <option value="percent">نسبة خصم (%)</option>
             <option value="fixed">مبلغ خصم ثابت (cents)</option>
-            <option value="free_course">دخول مجاني على كورس</option>
+            <option value="free_course">دخول مجاني على كورس واحد</option>
+            <option value="free_subscription">اشتراك مجاني كامل (كل الكورسات)</option>
           </select>
         </div>
         <div className="space-y-1">
           <Label htmlFor="discount_value">
-            {isFreeCourse ? 'قيمة (غير مستخدمة)' : 'القيمة'}
+            {isGrantType ? 'قيمة (غير مستخدمة)' : 'القيمة'}
           </Label>
           <Input
             id="discount_value"
             name="discount_value"
             type="number"
             min="1"
-            defaultValue={d.discount_value ?? (isFreeCourse ? 100 : 50)}
+            defaultValue={d.discount_value ?? (isGrantType ? 100 : 50)}
             dir="ltr"
             required
-            disabled={isFreeCourse}
-            className={isFreeCourse ? 'opacity-50' : ''}
+            disabled={isGrantType}
+            className={isGrantType ? 'opacity-50' : ''}
           />
         </div>
       </div>
@@ -120,12 +124,34 @@ export function CouponForm({
           </select>
           <p className="text-[11px] text-emerald-700 mt-1 leading-relaxed">
             الطالب هيدخل الكود ويسجّل بيانات (اسم + إيميل + رقم موبايل) ويتحقّق من الإيميل عبر OTP ثم يفتحله الكورس مجاناً.
-            الرابط اللي يشارك بيه الكوبون: <code dir="ltr" className="font-mono bg-white px-1 py-0.5 rounded border border-emerald-200">/redeem</code>
+            الرابط: <code dir="ltr" className="font-mono bg-white px-1 py-0.5 rounded border border-emerald-200">/redeem</code>
           </p>
         </div>
       )}
 
-      {!isFreeCourse && (
+      {isFreeSubscription && (
+        <div className="space-y-1 p-4 rounded-xl border border-brand-500/30 bg-brand-500/5">
+          <Label htmlFor="subscription_plan" className="text-brand-700 font-bold">
+            مدة الاشتراك المجاني
+          </Label>
+          <select
+            id="subscription_plan"
+            name="subscription_plan"
+            defaultValue={d.subscription_plan || 'monthly'}
+            required
+            className="flex h-11 w-full rounded-lg border border-brand-500/40 bg-white px-3 text-sm"
+          >
+            <option value="monthly">شهر مجاني (30 يوم)</option>
+            <option value="yearly">سنة مجانية (365 يوم)</option>
+          </select>
+          <p className="text-[11px] text-brand-700 mt-1 leading-relaxed">
+            الطالب هيدخل الكود ويسجّل بيانات (اسم + إيميل + موبايل) ويتحقّق بـ OTP، وبعدها يتفتحله <strong>كل كورسات المنصة</strong> للمدة المختارة.
+            الرابط: <code dir="ltr" className="font-mono bg-white px-1 py-0.5 rounded border border-brand-500/30">/redeem</code>
+          </p>
+        </div>
+      )}
+
+      {!isGrantType && (
         <div className="space-y-1">
           <Label htmlFor="applies_to">ينطبق على</Label>
           <select
@@ -150,7 +176,7 @@ export function CouponForm({
             type="number"
             min="1"
             defaultValue={d.max_uses ?? ''}
-            placeholder={isFreeCourse ? '1000' : 'بدون حد'}
+            placeholder={isGrantType ? '1000' : 'بدون حد'}
             dir="ltr"
           />
           <p className="text-[11px] text-gray-500">سيب فاضي = لا محدود.</p>
@@ -188,7 +214,9 @@ export function CouponForm({
           placeholder={
             isFreeCourse
               ? 'حملة إطلاق — 1000 كوبون مجاني على كورس الكوبيرايتنج'
-              : 'إطلاق المنصة — خصم 50% على السنوي'
+              : isFreeSubscription
+                ? 'حملة إطلاق — 100 اشتراك سنوي مجاني'
+                : 'إطلاق المنصة — خصم 50% على السنوي'
           }
           maxLength={200}
         />
