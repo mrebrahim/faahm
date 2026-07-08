@@ -89,9 +89,12 @@ export type PlanPricing = {
   yearlyPerMonth: number | string;
   savings: number;
   savingsPct: number;
-  /** True when the day-6-to-day-20 promo is currently live for USD. Off for
-   *  the SAR row (legacy — no marketing surface points there anymore). */
-  promoActive: boolean;
+  /** Active promo tier for USD — 'mid' ($80, day 6-20) or 'deep'
+   *  ($40, day 21-5). SAR is legacy → always 'mid'. */
+  promoTier: 'mid' | 'deep';
+  /** Convenience — true when the deep ($40) promo window is live.
+   *  Gates the sitewide banner + one-time popup. */
+  deepActive: boolean;
 };
 
 import { getPromoState } from '@/lib/promo';
@@ -111,14 +114,16 @@ const SA_PRICING: PlanPricing = {
   yearlyPerMonth: 12.5,
   savings: 300,
   savingsPct: 67,
-  promoActive: false,
+  promoTier: 'mid',
+  deepActive: false,
 };
 
 /**
  * USD row is computed per-request from the promo state so home / pricing /
  * personal-plan / checkout / faq / course / lesson / dashboard all switch
- * together on the Cairo-day-of-month boundary. Days 6–20 → yearly $40
- * with a $120 strikethrough. Other days → yearly $120, no anchor.
+ * together on the Cairo-day-of-month boundary. Days 6–20 → yearly $80
+ * (mid tier, quiet promo). Days 21–5 → yearly $40 (deep tier, loud
+ * banner + popup). $120 anchor is always shown as strikethrough.
  */
 function usPricing(): PlanPricing {
   const p = getPromoState();
@@ -128,11 +133,12 @@ function usPricing(): PlanPricing {
     symbol: '$',
     monthlyAmount: 10,
     yearlyAmount: p.yearlyAmount,
-    yearlyAnchor: p.yearlyAnchor ?? p.yearlyAmount,
+    yearlyAnchor: p.yearlyAnchor,
     yearlyPerMonth: p.yearlyPerMonth,
     savings: p.savings,
     savingsPct: p.savingsPct,
-    promoActive: p.active,
+    promoTier: p.tier,
+    deepActive: p.deepActive,
   };
 }
 

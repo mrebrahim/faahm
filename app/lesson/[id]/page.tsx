@@ -507,7 +507,7 @@ function PaywallBlock({ lessonId, loggedIn }: { lessonId: string; loggedIn: bool
         </h2>
         <p className="text-sm text-gray-300 mb-6">
           {loggedIn
-            ? `اشترك دلوقتي بـ $${pricing.yearlyAmount}/سنة${pricing.promoActive ? ` (بدل $${pricing.yearlyAnchor} — خصم ${pricing.savingsPct}%)` : ''} واحصل على كل دروس الكورس + كل كورسات فاهم!`
+            ? `اشترك دلوقتي بـ $${pricing.yearlyAmount}/سنة (بدل $${pricing.yearlyAnchor} — خصم ${pricing.savingsPct}% لفترة محدودة) واحصل على كل دروس الكورس + كل كورسات فاهم!`
             : 'سجّل حساب مجاني عشان تشوف الدروس المجانية، أو اشترك للوصول الكامل.'}
         </p>
         <Button asChild size="lg" className="bg-white text-gray-900 hover:bg-gray-100 shadow-none">

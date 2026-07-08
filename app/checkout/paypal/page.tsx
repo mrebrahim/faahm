@@ -102,7 +102,7 @@ export default async function PayPalCheckoutPage({
             </p>
             <PayPalButton
               plan={planParam}
-              planId={paypalPlanId(planParam, getPromoState().active)}
+              planId={paypalPlanId(planParam, getPromoState().tier)}
             />
           </div>
 

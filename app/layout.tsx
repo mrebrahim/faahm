@@ -101,10 +101,10 @@ export default function RootLayout({
         <LearnerCountBar />
         {children}
         <WhatsAppButton />
-        {promo.active && (
+        {promo.deepActive && (
           <PromoPopup
             yearlyAmount={promo.yearlyAmount}
-            yearlyAnchor={promo.yearlyAnchor ?? 0}
+            yearlyAnchor={promo.yearlyAnchor}
             savingsPct={promo.savingsPct}
             promoMonth={promoMonth}
           />

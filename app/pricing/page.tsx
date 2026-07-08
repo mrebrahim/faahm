@@ -132,7 +132,6 @@ export default async function PricingPage({
             yearTotal={pricing.yearlyAmount}
             savings={pricing.savings}
             savingsPct={pricing.savingsPct}
-            promoActive={pricing.promoActive}
           />
           <MonthlyCard
             user={user}
@@ -186,7 +185,6 @@ function YearlyCard({
   yearTotal,
   savings,
   savingsPct,
-  promoActive,
 }: {
   user: any;
   region: Region;
@@ -195,7 +193,6 @@ function YearlyCard({
   yearTotal: number | string;
   savings: number;
   savingsPct: number;
-  promoActive: boolean;
 }) {
   // Guest checkout: send everyone straight to /checkout. The page itself
   // collects an email if there's no session, and the account is
@@ -212,13 +209,11 @@ function YearlyCard({
 
   return (
     <div className="relative rounded-2xl overflow-hidden border-2 border-brand-500 bg-white shadow-2xl shadow-brand-500/20 md:scale-[1.03] md:order-1">
-      {/* Corner savings badge — only when the promo is live, otherwise
-          the yearly card is regular-price and has nothing to boast. */}
-      {promoActive && (
-        <div className="absolute top-3 start-3 z-10 px-2 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-extrabold shadow">
-          وفّر {savingsPct}%
-        </div>
-      )}
+      {/* Corner savings badge — always visible since we're always
+          below the $120 anchor. */}
+      <div className="absolute top-3 start-3 z-10 px-2 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-extrabold shadow">
+        وفّر {savingsPct}%
+      </div>
 
       {/* Green header band */}
       <div className="bg-brand-500 text-white text-center py-4 px-4">
@@ -230,15 +225,11 @@ function YearlyCard({
       </div>
 
       <div className="p-6 sm:p-8">
-        {/* Anchor (strikethrough) shown only during the promo — otherwise
-            anchor equals headline and the strike would read as noise. */}
-        {promoActive ? (
-          <div className="text-sm text-gray-400 line-through font-medium text-center mb-1">
-            <SARMoney value={anchorYear} />/سنة
-          </div>
-        ) : (
-          <div className="h-5 mb-1" />
-        )}
+        {/* Anchor (strikethrough) is always the $120 list price — the
+            headline below is always the current-tier ($80 or $40). */}
+        <div className="text-sm text-gray-400 line-through font-medium text-center mb-1">
+          <SARMoney value={anchorYear} />/سنة
+        </div>
 
         {/* Hero price — split per month. Big enough that the SAR symbol
             sits right next to the digit at headline size, with a
@@ -256,33 +247,25 @@ function YearlyCard({
           <div className="text-sm text-gray-500 mt-1">/ سنة</div>
         </div>
 
-        {promoActive && (
-          <p className="text-xs sm:text-sm text-center text-brand-700 font-medium mb-2">
-            ☕ أقل من سعر قهوة في اليوم
-          </p>
-        )}
+        <p className="text-xs sm:text-sm text-center text-brand-700 font-medium mb-2">
+          ☕ أقل من سعر قهوة في اليوم
+        </p>
 
-        {promoActive ? (
-          <p className="text-xs sm:text-sm text-center text-gray-700 bg-brand-500/5 border border-brand-500/20 rounded-lg py-2 px-3 mb-5 leading-relaxed">
-            * تدفع{' '}
-            <span className="font-bold">
-              <SARMoney value={yearTotal} />
-            </span>{' '}
-            بدلاً من{' '}
-            <span className="font-bold line-through text-gray-400">
-              <SARMoney value={anchorYear} />
-            </span>{' '}
-            سنوياً — وفّر{' '}
-            <span className="font-bold text-brand-700">
-              <SARMoney value={savings} />
-            </span>{' '}
-            ({savingsPct}%)
-          </p>
-        ) : (
-          <p className="text-xs sm:text-sm text-center text-gray-500 mb-5 leading-relaxed">
-            اشتراك سنوي واحد يفتح كل الكورسات · إلغاء في أي وقت
-          </p>
-        )}
+        <p className="text-xs sm:text-sm text-center text-gray-700 bg-brand-500/5 border border-brand-500/20 rounded-lg py-2 px-3 mb-5 leading-relaxed">
+          * تدفع{' '}
+          <span className="font-bold">
+            <SARMoney value={yearTotal} />
+          </span>{' '}
+          بدلاً من{' '}
+          <span className="font-bold line-through text-gray-400">
+            <SARMoney value={anchorYear} />
+          </span>{' '}
+          سنوياً — وفّر{' '}
+          <span className="font-bold text-brand-700">
+            <SARMoney value={savings} />
+          </span>{' '}
+          ({savingsPct}%)
+        </p>
 
         {/* Feature list */}
         <ul className="space-y-2.5 mb-6">

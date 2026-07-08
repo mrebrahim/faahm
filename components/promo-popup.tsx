@@ -10,7 +10,7 @@ import { X, Sparkles, ArrowLeft } from 'lucide-react';
  * Persistence: a sessionStorage flag scoped to the current promo month
  * so the visitor sees it once per session but gets re-shown if a NEW
  * promo cycle starts. Rendered from the root layout (via a server
- * gate on getPromoState().active) so it appears everywhere.
+ * gate on getPromoState().deepActive) so it appears everywhere.
  */
 export function PromoPopup({
   yearlyAmount,

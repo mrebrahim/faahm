@@ -539,8 +539,9 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
                 اشترك واحصل على كل الكورسات
               </h3>
               <p className="text-sm text-gray-600 mb-4">
-                مفيش شراء كل كورس لوحده. اشتراك سنوي بـ <strong>${pricing.yearlyAmount}/سنة</strong>
-                {' '}بيفتحلك كل المحتوى + المساعد الذكي + الشهادة.
+                مفيش شراء كل كورس لوحده. اشتراك سنوي دلوقتي بـ{' '}
+                <strong>${pricing.yearlyAmount}/سنة</strong> (بدل ${pricing.yearlyAnchor} —
+                خصم {pricing.savingsPct}% لفترة محدودة) بيفتحلك كل المحتوى + المساعد الذكي + الشهادة.
               </p>
               <ul className="space-y-2 mb-5 text-sm">
                 {[

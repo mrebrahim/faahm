@@ -127,17 +127,18 @@ export const OFFLINE_PAYMENTS = {
  */
 /**
  * Two-tier Stripe Payment Links for the yearly plan:
- *   - yearly_promo   → $40/yr recurring price. Used only during the
- *     day-6-to-day-20 promo window (see lib/promo.ts).
- *   - yearly_regular → $120/yr recurring price. Used the rest of the month.
- * The /api/checkout route picks the right one at request time based on the
- * live promo state so the payment page never disagrees with the sticker
- * price the visitor just saw. Monthly ($10) is not affected by the promo.
+ *   - yearly_mid  → $80/yr recurring price. Used during day 6–20 (Cairo).
+ *   - yearly_deep → $40/yr recurring price. Used during day 21–5.
+ * Each MUST be a SUBSCRIPTION Payment Link in Stripe Dashboard with the
+ * right recurring price ($80/year or $40/year). The /api/checkout route
+ * picks the right one at request time based on the live promo tier so
+ * the payment page never disagrees with the sticker price the visitor
+ * just saw. Monthly ($10) is not affected by the promo.
  */
 export const STRIPE_PAYMENT_LINKS = {
   monthly: 'https://buy.stripe.com/eVqaEXfno0Fo408dX653O1H',
-  yearly_promo: 'https://buy.stripe.com/4gM8wPejkafYfIQdX653O1E',
-  yearly_regular: 'https://buy.stripe.com/cNi00j0su4VE0NW8CM53O1L',
+  yearly_mid: 'https://buy.stripe.com/cNi00j0su4VE0NW8CM53O1L',
+  yearly_deep: 'https://buy.stripe.com/4gM8wPejkafYfIQdX653O1E',
 } as const;
 
 /**
@@ -154,16 +155,16 @@ export const STRIPE_PAYMENT_LINKS = {
  * endpoint to confirm payment state before granting access.
  */
 /**
- * Resolve a PayPal plan_id for the (plan, promo state) tuple. Used by both
+ * Resolve a PayPal plan_id for the (plan, promo tier) tuple. Used by both
  * server (activation verify) and client (button createSubscription) so the
  * choice can't drift between the two paths.
  */
 export function paypalPlanId(
   plan: 'monthly' | 'yearly',
-  promoActive: boolean
+  tier: 'mid' | 'deep'
 ): string {
   if (plan === 'monthly') return PAYPAL.plans.monthly;
-  return promoActive ? PAYPAL.plans.yearly_promo : PAYPAL.plans.yearly_regular;
+  return tier === 'deep' ? PAYPAL.plans.yearly_deep : PAYPAL.plans.yearly_mid;
 }
 
 export const PAYPAL = {
@@ -173,8 +174,9 @@ export const PAYPAL = {
   plans: {
     monthly: 'P-41703329EL039891VNITKHGQ',
     // Two yearly plans mirror STRIPE_PAYMENT_LINKS above — /checkout/paypal
-    // picks between them at request time based on the live promo state.
-    yearly_promo: 'P-81768794T3699470VNITKGCY',
-    yearly_regular: 'P-4HH13228MH387715ANJHB6NA',
+    // picks between them at request time based on the live promo tier.
+    // yearly_mid = $80/year, yearly_deep = $40/year.
+    yearly_mid: 'P-4HH13228MH387715ANJHB6NA',
+    yearly_deep: 'P-81768794T3699470VNITKGCY',
   },
 } as const;

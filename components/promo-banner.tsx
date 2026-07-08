@@ -11,7 +11,7 @@ import { ROUTES } from '@/lib/constants';
  */
 export function PromoBanner() {
   const promo = getPromoState();
-  if (!promo.active) return null;
+  if (!promo.deepActive) return null;
 
   return (
     <Link

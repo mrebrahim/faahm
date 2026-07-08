@@ -1,37 +1,46 @@
 /**
- * Yearly-price promo window. Between day PROMO_START and PROMO_END of every
- * month (inclusive, calendar day-of-month) the yearly plan drops from the
- * regular list price to the promo price. Outside that window the yearly
- * plan shows the regular price and no discount UI.
+ * Yearly-price promo model — two tiers that cycle every month:
  *
- * Timezone: Africa/Cairo — the merchant is Egyptian and the primary market
- * runs on Cairo local time. Using UTC would mean the promo flips a few
- * hours off from the merchant's calendar, which is a real hazard around
- * midnight.
+ *   Days 6 → 20 (Africa/Cairo)   →  MID tier   →  $80/year  (quiet promo)
+ *   Days 21 → 5 (crosses month)  →  DEEP tier  →  $40/year  (loud promo)
  *
- * Every price surface in the app runs pricingFor('us') which now delegates
- * to the promo state below, so home / pricing / personal-plan / checkout /
- * dashboard / faq / course / lesson all switch together — no per-page
- * date logic anywhere else in the codebase.
+ * The list price ($120) is only ever an anchor — it is never actually
+ * charged. Every price surface always shows a $120 strikethrough next to
+ * whichever tier is live, so the visitor sees the discount context on
+ * every page regardless of the day of the month.
+ *
+ * `deepActive` gates the loud propaganda (sitewide banner + one-time
+ * popup) so they only appear during the $40 window. The mid tier is a
+ * quiet card-level discount only.
+ *
+ * Timezone: Africa/Cairo — the merchant is Egyptian and the primary
+ * audience runs on Cairo local time. UTC would flip the tier a few
+ * hours off from the merchant's calendar around midnight.
  */
 
 export const PROMO_TIMEZONE = 'Africa/Cairo';
-export const PROMO_START_DAY = 6;
-export const PROMO_END_DAY = 20;
 
-/** Promo pricing (USD). Regular is the non-promo baseline. */
-export const YEARLY_PROMO_USD = 40;
-export const YEARLY_REGULAR_USD = 120;
+/** MID window (inclusive, Cairo day-of-month). */
+export const MID_START_DAY = 6;
+export const MID_END_DAY = 20;
+/** DEEP window is everything OUTSIDE the MID window — i.e. day 21 → day 5. */
+
+export const YEARLY_ANCHOR_USD = 120;
+export const YEARLY_MID_USD = 80;
+export const YEARLY_DEEP_USD = 40;
 export const MONTHLY_USD = 10;
 
+export type PromoTier = 'mid' | 'deep';
+
 export type PromoState = {
-  active: boolean;
+  /** Which pricing window is live right now. */
+  tier: PromoTier;
+  /** Convenience — true when tier === 'deep'. Drives banner + popup. */
+  deepActive: boolean;
   /** Day-of-month in PROMO_TIMEZONE, 1–31. */
   day: number;
   yearlyAmount: number;
-  /** Strike-through anchor shown on cards — null when no promo is active. */
-  yearlyAnchor: number | null;
-  /** yearlyAmount / 12, one decimal. Kept for cards that still need a per-month figure. */
+  yearlyAnchor: number;
   yearlyPerMonth: number;
   savings: number;
   savingsPct: number;
@@ -49,22 +58,20 @@ function cairoDayOfMonth(now: Date): number {
 
 export function getPromoState(now: Date = new Date()): PromoState {
   const day = cairoDayOfMonth(now);
-  const active = day >= PROMO_START_DAY && day <= PROMO_END_DAY;
+  const inMid = day >= MID_START_DAY && day <= MID_END_DAY;
+  const tier: PromoTier = inMid ? 'mid' : 'deep';
 
-  const amount = active ? YEARLY_PROMO_USD : YEARLY_REGULAR_USD;
-  const anchor = active ? YEARLY_REGULAR_USD : null;
-  const savings = active ? YEARLY_REGULAR_USD - YEARLY_PROMO_USD : 0;
-  const savingsPct =
-    active && YEARLY_REGULAR_USD > 0
-      ? Math.round(((YEARLY_REGULAR_USD - YEARLY_PROMO_USD) / YEARLY_REGULAR_USD) * 100)
-      : 0;
+  const amount = tier === 'mid' ? YEARLY_MID_USD : YEARLY_DEEP_USD;
+  const savings = YEARLY_ANCHOR_USD - amount;
+  const savingsPct = Math.round((savings / YEARLY_ANCHOR_USD) * 100);
   const yearlyPerMonth = Math.round((amount / 12) * 100) / 100;
 
   return {
-    active,
+    tier,
+    deepActive: tier === 'deep',
     day,
     yearlyAmount: amount,
-    yearlyAnchor: anchor,
+    yearlyAnchor: YEARLY_ANCHOR_USD,
     yearlyPerMonth,
     savings,
     savingsPct,

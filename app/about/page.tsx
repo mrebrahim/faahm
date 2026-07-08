@@ -107,7 +107,7 @@ export default function AboutPage() {
             <Bullet
               n="03"
               title="اشتراك واحد، وصول لكل حاجة"
-              body={`بدل ما تدفع لكل كورس لوحده، اشترك بـ $${pricing.yearlyAmount}/سنة${pricing.promoActive ? ` (بدل $${pricing.yearlyAnchor} — خصم ${pricing.savingsPct}% لفترة محدودة)` : ''} وافتح كل المحتوى. تقدر تلغي في أي وقت.`}
+              body={`بدل ما تدفع لكل كورس لوحده، اشترك بـ $${pricing.yearlyAmount}/سنة (بدل $${pricing.yearlyAnchor} — خصم ${pricing.savingsPct}% لفترة محدودة) وافتح كل المحتوى. تقدر تلغي في أي وقت.`}
             />
             <Bullet
               n="04"

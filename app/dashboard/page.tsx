@@ -146,7 +146,7 @@ export default async function DashboardPage() {
               <div>
                 <h3 className="font-bold text-lg mb-1">ابدأ رحلة التعلّم الكاملة</h3>
                 <p className="text-sm text-gray-600">
-                  اشترك دلوقتي واحصل على وصول كامل لكل الكورسات بـ ${pricing.yearlyAmount}/سنة{pricing.promoActive ? ` (بدل $${pricing.yearlyAnchor} — خصم ${pricing.savingsPct}%)` : ''}
+                  اشترك دلوقتي واحصل على وصول كامل لكل الكورسات بـ ${pricing.yearlyAmount}/سنة (بدل ${pricing.yearlyAnchor} — خصم {pricing.savingsPct}% لفترة محدودة)
                 </p>
               </div>
               <Button asChild>
