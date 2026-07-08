@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,6 +11,7 @@ type Coupon = {
   discount_type?: string;
   discount_value?: number;
   applies_to?: string;
+  course_id?: string | null;
   max_uses?: number | null;
   max_uses_per_user?: number | null;
   expires_at?: string | null;
@@ -15,16 +19,29 @@ type Coupon = {
   description?: string | null;
 };
 
+type CourseOption = {
+  id: string;
+  title_ar: string;
+  slug: string;
+};
+
 export function CouponForm({
   action,
   defaults,
   submitLabel,
+  courses = [],
 }: {
   action: (formData: FormData) => Promise<void>;
   defaults?: Coupon;
   submitLabel: string;
+  courses?: CourseOption[];
 }) {
   const d = defaults || {};
+  const [discountType, setDiscountType] = useState<string>(
+    d.discount_type || 'percent'
+  );
+  const isFreeCourse = discountType === 'free_course';
+
   return (
     <form
       action={action}
@@ -51,44 +68,78 @@ export function CouponForm({
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
-          <Label htmlFor="discount_type">نوع الخصم</Label>
+          <Label htmlFor="discount_type">نوع الكوبون</Label>
           <select
             id="discount_type"
             name="discount_type"
-            defaultValue={d.discount_type || 'percent'}
+            value={discountType}
+            onChange={(e) => setDiscountType(e.target.value)}
             className="flex h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm"
           >
-            <option value="percent">نسبة مئوية</option>
-            <option value="fixed">مبلغ ثابت (cents)</option>
+            <option value="percent">نسبة خصم (%)</option>
+            <option value="fixed">مبلغ خصم ثابت (cents)</option>
+            <option value="free_course">دخول مجاني على كورس</option>
           </select>
         </div>
         <div className="space-y-1">
-          <Label htmlFor="discount_value">القيمة</Label>
+          <Label htmlFor="discount_value">
+            {isFreeCourse ? 'قيمة (غير مستخدمة)' : 'القيمة'}
+          </Label>
           <Input
             id="discount_value"
             name="discount_value"
             type="number"
             min="1"
-            defaultValue={d.discount_value ?? 50}
+            defaultValue={d.discount_value ?? (isFreeCourse ? 100 : 50)}
             dir="ltr"
             required
+            disabled={isFreeCourse}
+            className={isFreeCourse ? 'opacity-50' : ''}
           />
         </div>
       </div>
 
-      <div className="space-y-1">
-        <Label htmlFor="applies_to">ينطبق على</Label>
-        <select
-          id="applies_to"
-          name="applies_to"
-          defaultValue={d.applies_to || 'all'}
-          className="flex h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm"
-        >
-          <option value="all">كل الخطط</option>
-          <option value="monthly">شهري فقط</option>
-          <option value="yearly">سنوي فقط</option>
-        </select>
-      </div>
+      {isFreeCourse && (
+        <div className="space-y-1 p-4 rounded-xl border border-emerald-200 bg-emerald-50">
+          <Label htmlFor="course_id" className="text-emerald-800 font-bold">
+            الكورس اللي هيتفتح مجاناً
+          </Label>
+          <select
+            id="course_id"
+            name="course_id"
+            defaultValue={d.course_id || ''}
+            required
+            className="flex h-11 w-full rounded-lg border border-emerald-300 bg-white px-3 text-sm"
+          >
+            <option value="">— اختار الكورس —</option>
+            {courses.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.title_ar}
+              </option>
+            ))}
+          </select>
+          <p className="text-[11px] text-emerald-700 mt-1 leading-relaxed">
+            الطالب هيدخل الكود ويسجّل بيانات (اسم + إيميل + رقم موبايل) ويتحقّق من الإيميل عبر OTP ثم يفتحله الكورس مجاناً.
+            الرابط اللي يشارك بيه الكوبون: <code dir="ltr" className="font-mono bg-white px-1 py-0.5 rounded border border-emerald-200">/redeem</code>
+          </p>
+        </div>
+      )}
+
+      {!isFreeCourse && (
+        <div className="space-y-1">
+          <Label htmlFor="applies_to">ينطبق على</Label>
+          <select
+            id="applies_to"
+            name="applies_to"
+            defaultValue={d.applies_to || 'all'}
+            className="flex h-11 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm"
+          >
+            <option value="all">كل الخطط</option>
+            <option value="monthly">شهري فقط</option>
+            <option value="yearly">سنوي فقط</option>
+          </select>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
@@ -99,7 +150,7 @@ export function CouponForm({
             type="number"
             min="1"
             defaultValue={d.max_uses ?? ''}
-            placeholder="بدون حد"
+            placeholder={isFreeCourse ? '1000' : 'بدون حد'}
             dir="ltr"
           />
           <p className="text-[11px] text-gray-500">سيب فاضي = لا محدود.</p>
@@ -134,7 +185,11 @@ export function CouponForm({
           id="description"
           name="description"
           defaultValue={d.description || ''}
-          placeholder="إطلاق المنصة — خصم 50% على السنوي"
+          placeholder={
+            isFreeCourse
+              ? 'حملة إطلاق — 1000 كوبون مجاني على كورس الكوبيرايتنج'
+              : 'إطلاق المنصة — خصم 50% على السنوي'
+          }
           maxLength={200}
         />
       </div>

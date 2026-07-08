@@ -27,10 +27,15 @@ export default async function CouponEditPage({
 
   if (!coupon) notFound();
 
+  const { data: courses } = await service
+    .from('courses')
+    .select('id, title_ar, slug')
+    .order('title_ar');
+
   // Recent redemptions for context (top 20).
   const { data: redemptions } = await service
     .from('coupon_redemptions')
-    .select('id, user_id, payment_id, redeemed_at')
+    .select('id, user_id, email, payment_id, redeemed_at')
     .eq('coupon_id', params.id)
     .order('redeemed_at', { ascending: false })
     .limit(20);
@@ -71,7 +76,12 @@ export default async function CouponEditPage({
         </div>
       )}
 
-      <CouponForm action={updateCoupon} defaults={coupon} submitLabel="حفظ التغييرات" />
+      <CouponForm
+        action={updateCoupon}
+        defaults={coupon}
+        submitLabel="حفظ التغييرات"
+        courses={courses || []}
+      />
 
       <section className="mt-8">
         <h2 className="font-bold mb-3">آخر الاستخدامات</h2>
@@ -81,11 +91,11 @@ export default async function CouponEditPage({
           ) : (
             <ul className="divide-y divide-gray-100">
               {(redemptions || []).map((r: any) => (
-                <li key={r.id} className="px-4 py-2 text-sm flex items-center justify-between">
-                  <span dir="ltr" className="text-xs font-mono text-gray-500">
-                    user {r.user_id.slice(0, 8)}
+                <li key={r.id} className="px-4 py-2 text-sm flex items-center justify-between gap-3">
+                  <span className="text-xs text-gray-700 truncate" dir="ltr">
+                    {r.email || `user ${String(r.user_id).slice(0, 8)}`}
                   </span>
-                  <span dir="ltr" className="text-xs text-gray-500">
+                  <span dir="ltr" className="text-xs text-gray-500 whitespace-nowrap">
                     {new Date(r.redeemed_at).toLocaleDateString('ar-EG')}
                   </span>
                 </li>

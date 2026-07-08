@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { requireAdmin } from '@/lib/admin-guard';
+import { createServiceClient } from '@/lib/supabase/server';
 import { ArrowRight, AlertCircle } from 'lucide-react';
 import { createCoupon } from '../actions';
 import { CouponForm } from '../coupon-form';
@@ -12,6 +13,11 @@ export default async function NewCouponPage({
   searchParams: { error?: string };
 }) {
   await requireAdmin();
+  const service = createServiceClient();
+  const { data: courses } = await service
+    .from('courses')
+    .select('id, title_ar, slug')
+    .order('title_ar');
 
   return (
     <div className="p-6 lg:p-8 max-w-2xl">
@@ -31,7 +37,11 @@ export default async function NewCouponPage({
         </div>
       )}
 
-      <CouponForm action={createCoupon} submitLabel="إنشاء الكوبون" />
+      <CouponForm
+        action={createCoupon}
+        submitLabel="إنشاء الكوبون"
+        courses={courses || []}
+      />
     </div>
   );
 }

@@ -10,9 +10,19 @@ const CODE_REGEX = /^[A-Z0-9_-]{4,20}$/;
 
 function parseCouponForm(formData: FormData) {
   const code = String(formData.get('code') || '').trim().toUpperCase();
-  const discount_type = (String(formData.get('discount_type') || 'percent') as 'percent' | 'fixed');
+  const discount_type = String(formData.get('discount_type') || 'percent') as
+    | 'percent'
+    | 'fixed'
+    | 'free_course';
   const discount_value = parseInt(String(formData.get('discount_value') || '0'), 10);
-  const applies_to = String(formData.get('applies_to') || 'all');
+  const applies_to =
+    discount_type === 'free_course'
+      ? null
+      : String(formData.get('applies_to') || 'all');
+  const course_id =
+    discount_type === 'free_course'
+      ? String(formData.get('course_id') || '').trim() || null
+      : null;
   const max_uses_raw = String(formData.get('max_uses') || '').trim();
   const max_uses = max_uses_raw === '' ? null : Math.max(1, parseInt(max_uses_raw, 10));
   const max_uses_per_user_raw = String(formData.get('max_uses_per_user') || '1').trim();
@@ -32,6 +42,9 @@ function parseCouponForm(formData: FormData) {
   if (discount_type === 'fixed' && (discount_value < 1 || discount_value > 999900)) {
     throw new Error('المبلغ الثابت (بالـ cents) لازم بين 1 و 999900.');
   }
+  if (discount_type === 'free_course' && !course_id) {
+    throw new Error('اختار الكورس اللي هيتفتح مجاناً.');
+  }
   if (expires_at && new Date(expires_at).getTime() < Date.now()) {
     throw new Error('تاريخ الانتهاء لازم يكون في المستقبل.');
   }
@@ -41,6 +54,7 @@ function parseCouponForm(formData: FormData) {
     discount_type,
     discount_value,
     applies_to,
+    course_id,
     max_uses,
     max_uses_per_user,
     expires_at,
