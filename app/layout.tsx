@@ -91,11 +91,11 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="font-sans min-h-screen bg-background text-foreground">
-        {/* Promo banner — appears on every page during the day-6-to-day-20
-            window. Above the '+4000 متعلّم' strip so it's the first thing
-            the visitor reads on ANY page during the sale. */}
+        {/* Promo banner — appears on every page during the deep-promo
+            window (day 21 → day 5). Above the '+1000 طالب' strip so it's
+            the first thing the visitor reads on ANY page during the sale. */}
         <PromoBanner />
-        {/* Site-wide '+4,000 متعلّم' trust strip — first thing every
+        {/* Site-wide '+1,000 طالب' trust strip — first thing every
             visitor reads. Hides itself on checkout / billing / offline
             so it doesn't compete with the payment moment. */}
         <LearnerCountBar />

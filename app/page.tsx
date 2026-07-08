@@ -121,7 +121,7 @@ export default async function HomePage({
 
           {/* Trust strip — 2x2 on phones, single row on md+ */}
           <div className="mt-16 grid grid-cols-2 gap-6 sm:flex sm:flex-wrap sm:justify-center sm:gap-8 md:gap-16 text-gray-500">
-            <StatBlock icon={Users} value="1,000+" label="متعلم نشط" />
+            <StatBlock icon={Users} value="1,000+" label="طالب نشط" />
             <StatBlock icon={BookOpen} value="100+" label="كورس بالـ AI" />
             <StatBlock icon={Award} value="500+" label="شهادة صدرت" />
             <StatBlock icon={Clock} value="24/7" label="دعم متواصل" />
@@ -171,7 +171,7 @@ export default async function HomePage({
             <SectionHeader
               label="الأكثر مشاهدة"
               title="كورسات مختارة لك"
-              subtitle="ابدأ بأحد الكورسات الأكثر شعبية بين المتعلمين"
+              subtitle="ابدأ بأحد الكورسات الأكثر شعبية بين الطلاب"
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-12">
@@ -220,7 +220,7 @@ export default async function HomePage({
             جاهز تتعلّم <span className="text-gradient-brand">الذكاء الاصطناعي</span> بالعربي؟
           </h2>
           <p className="text-gray-600 text-lg mb-8 max-w-2xl mx-auto">
-            انضم لأكثر من 4000 متعلّم عربي اختاروا فاهم — أول منصة عربية للكورسات بالذكاء الاصطناعي.
+            انضم لأكثر من 1000 طالب عربي اختاروا فاهم — أول منصة عربية للكورسات بالذكاء الاصطناعي.
           </p>
           <Button asChild size="lg">
             <Link href="/personal-plan">

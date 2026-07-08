@@ -108,7 +108,7 @@ export default async function PersonalPlanPage() {
   // The PRD's 'use the larger honest unit' rule: '+457 درس' carries more
   // weight than '23 كورس' and both are the same truth.
   const stats = {
-    learners: 4000, // owner-confirmed; refresh manually until we wire a user count
+    learners: 1000, // owner-confirmed; refresh manually until we wire a user count
     lessons: courses.reduce((s, c) => s + (Number(c.total_lessons) || 0), 0),
     hours: Math.round(
       courses.reduce((s, c) => s + (Number(c.total_duration_sec) || 0), 0) / 3600
@@ -334,7 +334,7 @@ export default async function PersonalPlanPage() {
               icon="users"
               value={stats.learners}
               prefix="+"
-              label="متعلّم انضم لفاهم"
+              label="طالب انضم لفاهم"
             />
             <HeroStat
               icon="lesson"
@@ -539,7 +539,7 @@ export default async function PersonalPlanPage() {
               ناس بدأت معانا فعلاً
             </h2>
             <p className="text-gray-600 text-sm sm:text-base">
-              تقييمات حقيقية من متعلّمين انضموا لفاهم في آخر شهور.
+              تقييمات حقيقية من طلاب انضموا لفاهم في آخر شهور.
             </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
@@ -680,7 +680,7 @@ export default async function PersonalPlanPage() {
             جاهز أبدأ خطتي الشخصية؟
           </h2>
           <p className="text-gray-600 text-sm sm:text-base mb-8 max-w-xl mx-auto">
-            انضم لأكثر من 4000 متعلّم عربي اختاروا فاهم — أول منصة عربية
+            انضم لأكثر من 1000 طالب عربي اختاروا فاهم — أول منصة عربية
             بمساعد ذكي حقيقي في كل كورس.
           </p>
           <Button asChild size="lg" className="w-full sm:w-auto sm:min-w-[240px] font-bold min-h-[52px]">

@@ -134,7 +134,7 @@ export default async function DashboardPage() {
         {/* Welcome */}
         <div className="mb-8">
           <h1 className="font-display text-3xl md:text-4xl font-bold mb-2">
-            أهلاً، <span className="text-gradient-brand">{profile?.full_name || 'يا متعلم'}</span> 👋
+            أهلاً، <span className="text-gradient-brand">{profile?.full_name || 'يا طالب'}</span> 👋
           </h1>
           <p className="text-gray-500">{new Date().toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
         </div>

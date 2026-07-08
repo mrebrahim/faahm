@@ -99,7 +99,7 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
   if (!course) notFound();
 
   // Real social-proof counts. Two cheap parallel queries:
-  //   - enrollments for *this* course (the '+392 متعلّم انضم
+  //   - enrollments for *this* course (the '+392 طالب انضم
   //     لهذا الكورس' tile)
   //   - the related-courses pool (published catalog without the
   //     current course — pickRelated filters in JS)
@@ -269,7 +269,7 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
                       <span className="font-bold text-foreground tabular-nums">
                         +{enrollmentCount.toLocaleString('en-US')}
                       </span>
-                      <span className="text-gray-500">متعلّم انضم لهذا الكورس</span>
+                      <span className="text-gray-500">طالب انضم لهذا الكورس</span>
                     </span>
                   </>
                 )}

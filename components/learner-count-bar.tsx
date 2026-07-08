@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { GraduationCap, ArrowLeft } from 'lucide-react';
 
 /**
- * Site-wide trust strip — surfaces the real learner count (+4,000)
+ * Site-wide trust strip — surfaces the real student count (+1,000)
  * above every marketing page so the social proof isn't trapped on
  * /personal-plan alone. Mounted in the root layout, sits above the
  * MainNav (and any page-specific header) so it's the first thing
@@ -24,7 +24,7 @@ import { GraduationCap, ArrowLeft } from 'lucide-react';
  * lift.
  */
 const HIDDEN_PREFIXES = ['/checkout', '/billing', '/offline'];
-const LEARNERS = 4000;
+const LEARNERS = 1000;
 
 export function LearnerCountBar() {
   // Defer the pathname read until after mount so SSR can always
@@ -61,7 +61,7 @@ export function LearnerCountBar() {
             <span className="font-extrabold text-brand-700">
               {LEARNERS.toLocaleString('en-US')}
             </span>{' '}
-            متعلّم في فاهم
+            طالب في فاهم
           </span>
         </span>
         <Link
