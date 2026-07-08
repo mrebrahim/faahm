@@ -275,7 +275,7 @@ function OtpForm({ email }: { email: string }) {
       <input type="hidden" name="email" value={email} />
 
       <div className="text-xs text-gray-500 leading-relaxed">
-        بعتنالك كود مكوّن من 6 أرقام على{' '}
+        بعتنالك كود التأكيد على{' '}
         <span dir="ltr" className="font-medium text-foreground">
           {email}
         </span>
@@ -291,12 +291,13 @@ function OtpForm({ email }: { email: string }) {
             name="token"
             required
             inputMode="numeric"
-            pattern="[0-9]*"
-            maxLength={6}
+            pattern="[0-9]{4,8}"
+            minLength={4}
+            maxLength={8}
             autoFocus
             dir="ltr"
-            className="ps-10 text-lg tracking-[0.4em] text-center font-bold h-14"
-            placeholder="123456"
+            className="ps-10 text-lg tracking-[0.35em] text-center font-bold h-14"
+            placeholder="12345678"
           />
         </div>
       </div>
