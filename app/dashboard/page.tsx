@@ -6,6 +6,7 @@ import { applyPendingInvitesForCurrentUser } from '@/lib/invites';
 import { Button } from '@/components/ui/button';
 import { ROUTES, APP_NAME } from '@/lib/constants';
 import { pricingFor } from '@/lib/region';
+import { listClaimableCourseIds } from '@/lib/cert-eligibility';
 import {
   BookOpen,
   Award,
@@ -17,6 +18,8 @@ import {
   ArrowLeft,
   Shield,
   PlayCircle,
+  Sparkles,
+  Download,
 } from 'lucide-react';
 
 export default async function DashboardPage() {
@@ -104,10 +107,33 @@ export default async function DashboardPage() {
     total_lessons: number;
   }>;
 
+  // Issued certificates + any courses the user is eligible to claim
+  // a cert for right now (finished all lessons + passed all quizzes).
+  // Both feed the 'شهاداتي' rail below.
+  const [{ data: issuedCerts }, claimableIds] = await Promise.all([
+    service
+      .from('certificates')
+      .select('id, certificate_number, course_title, course_id, issued_at')
+      .eq('user_id', user.id)
+      .eq('is_revoked', false)
+      .order('issued_at', { ascending: false })
+      .limit(6),
+    listClaimableCourseIds(user.id),
+  ]);
+
+  const { data: claimableCourses } = claimableIds.length
+    ? await service
+        .from('courses')
+        .select('id, slug, title_ar')
+        .in('id', claimableIds)
+    : { data: [] as Array<{ id: string; slug: string; title_ar: string }> };
+
   const hasSubscription = !!subscription;
   const hasAnyAccess = hasSubscription || myCourses.length > 0;
   const isAdmin = profile?.role === 'admin';
   const pricing = pricingFor('us');
+  const certs = issuedCerts || [];
+  const claimable = claimableCourses || [];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -124,7 +150,7 @@ export default async function DashboardPage() {
           <nav className="hidden md:flex items-center gap-6 text-sm">
             <Link href={ROUTES.dashboard} className="text-brand-600 font-medium">لوحتي</Link>
             <Link href={ROUTES.courses} className="text-gray-600 hover:text-foreground">الكورسات</Link>
-            <Link href={ROUTES.certificates} className="text-gray-600 hover:text-foreground">الشهادات</Link>
+            <Link href={ROUTES.certificates} className="text-gray-600 hover:text-foreground">شهاداتي</Link>
           </nav>
 
           <div className="flex items-center gap-2">
@@ -333,6 +359,100 @@ export default async function DashboardPage() {
             </form>
           </div>
         </div>
+
+        {/* My certificates rail — surfaces both issued certs and any
+            courses the user is eligible to claim a cert for right now.
+            Hidden entirely when neither list has anything to show, so
+            new students don't see an empty section on day 1. */}
+        {(certs.length > 0 || claimable.length > 0) && (
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-display text-2xl font-bold flex items-center gap-2">
+                <Award className="w-6 h-6 text-amber-500" />
+                شهاداتي
+              </h2>
+              <Link
+                href="/certificates"
+                className="text-sm text-brand-600 hover:text-brand-700 flex items-center gap-1"
+              >
+                عرض الكل
+                <ArrowLeft className="w-4 h-4" />
+              </Link>
+            </div>
+
+            {/* Claimable — a course the user has fully finished but hasn't
+                pulled the certificate for yet. Golden card with a strong
+                CTA so it's obvious it's something to act on. */}
+            {claimable.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+                {claimable.map((c) => (
+                  <Link
+                    key={c.id}
+                    href={`/certificate/claim/${c.slug}`}
+                    className="group flex items-center gap-3 p-4 rounded-xl bg-gradient-to-br from-amber-50 to-white border-2 border-amber-300 hover:border-amber-500 shadow-sm hover:shadow-md transition-all"
+                  >
+                    <div className="w-11 h-11 rounded-xl bg-amber-500 text-white flex items-center justify-center flex-shrink-0">
+                      <Sparkles className="w-5 h-5" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[10px] font-bold text-amber-700 uppercase tracking-wide">
+                        جاهزة للاستلام
+                      </div>
+                      <div className="font-bold text-sm truncate group-hover:text-amber-800">
+                        {c.title_ar}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-0.5">
+                        اضغط عشان تصدر شهادتك
+                      </div>
+                    </div>
+                    <ArrowLeft className="w-5 h-5 text-amber-500 group-hover:text-amber-700" />
+                  </Link>
+                ))}
+              </div>
+            )}
+
+            {/* Issued — already claimed. Each links to the certificate
+                page where the student can view / share / download it. */}
+            {certs.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {certs.map((cert: any) => (
+                  <Link
+                    key={cert.id}
+                    href={`/certificate/${cert.certificate_number}`}
+                    className="group rounded-xl bg-white border border-gray-200 hover:border-brand-500/50 hover:shadow-md p-4 transition-all"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                        <Award className="w-5 h-5 text-amber-600" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-bold text-sm truncate group-hover:text-brand-600">
+                          {cert.course_title}
+                        </h3>
+                        <code
+                          dir="ltr"
+                          className="text-[10px] font-mono text-gray-500 block mt-0.5"
+                        >
+                          {cert.certificate_number}
+                        </code>
+                        <div className="text-[11px] text-gray-500 mt-1 flex items-center gap-2">
+                          <span>
+                            {new Date(cert.issued_at).toLocaleDateString('ar-EG', {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                            })}
+                          </span>
+                        </div>
+                      </div>
+                      <Download className="w-4 h-4 text-gray-300 group-hover:text-brand-500 flex-shrink-0" />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Featured Courses */}
         <div>
