@@ -27,6 +27,13 @@ const nextConfig = {
         protocol: 'https',
         hostname: '*.r2.cloudflarestorage.com',
       },
+      {
+        // Bunny CDN pull zone that serves course thumbnails uploaded via
+        // uploadCourseThumbnail() → lib/bunny-storage.ts. Wildcard covers
+        // any sibling zone we spin up later (banners, avatars, …).
+        protocol: 'https',
+        hostname: '*.b-cdn.net',
+      },
     ],
     // AVIF first (≈30–50% smaller than WebP on modern browsers), with
     // WebP as the fallback for slightly older clients. Both crush the

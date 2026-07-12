@@ -1,7 +1,15 @@
 import { createServiceClient } from '@/lib/supabase/server';
+import { uploadToBunny, deleteFromBunny } from '@/lib/bunny-storage';
 
 export const LESSON_ATTACHMENTS_BUCKET = 'lesson-attachments';
 export const COURSE_THUMBNAILS_BUCKET = 'course-thumbnails';
+
+/**
+ * Prefix inside the Bunny Storage Zone. Everything the app writes lives
+ * under this prefix so we can share the zone with other asset types
+ * (banners, avatars, ...) later without collisions.
+ */
+const BUNNY_THUMBNAILS_PREFIX = 'course-thumbnails';
 
 /**
  * Upload a single attachment file into the private lesson-attachments
@@ -75,49 +83,51 @@ export async function deleteLessonAttachmentObject(
 }
 
 /**
- * Upload a course thumbnail to the public course-thumbnails bucket and
- * return its public URL. Caller persists the URL on `courses.thumbnail_url`.
- * Replaces any previous thumbnail for the same course (one path per course).
+ * Upload a course thumbnail to Bunny CDN Storage and return its public
+ * URL. Caller persists the URL on `courses.thumbnail_url`. Replaces any
+ * previous thumbnail for the same course (one path per course).
+ *
+ * Bunny egress is a fraction of Supabase's (~$0.005/GB vs $0.03/GB) and
+ * their global CDN puts images near the visitor. Legacy thumbnails still
+ * on Supabase keep working via their original URLs — nothing to migrate
+ * for read paths.
  */
 export async function uploadCourseThumbnail(opts: {
   courseId: string;
   file: File;
 }): Promise<{ publicUrl: string; path: string }> {
-  const service = createServiceClient();
   const ext = extFromMime(opts.file.type) || extFromName(opts.file.name) || 'jpg';
-  // One canonical path per course → updating the thumbnail overwrites
-  // the previous file instead of leaving orphans. Cache-bust via the
-  // `?v=` querystring on the returned URL.
-  const path = `${opts.courseId}/cover.${ext}`;
+  // One canonical path per course → updating the thumbnail overwrites the
+  // previous object instead of leaving orphans on Bunny.
+  const objectPath = `${BUNNY_THUMBNAILS_PREFIX}/${opts.courseId}/cover.${ext}`;
   const bytes = await opts.file.arrayBuffer();
 
-  const { error } = await service.storage
-    .from(COURSE_THUMBNAILS_BUCKET)
-    .upload(path, bytes, {
-      contentType: opts.file.type || 'image/jpeg',
-      upsert: true,
-    });
-  if (error) throw new Error(error.message);
+  const { publicUrl } = await uploadToBunny({
+    objectPath,
+    bytes,
+    contentType: opts.file.type || 'image/jpeg',
+  });
 
-  const { data } = service.storage.from(COURSE_THUMBNAILS_BUCKET).getPublicUrl(path);
-  // Append a cache-busting query so updates show immediately. The URL
-  // itself is stable; just the querystring changes.
-  return { publicUrl: `${data.publicUrl}?v=${Date.now()}`, path };
+  // Cache-bust via ?v=... so admins see their update immediately even
+  // though the object key is stable.
+  return {
+    publicUrl: `${publicUrl}?v=${Date.now()}`,
+    path: objectPath,
+  };
 }
 
+/**
+ * Best-effort delete of every extension we might have written for this
+ * course's cover — the admin may have replaced a jpg with a png or webp
+ * between edits, so we try each known extension in turn. 404s are fine.
+ */
 export async function deleteCourseThumbnail(courseId: string): Promise<void> {
-  try {
-    const service = createServiceClient();
-    const { data } = await service.storage
-      .from(COURSE_THUMBNAILS_BUCKET)
-      .list(courseId, { limit: 10 });
-    if (!data || data.length === 0) return;
-    await service.storage
-      .from(COURSE_THUMBNAILS_BUCKET)
-      .remove(data.map((o) => `${courseId}/${o.name}`));
-  } catch (err) {
-    console.warn('[storage] failed to delete course thumbnail', courseId, err);
-  }
+  const exts = ['jpg', 'png', 'webp', 'avif', 'gif', 'jpeg'];
+  await Promise.all(
+    exts.map((ext) =>
+      deleteFromBunny(`${BUNNY_THUMBNAILS_PREFIX}/${courseId}/cover.${ext}`)
+    )
+  );
 }
 
 function extFromMime(mime: string | undefined): string | null {
