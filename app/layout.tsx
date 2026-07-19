@@ -7,7 +7,7 @@ import { WhatsAppButton } from '@/components/whatsapp-button';
 import { LearnerCountBar } from '@/components/learner-count-bar';
 import { PromoBanner } from '@/components/promo-banner';
 import { PromoPopup } from '@/components/promo-popup';
-import { getPromoState, PROMO_TIMEZONE } from '@/lib/promo';
+import { getPromoState } from '@/lib/promo';
 
 const cairo = Cairo({
   subsets: ['arabic', 'latin'],
@@ -75,13 +75,6 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const promo = getPromoState();
-  // Month key so a new promo cycle re-shows the popup even if the
-  // visitor dismissed it last month.
-  const promoMonth = new Intl.DateTimeFormat('en-CA', {
-    timeZone: PROMO_TIMEZONE,
-    year: 'numeric',
-    month: '2-digit',
-  }).format(new Date());
 
   return (
     <html
@@ -91,9 +84,10 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="font-sans min-h-screen bg-background text-foreground">
-        {/* Promo banner — appears on every page during the deep-promo
-            window (day 21 → day 5). Above the '+1000 طالب' strip so it's
-            the first thing the visitor reads on ANY page during the sale. */}
+        {/* Sitewide promo banner — permanent \$40/year offer with a live
+            countdown to the end of the current monthly cycle. Sits above
+            the '+1000 طالب' strip so it's the first thing the visitor
+            reads on ANY page. */}
         <PromoBanner />
         {/* Site-wide '+1,000 طالب' trust strip — first thing every
             visitor reads. Hides itself on checkout / billing / offline
@@ -101,14 +95,12 @@ export default function RootLayout({
         <LearnerCountBar />
         {children}
         <WhatsAppButton />
-        {promo.deepActive && (
-          <PromoPopup
-            yearlyAmount={promo.yearlyAmount}
-            yearlyAnchor={promo.yearlyAnchor}
-            savingsPct={promo.savingsPct}
-            promoMonth={promoMonth}
-          />
-        )}
+        <PromoPopup
+          yearlyAmount={promo.yearlyAmount}
+          yearlyAnchor={promo.yearlyAnchor}
+          savingsPct={promo.savingsPct}
+          promoEndsAtMs={promo.promoEndsAtMs}
+        />
         <Analytics />
       </body>
     </html>

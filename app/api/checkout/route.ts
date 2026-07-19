@@ -43,15 +43,14 @@ export async function GET(request: NextRequest) {
     cookies().get(GUEST_EMAIL_COOKIE)?.value?.trim().toLowerCase() || null;
   const email = guestEmailParam || guestEmailCookie || null;
 
-  // Pick the yearly link based on the live promo tier so the payment
-  // page never charges a different amount than what was on the sticker.
-  // Monthly is not affected by the promo.
+  // Yearly is a permanent $40 offer — always the deep-tier Stripe
+  // Payment Link. The mid-tier link is kept in constants.ts as a
+  // dead-letter fallback in case we re-enable the tier switch later.
+  // Monthly is not affected by any promo.
   const linkKey: keyof typeof STRIPE_PAYMENT_LINKS =
-    plan === 'yearly'
-      ? getPromoState().tier === 'deep'
-        ? 'yearly_deep'
-        : 'yearly_mid'
-      : 'monthly';
+    plan === 'yearly' ? 'yearly_deep' : 'monthly';
+  // Reference so tsc doesn't strip the import when we're not calling it.
+  void getPromoState;
   const target = new URL(STRIPE_PAYMENT_LINKS[linkKey]);
   if (email) {
     // Stripe Payment Links accept ?prefilled_email=... to seed the
