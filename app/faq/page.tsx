@@ -59,7 +59,7 @@ function buildFaqs(p: ReturnType<typeof pricingFor>) {
       },
       {
         q: 'الأسعار بأي عملة؟',
-        a: `الأسعار بالدولار الأمريكي ($${p.monthlyAmount} شهرياً / $${p.yearlyAmount} سنوياً — بدل $${p.yearlyAnchor}، خصم ${p.savingsPct}% لفترة محدودة). للعملاء في مصر، فيه طرق دفع محلية بالجنيه (500 ج.م شهري / 4000 ج.م سنوي) عبر InstaPay أو Vodafone Cash.`,
+        a: `الأسعار بالدولار الأمريكي ($${p.monthlyAmount} شهرياً / $${p.yearlyAmount} سنوياً — بدل $${p.yearlyAnchor}، خصم ${p.savingsPct}% لفترة محدودة). للعملاء في مصر، فيه طرق دفع محلية بالجنيه (500 ج.م شهري / 2000 ج.م سنوي) عبر InstaPay أو Vodafone Cash.`,
       },
       {
         q: 'ينفع أرجّع فلوسي لو الكورسات مش لاقية معايا؟',

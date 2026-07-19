@@ -1,9 +1,24 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { X, Sparkles, ArrowLeft } from 'lucide-react';
 import { PromoCountdown } from './promo-countdown';
+
+/**
+ * Routes where the popup is suppressed even though the promo is active.
+ * The visitor is already inside a conversion flow — throwing another
+ * offer card on top of a payment page fragments attention and hurts
+ * conversion instead of helping it.
+ */
+const HIDDEN_PREFIXES = [
+  '/pricing',
+  '/checkout',
+  '/billing',
+  '/offline',
+  '/personal-plan',
+];
 
 /**
  * One-time-per-cycle popup that surfaces the $40 offer + a live countdown
@@ -25,10 +40,15 @@ export function PromoPopup({
    *  we keep in sessionStorage so a rollover automatically re-shows the popup. */
   promoEndsAtMs: number;
 }) {
+  const pathname = usePathname() || '';
   const [open, setOpen] = useState(false);
+  const suppressed = HIDDEN_PREFIXES.some(
+    (p) => pathname === p || pathname.startsWith(`${p}/`)
+  );
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    if (suppressed) return;
     const key = `faahm_promo_seen_${promoEndsAtMs}`;
     try {
       if (sessionStorage.getItem(key)) return;
@@ -37,7 +57,7 @@ export function PromoPopup({
     }
     const t = setTimeout(() => setOpen(true), 1500);
     return () => clearTimeout(t);
-  }, [promoEndsAtMs]);
+  }, [promoEndsAtMs, suppressed]);
 
   function dismiss() {
     setOpen(false);

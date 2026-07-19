@@ -35,12 +35,13 @@ const isPlan = (v: unknown): v is PlanId => v === 'monthly' || v === 'yearly';
  * /pricing doesn't help them in a Vodafone Cash app.
  *
  * EGP pricing is intentionally a separate, charm-priced table (500 /
- * 4000) rather than an FX conversion of the USD funnel. Admins
+ * 2000) rather than an FX conversion of the USD funnel. Admins
  * reconcile the WhatsApp screenshot against this EGP figure.
+ * Yearly = 2000 ج.م ≈ the current $40 USD offer.
  */
 const EGP_AMOUNT: Record<PlanId, number> = {
   monthly: 500,
-  yearly: 4000,
+  yearly: 2000,
 };
 
 export default async function EgyptOfflinePage({
