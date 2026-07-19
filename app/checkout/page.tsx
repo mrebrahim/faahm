@@ -236,13 +236,10 @@ export default async function CheckoutPage({
             {/* Payment-rail badges — visible RIGHT BEFORE the buttons.
                 Baymard 2026: visible rail logos at the rail picker
                 drop hesitation by signalling 'your card works here'
-                before the visitor commits. We list the four SA visitor
-                actually sees on Stripe Checkout (Visa, Mastercard,
-                mada, Apple Pay). */}
+                before the visitor commits. */}
             <div className="flex flex-wrap items-center gap-2 mb-4">
               <PayBadge>VISA</PayBadge>
               <PayBadge>Mastercard</PayBadge>
-              <PayBadge tone="brand">mada</PayBadge>
               <PayBadge>Apple Pay</PayBadge>
             </div>
 
