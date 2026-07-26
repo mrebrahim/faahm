@@ -87,6 +87,9 @@ const nextConfig = {
       // Catch-all for any other /p/* path — sends to home so it stops being
       // a dead end on Google.
       { source: '/p/:rest*', destination: '/', permanent: true },
+      // Vanity URLs for the AI Bundle landing (from marketing collateral).
+      { source: '/bundle', destination: '/ai-bundle', permanent: true },
+      { source: '/ai', destination: '/ai-bundle', permanent: true },
     ];
   },
   // Experimental features
