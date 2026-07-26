@@ -34,6 +34,18 @@ const nextConfig = {
         protocol: 'https',
         hostname: '*.b-cdn.net',
       },
+      {
+        // n8nar hosts the AI Bundle marketing assets (course thumbnails).
+        // Only used by /ai-bundle — safe to allow the whole host since
+        // Next.js /_next/image re-encodes to AVIF and caches on our edge.
+        protocol: 'https',
+        hostname: 'n8nar.com',
+      },
+      {
+        // YouTube thumbnail host — served by the lite-youtube facade.
+        protocol: 'https',
+        hostname: 'i.ytimg.com',
+      },
     ],
     // AVIF first (≈30–50% smaller than WebP on modern browsers), with
     // WebP as the fallback for slightly older clients. Both crush the
