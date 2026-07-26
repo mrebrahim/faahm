@@ -18,6 +18,7 @@ const HIDDEN_PREFIXES = [
   '/billing',
   '/offline',
   '/personal-plan',
+  '/ai-bundle',
 ];
 
 /**
