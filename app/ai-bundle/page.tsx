@@ -41,7 +41,10 @@ export const metadata = {
 
 export const revalidate = 300;
 
-const CHECKOUT_HREF = 'https://n8nar.com/?add-to-cart=3351&quantity=1';
+// CTAs stay entirely on faahm.com — /checkout is the standard yearly
+// funnel with Stripe / PayPal / Barq / InstaPay / Vodafone Cash options,
+// so the visitor never leaves the brand.
+const CHECKOUT_HREF = '/checkout?plan=yearly';
 const PRICE = 40;
 const ANCHOR = 120;
 const SAVINGS_PCT = Math.round(((ANCHOR - PRICE) / ANCHOR) * 100);
@@ -205,9 +208,9 @@ export default async function AIBundlePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-            <PathCard icon={Bot} month="الشهر ١" title="أتمتة n8n" outcome="عملاء أتمتة — ROI فوري" accent="brand" />
-            <PathCard icon={Video} month="الشهر ٢" title="فيديو AI" outcome="محتوى قابل للبيع أو الاستخدام" accent="emerald" />
-            <PathCard icon={Code} month="الشهر ٣" title="Vibe Coding" outcome="تطبيق SaaS كأصل رقمي" accent="indigo" />
+            <PathCard icon={Bot} month="الشهر ١" title="أتمتة n8n" outcome="عملاء أتمتة — ROI فوري" accent="brand" thumb={N8N_THUMB} />
+            <PathCard icon={Video} month="الشهر ٢" title="فيديو AI" outcome="محتوى قابل للبيع أو الاستخدام" accent="emerald" thumb={AI_VIDEO_THUMB} />
+            <PathCard icon={Code} month="الشهر ٣" title="Vibe Coding" outcome="تطبيق SaaS كأصل رقمي" accent="indigo" thumb={VIBE_THUMB} />
           </div>
 
           <div className="rounded-2xl bg-gradient-to-br from-brand-500/5 to-white border-2 border-brand-500/30 p-6 sm:p-8 text-center">
@@ -544,25 +547,39 @@ function PathCard({
   title,
   outcome,
   accent,
+  thumb,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   month: string;
   title: string;
   outcome: string;
   accent: 'brand' | 'emerald' | 'indigo';
+  thumb: string;
 }) {
   const grad = {
-    brand: 'from-brand-500 to-brand-600 border-brand-500/40',
-    emerald: 'from-emerald-500 to-emerald-600 border-emerald-500/40',
-    indigo: 'from-indigo-500 to-indigo-600 border-indigo-500/40',
+    brand: 'from-brand-500/80 to-brand-600/95 border-brand-500/40',
+    emerald: 'from-emerald-500/80 to-emerald-600/95 border-emerald-500/40',
+    indigo: 'from-indigo-500/80 to-indigo-600/95 border-indigo-500/40',
   }[accent];
 
   return (
     <div className={`rounded-2xl bg-white border-2 ${grad.split(' ')[2]} overflow-hidden shadow-sm`}>
-      <div className={`bg-gradient-to-br ${grad.split(' ').slice(0, 2).join(' ')} text-white p-5 text-center`}>
-        <Icon className="w-8 h-8 mx-auto mb-2 opacity-90" />
-        <div className="text-xs opacity-90 mb-1">{month}</div>
-        <div className="font-display text-xl font-extrabold">{title}</div>
+      {/* Poster image with the accent-color gradient over the top so the
+          text stays readable regardless of what the thumbnail looks like. */}
+      <div className="relative w-full aspect-[16/10]">
+        <Image
+          src={thumb}
+          alt={title}
+          fill
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 400px"
+          className="object-cover"
+          loading="lazy"
+        />
+        <div className={`absolute inset-0 bg-gradient-to-br ${grad.split(' ').slice(0, 2).join(' ')} flex flex-col items-center justify-center text-white p-5 text-center`}>
+          <Icon className="w-8 h-8 mb-2 opacity-95 drop-shadow" />
+          <div className="text-xs opacity-95 mb-1 drop-shadow">{month}</div>
+          <div className="font-display text-xl font-extrabold drop-shadow">{title}</div>
+        </div>
       </div>
       <div className="p-4 text-center">
         <div className="text-xs text-gray-500 mb-1">النتيجة:</div>
