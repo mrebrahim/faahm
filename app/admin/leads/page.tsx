@@ -1,15 +1,12 @@
 import Link from 'next/link';
 import { createServiceClient } from '@/lib/supabase/server';
 import { requireAdmin } from '@/lib/admin-guard';
-import { archetypeById } from '@/lib/career/archetypes';
-import { getType } from '@/lib/personality/personality-types';
-import { getBand } from '@/lib/ai-readiness/bands';
-import { getTheme as getSelfDiscoveryTheme } from '@/lib/self-discovery/themes';
-import { getLevel as getSkillLevel } from '@/lib/ai-skills/levels';
-import { getBlocker } from '@/lib/productivity/blockers';
-import { getBand as getEntrepreneurshipBand } from '@/lib/entrepreneurship/bands';
-import { getBand as getEqBand, getDomain as getEqDomain } from '@/lib/eq/domains';
-import { Mail, MessageCircle, Inbox, Sparkles, Users2, Send, Bot, Heart, ListChecks, Zap, Briefcase, HeartHandshake } from 'lucide-react';
+import {
+  describeLeadResult,
+  describeLeadSource,
+  TEST_TYPE_LABELS,
+} from '@/lib/leads-labels';
+import { Mail, MessageCircle, Inbox, Sparkles, Users2, Send, Bot, Heart, ListChecks, Zap, Briefcase, HeartHandshake, Download } from 'lucide-react';
 
 export const metadata = {
   title: 'العملاء المحتملين — إدارة فاهم!',
@@ -30,17 +27,9 @@ type TestType =
   | 'eq'
   | 'newsletter';
 
-const TYPE_LABELS: Record<Exclude<TestType, 'all'>, string> = {
-  career: 'التيست المهني',
-  personality: 'اختبار الشخصية',
-  ai_readiness: 'جاهزية الـ AI',
-  self_discovery: 'اكتشاف الذات',
-  ai_skills: 'مستوى الـ AI',
-  productivity: 'الإنتاجية',
-  entrepreneurship: 'الشغل الحر',
-  eq: 'الذكاء العاطفي',
-  newsletter: 'النشرة البريدية',
-};
+// Tab labels come from the shared map so the dashboard, the CSV export
+// and any future surface all name a quiz the same way.
+const TYPE_LABELS = TEST_TYPE_LABELS;
 
 const TYPE_BADGE_CLASS: Record<Exclude<TestType, 'all'>, string> = {
   career: 'bg-brand-500/10 text-brand-700',
@@ -64,10 +53,6 @@ const TYPE_ICON: Record<Exclude<TestType, 'all'>, React.ComponentType<{ classNam
   entrepreneurship: Briefcase,
   eq: HeartHandshake,
   newsletter: Send,
-};
-
-const SOURCE_LABELS: Record<string, string> = {
-  homepage_zaka_live: 'الصفحة الرئيسية — ذكاء لايف',
 };
 
 export default async function LeadsPage({
@@ -130,9 +115,18 @@ export default async function LeadsPage({
             الفلتر لتعرف كل اختبار جايب كام عميل.
           </p>
         </div>
-        <span className="text-sm bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full font-medium">
-          {count ?? 0} {filter === 'all' ? 'إجمالي' : 'في الفلتر'}
-        </span>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm bg-gray-100 text-gray-700 px-3 py-1.5 rounded-full font-medium">
+            {count ?? 0} {filter === 'all' ? 'إجمالي' : 'في الفلتر'}
+          </span>
+          <Link
+            href={`/api/admin/leads/export${filter === 'all' ? '' : `?type=${filter}`}`}
+            className="inline-flex items-center gap-1.5 text-sm border border-gray-300 hover:border-brand-500 hover:text-brand-700 px-3 py-1.5 rounded-lg font-medium transition-colors"
+          >
+            <Download className="w-4 h-4" />
+            تصدير CSV
+          </Link>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -319,66 +313,13 @@ function LeadRow({ lead }: { lead: any }) {
   const Icon = TYPE_ICON[testType];
   const phoneIntl = (lead.whatsapp || '').replace(/[^0-9]/g, '');
 
-  // Look up Arabic label for the result code per test.
-  let resultLabel = '—';
-  let resultEmoji: string | null = null;
-  if (testType === 'career' && lead.result_code) {
-    const arc = archetypeById(lead.result_code);
-    if (arc) {
-      resultLabel = arc.name_ar;
-      resultEmoji = arc.emoji;
-    } else {
-      resultLabel = lead.result_code;
-    }
-  } else if (testType === 'personality' && lead.result_code) {
-    const t = getType(lead.result_code);
-    if (t) {
-      resultLabel = `${t.name_ar} · ${lead.result_code}`;
-      resultEmoji = t.emoji;
-    } else {
-      resultLabel = lead.result_code;
-    }
-  } else if (testType === 'ai_readiness' && lead.result_code) {
-    const band = getBand(lead.result_code as any);
-    resultLabel = band.name_ar.split('—')[0].trim();
-    resultEmoji = band.emoji;
-  } else if (testType === 'self_discovery' && lead.result_code) {
-    // result_code carries the top themes as 'theme1+theme2+theme3'.
-    const parts = (lead.result_code as string).split('+').filter(Boolean);
-    const top = parts.map((p) => getSelfDiscoveryTheme(p as any));
-    if (top.length) {
-      resultLabel = top.map((t) => t.name_ar).join(' + ');
-      resultEmoji = top[0].emoji;
-    }
-  } else if (testType === 'ai_skills' && lead.result_code) {
-    const lv = getSkillLevel(lead.result_code as any);
-    resultLabel = `Level ${lv.number} · ${lv.name_ar}`;
-    resultEmoji = lv.emoji;
-  } else if (testType === 'productivity' && lead.result_code) {
-    const b = getBlocker(lead.result_code as any);
-    resultLabel = b.name_ar;
-    resultEmoji = b.emoji;
-  } else if (testType === 'entrepreneurship' && lead.result_code) {
-    // result_code = '<bandId>|<workType>' — see admin_leads_unified view.
-    const [bandId, wt] = (lead.result_code as string).split('|');
-    const band = getEntrepreneurshipBand(bandId as any);
-    const wtLabel =
-      wt === 'service' ? 'خدمات' : wt === 'product' ? 'منتج' : wt === 'content' ? 'محتوى' : '—';
-    resultLabel = `${band.name_ar.split('—')[0].trim()} · ${wtLabel}`;
-    resultEmoji = band.emoji;
-  } else if (testType === 'eq' && lead.result_code) {
-    // result_code = '<bandId>|<strongest>|<weakest>'
-    const [bandId, strongest] = (lead.result_code as string).split('|');
-    const band = getEqBand(bandId as any);
-    const sd = getEqDomain(strongest as any);
-    resultLabel = `${band.name_ar.split('—')[0].trim()} · قوة: ${sd.short_ar}`;
-    resultEmoji = band.emoji;
-  }
-
-  const sourceLabel =
-    testType === 'newsletter'
-      ? SOURCE_LABELS[lead.detail_source] ?? lead.detail_source ?? '—'
-      : TYPE_LABELS[testType];
+  // Decode result_code → Arabic label. Shared with the CSV export so the
+  // sheet a marketer opens says exactly what this table says.
+  const { label: resultLabel, emoji: resultEmoji } = describeLeadResult(
+    testType,
+    lead.result_code
+  );
+  const sourceLabel = describeLeadSource(testType, lead.detail_source);
 
   // WhatsApp pre-fill differs per test so the message lands with useful context.
   const waMsg =

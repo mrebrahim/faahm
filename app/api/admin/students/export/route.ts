@@ -111,7 +111,8 @@ export async function GET(request: NextRequest) {
   }
 
   const filename = `faahm-students-${new Date().toISOString().slice(0, 10)}.csv`;
-  return new NextResponse(lines.join('\n'), {
+  // BOM so Excel opens the Arabic name column in UTF-8 instead of mojibake.
+  return new NextResponse('﻿' + lines.join('\n'), {
     status: 200,
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
