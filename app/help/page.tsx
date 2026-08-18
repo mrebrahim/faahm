@@ -87,7 +87,8 @@ export default function HelpPage() {
             <Faq q="ازاي أشترك في فاهم؟">
               ادخل على <Link href={ROUTES.pricing} className="text-brand-600 underline hover:no-underline">صفحة الأسعار</Link>،
               اختار الخطة المناسبة، وكمل الدفع بأمان عبر Stripe.
-              هتلاقي وصول كامل لكل الكورسات فور تأكيد الدفع.
+              الوصول بيتفعّل فور تأكيد الدفع — الباقة السنوية بتفتح كل الكورسات،
+              والشهرية بتفتح معظمها.
             </Faq>
             <Faq q="هل أقدر ألغي الاشتراك في أي وقت؟">
               أكيد. من <Link href={ROUTES.settings} className="text-brand-600 underline hover:no-underline">الإعدادات</Link> تقدر

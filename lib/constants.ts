@@ -31,7 +31,9 @@ export const PLANS = {
     currency: 'USD',
     interval: 'month',
     features: [
-      'وصول كامل لكل الكورسات',
+      // NOT "كل الكورسات" — courses flagged `yearly_only` in the DB
+      // (n8n, ai-video, vibe-coding) are excluded from this plan.
+      'وصول لمعظم الكورسات',
       'فيديوهات بجودة عالية',
       'ملفات وموارد قابلة للتحميل',
       'مسابقات تفاعلية',
@@ -40,6 +42,7 @@ export const PLANS = {
     // bullets on /pricing so visitors see exactly what they lose vs.
     // the yearly plan, not just a vague feature gap.
     missingFeatures: [
+      'بدون n8n و AI Video و Vibe Coding',
       'بدون المساعد الذكي فاهم',
       'بدون شهادة إتمام',
       'بدون أولوية الدعم الفني',
@@ -55,6 +58,7 @@ export const PLANS = {
     badge: 'وفّر 67%',
     features: [
       'وصول كامل لكل الكورسات',
+      'كورسات n8n و AI Video و Vibe Coding',
       'المساعد الذكي فاهم',
       'شهادة إتمام لكل كورس',
       'أولوية الدعم الفني',

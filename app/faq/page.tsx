@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
 function buildFaqs(p: ReturnType<typeof pricingFor>) {
   // Yearly-vs-monthly copy is rebuilt per request so the FAQ never
   // advertises the wrong price for whichever tier is live right now.
-  const yearlyVsMonthlyAnswer = `آه فيه فرق كبير. الشهري بـ $${p.monthlyAmount}/شهر وفيه الكورسات بس. السنوي دلوقتي بـ $${p.yearlyAmount}/سنة بدل $${p.yearlyAnchor} — وفّر ${p.savingsPct}% لفترة محدودة — وفيه كل حاجة: الكورسات + المساعد الذكي فاهم + شهادة الإتمام + أولوية الدعم الفني.`;
+  const yearlyVsMonthlyAnswer = `آه فيه فرق كبير. الشهري بـ $${p.monthlyAmount}/شهر وبيفتحلك معظم الكورسات بس — من غير كورسات n8n و AI Video و Vibe Coding، ومن غير المساعد الذكي والشهادة. السنوي دلوقتي بـ $${p.yearlyAmount}/سنة بدل $${p.yearlyAnchor} — وفّر ${p.savingsPct}% لفترة محدودة — وفيه كل حاجة: كل الكورسات (شامل التلاتة دول) + المساعد الذكي فاهم + شهادة الإتمام + أولوية الدعم الفني.`;
 
   const FAQS: Array<{ section: string; items: Array<{ q: string; a: React.ReactNode }> }> = [
   {
@@ -42,7 +42,7 @@ function buildFaqs(p: ReturnType<typeof pricingFor>) {
       },
       {
         q: 'الاشتراك بيدّيني وصول لكل الكورسات؟',
-        a: 'أيوه — اشتراك واحد بيفتحلك كل الكورسات على المنصة. مفيش كورس بيتباع لوحده.',
+        a: 'الاشتراك السنوي أيوه — بيفتحلك كل الكورسات على المنصة من غير استثناء. الاشتراك الشهري بيفتحلك معظم الكورسات، ما عدا تلات كورسات متاحين في الباقة السنوية بس: n8n و AI Video و Vibe Coding. في الحالتين مفيش كورس بيتباع لوحده.',
       },
       {
         q: 'هل في فرق بين الاشتراك الشهري والسنوي؟',

@@ -1009,6 +1009,7 @@ function YearlyCard({ p }: { p: ReturnType<typeof pricingFor> }) {
         </p>
         <ul className="space-y-2.5 mb-6">
           <Feat ok text="وصول كامل لكل الكورسات" />
+          <Feat ok text="كورسات n8n و AI Video و Vibe Coding" />
           <Feat ok text="المساعد الذكي فاهم" />
           <li><CertificateBullet /></li>
           <Feat ok text="أولوية الدعم الفني" />
@@ -1044,7 +1045,8 @@ function MonthlyCard({ p }: { p: ReturnType<typeof pricingFor> }) {
         </div>
         <div className="h-[60px] mb-5" />
         <ul className="space-y-2.5 mb-6">
-          <Feat ok muted text="وصول كامل لكل الكورسات" />
+          <Feat ok muted text="وصول لمعظم الكورسات" />
+          <Feat text="بدون n8n و AI Video و Vibe Coding" />
           <Feat text="بدون المساعد الذكي فاهم" />
           <Feat text="بدون شهادة إتمام" />
           <Feat text="بدون أولوية الدعم الفني" />

@@ -271,6 +271,7 @@ function YearlyCard({
         {/* Feature list */}
         <ul className="space-y-2.5 mb-6">
           <Feature text="وصول كامل لكل الكورسات" />
+          <Feature text="كورسات n8n و AI Video و Vibe Coding" />
           <Feature text="المساعد الذكي فاهم" />
           <Feature text="شهادة إتمام لكل كورس" />
           <Feature text="أولوية الدعم الفني" />
@@ -334,7 +335,8 @@ function MonthlyCard({
             the comparison vs. yearly isn't just price — the visitor sees
             exactly what they lose if they don't take the yearly. */}
         <ul className="space-y-2.5 mb-6">
-          <Feature text="وصول كامل لكل الكورسات" muted />
+          <Feature text="وصول لمعظم الكورسات" muted />
+          <MissingFeature text="بدون n8n و AI Video و Vibe Coding" />
           <MissingFeature text="بدون المساعد الذكي فاهم" />
           <MissingFeature text="بدون شهادة إتمام" />
           <MissingFeature text="بدون أولوية الدعم الفني" />

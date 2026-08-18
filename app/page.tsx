@@ -576,13 +576,15 @@ function PricingCard({
         {isYearly ? (
           <>
             <Feat ok text="وصول كامل لكل الكورسات" />
+            <Feat ok text="كورسات n8n و AI Video و Vibe Coding" />
             <Feat ok text="المساعد الذكي فاهم" />
             <Feat ok text="شهادة إتمام لكل كورس" />
             <Feat ok text="أولوية الدعم الفني" />
           </>
         ) : (
           <>
-            <Feat ok text="وصول كامل لكل الكورسات" muted />
+            <Feat ok text="وصول لمعظم الكورسات" muted />
+            <Feat text="بدون n8n و AI Video و Vibe Coding" />
             <Feat text="بدون المساعد الذكي فاهم" />
             <Feat text="بدون شهادة إتمام" />
             <Feat text="بدون أولوية الدعم الفني" />
