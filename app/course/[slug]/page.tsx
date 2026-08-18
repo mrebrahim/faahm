@@ -82,7 +82,7 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
       `
         id, slug, title_ar, description_ar, short_description_ar, thumbnail_url,
         trailer_video_provider, trailer_video_id, trailer_video_library_id,
-        what_you_learn, requirements,
+        what_you_learn, requirements, yearly_only,
         rating_avg, rating_count, category_id,
         level, total_lessons, total_duration_sec, language,
         category:categories(slug, name_ar),
@@ -535,13 +535,31 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
         <aside className="lg:col-span-2 space-y-4">
           {!subscribed && (
             <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-brand-500/10 to-white border border-brand-500/30">
+              {course.yearly_only && (
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 mb-3 rounded-full bg-amber-500 text-white text-[11px] font-bold">
+                  <Star className="w-3 h-3 fill-white" />
+                  حصري للباقة السنوية
+                </div>
+              )}
               <h3 className="font-display text-xl font-bold mb-2">
-                اشترك واحصل على كل الكورسات
+                {access.requiresYearly
+                  ? 'رقّي للباقة السنوية عشان تفتح الكورس ده'
+                  : 'اشترك واحصل على كل الكورسات'}
               </h3>
               <p className="text-sm text-gray-600 mb-4">
-                مفيش شراء كل كورس لوحده. اشتراك سنوي دلوقتي بـ{' '}
-                <strong>${pricing.yearlyAmount}/سنة</strong> (بدل ${pricing.yearlyAnchor} —
-                خصم {pricing.savingsPct}% لفترة محدودة) بيفتحلك كل المحتوى + المساعد الذكي + الشهادة.
+                {access.requiresYearly ? (
+                  <>
+                    اشتراكك الشهري بيفتحلك باقي كورسات فاهم. الكورس ده متاح في الباقة
+                    السنوية بس — بـ <strong>${pricing.yearlyAmount}/سنة</strong> بدل $
+                    {pricing.yearlyAnchor}.
+                  </>
+                ) : (
+                  <>
+                    مفيش شراء كل كورس لوحده. اشتراك سنوي دلوقتي بـ{' '}
+                    <strong>${pricing.yearlyAmount}/سنة</strong> (بدل ${pricing.yearlyAnchor} —
+                    خصم {pricing.savingsPct}% لفترة محدودة) بيفتحلك كل المحتوى + المساعد الذكي + الشهادة.
+                  </>
+                )}
               </p>
               <ul className="space-y-2 mb-5 text-sm">
                 {[
@@ -557,8 +575,10 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
                 ))}
               </ul>
               <Button asChild className="w-full" size="lg">
-                <Link href="/personal-plan">
-                  احصل على خطتك الشخصية
+                <Link
+                  href={access.requiresYearly ? '/checkout?plan=yearly' : '/personal-plan'}
+                >
+                  {access.requiresYearly ? 'رقّي للباقة السنوية' : 'احصل على خطتك الشخصية'}
                   <ArrowLeft className="w-4 h-4" />
                 </Link>
               </Button>

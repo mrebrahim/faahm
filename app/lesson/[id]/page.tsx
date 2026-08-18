@@ -18,6 +18,7 @@ import {
   Play,
   Download,
   HelpCircle,
+  Star,
 } from 'lucide-react';
 
 export const metadata = {
@@ -56,9 +57,9 @@ export default async function LessonPage({ params }: { params: { id: string } })
   // an active subscription / per-course enrollment. canAccessCourse
   // returns false/false for null userId, so anonymous visitors only get
   // free-preview lessons.
-  const { subscribed, enrolled } = user
+  const { subscribed, enrolled, requiresYearly } = user
     ? await canAccessCourse(user.id, lesson.course_id)
-    : { subscribed: false, enrolled: false };
+    : { subscribed: false, enrolled: false, requiresYearly: false };
   const canAccess = subscribed || enrolled || lesson.is_free_preview;
 
   // AI chat gate. The chat panel is YEARLY-only per PRD — we surface
@@ -227,7 +228,11 @@ export default async function LessonPage({ params }: { params: { id: string } })
               <UnplayableBlock />
             )
           ) : (
-            <PaywallBlock lessonId={lesson.id} loggedIn={!!user} />
+            <PaywallBlock
+              lessonId={lesson.id}
+              loggedIn={!!user}
+              requiresYearly={requiresYearly}
+            />
           )}
 
           {canAccess && user && (
@@ -487,29 +492,48 @@ function UnplayableBlock() {
   );
 }
 
-function PaywallBlock({ lessonId, loggedIn }: { lessonId: string; loggedIn: boolean }) {
+function PaywallBlock({
+  lessonId,
+  loggedIn,
+  requiresYearly = false,
+}: {
+  lessonId: string;
+  loggedIn: boolean;
+  /** Monthly subscriber hitting a yearly-only course — they're already
+   *  paying, so pitch the upgrade rather than a generic 'subscribe'. */
+  requiresYearly?: boolean;
+}) {
   const pricing = pricingFor('us');
   // Logged-in but unsubscribed users see a subscribe CTA. Anonymous
   // visitors get the guest-checkout funnel (/personal-plan) — they
   // can pay before signing up, and the post-payment claim form
   // provisions the account from their email.
-  const cta = loggedIn
-    ? { href: ROUTES.pricing, label: 'اشترك دلوقتي' }
-    : { href: '/personal-plan', label: 'احصل على خطتك الشخصية' };
+  const cta = requiresYearly
+    ? { href: '/checkout?plan=yearly', label: 'رقّي للباقة السنوية' }
+    : loggedIn
+      ? { href: ROUTES.pricing, label: 'اشترك دلوقتي' }
+      : { href: '/personal-plan', label: 'احصل على خطتك الشخصية' };
+
+  const heading = requiresYearly
+    ? 'الكورس ده في الباقة السنوية'
+    : loggedIn
+      ? 'الدرس ده للمشتركين فقط'
+      : 'الدرس ده مش معاينة مجانية';
+
+  const body = requiresYearly
+    ? `اشتراكك الشهري بيفتحلك باقي كورسات فاهم. الكورس ده متاح في الباقة السنوية — بـ $${pricing.yearlyAmount}/سنة بدل $${pricing.yearlyAnchor}.`
+    : loggedIn
+      ? `اشترك دلوقتي بـ $${pricing.yearlyAmount}/سنة (بدل $${pricing.yearlyAnchor} — خصم ${pricing.savingsPct}% لفترة محدودة) واحصل على كل دروس الكورس + كل كورسات فاهم!`
+      : 'سجّل حساب مجاني عشان تشوف الدروس المجانية، أو اشترك للوصول الكامل.';
+
   return (
     <div className="aspect-video w-full rounded-2xl border border-gray-200 bg-gradient-to-br from-gray-900 to-gray-700 text-white flex items-center justify-center p-8">
       <div className="text-center max-w-md">
         <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur">
-          <Lock className="w-8 h-8" />
+          {requiresYearly ? <Star className="w-8 h-8" /> : <Lock className="w-8 h-8" />}
         </div>
-        <h2 className="font-display text-2xl font-bold mb-2">
-          {loggedIn ? 'الدرس ده للمشتركين فقط' : 'الدرس ده مش معاينة مجانية'}
-        </h2>
-        <p className="text-sm text-gray-300 mb-6">
-          {loggedIn
-            ? `اشترك دلوقتي بـ $${pricing.yearlyAmount}/سنة (بدل $${pricing.yearlyAnchor} — خصم ${pricing.savingsPct}% لفترة محدودة) واحصل على كل دروس الكورس + كل كورسات فاهم!`
-            : 'سجّل حساب مجاني عشان تشوف الدروس المجانية، أو اشترك للوصول الكامل.'}
-        </p>
+        <h2 className="font-display text-2xl font-bold mb-2">{heading}</h2>
+        <p className="text-sm text-gray-300 mb-6">{body}</p>
         <Button asChild size="lg" className="bg-white text-gray-900 hover:bg-gray-100 shadow-none">
           <Link href={cta.href}>
             {cta.label}

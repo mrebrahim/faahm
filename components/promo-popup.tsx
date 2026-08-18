@@ -21,12 +21,36 @@ const HIDDEN_PREFIXES = [
   '/ai-bundle',
 ];
 
+/** Today's date in the promo timezone, e.g. '2026-08-08'. */
+function cairoDateKey(): string {
+  try {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Africa/Cairo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date());
+  } catch {
+    return new Date().toISOString().slice(0, 10);
+  }
+}
+
+const SEEN_KEY = 'faahm_promo_seen_on';
+
 /**
- * One-time-per-cycle popup that surfaces the $40 offer + a live countdown
- * to the end of the current monthly cycle. Persistence key is scoped to
- * the ISO date of the promo end, so every time the cycle rolls over (past
- * the 20th → next month's 20th) the popup re-fires for repeat visitors
- * automatically — no manual reset needed.
+ * Once-per-day popup surfacing the $40 offer + a live countdown to the end
+ * of the current monthly cycle.
+ *
+ * Frequency is capped at one impression per browser per calendar day
+ * (Cairo time). Two details make that actually hold:
+ *
+ *   - localStorage, not sessionStorage — the latter is per-tab and wiped on
+ *     close, so a visitor opening a second tab or coming back an hour later
+ *     got hit again.
+ *   - the "seen" stamp is written the moment the popup *renders*, not when
+ *     it's dismissed. Previously a visitor who ignored it and clicked
+ *     through to another page was never marked, so it reappeared on every
+ *     single navigation.
  */
 export function PromoPopup({
   yearlyAmount,
@@ -37,8 +61,7 @@ export function PromoPopup({
   yearlyAmount: number;
   yearlyAnchor: number;
   savingsPct: number;
-  /** ms since epoch — end of the current promo cycle. Doubles as the key
-   *  we keep in sessionStorage so a rollover automatically re-shows the popup. */
+  /** ms since epoch — end of the current promo cycle, drives the countdown. */
   promoEndsAtMs: number;
 }) {
   const pathname = usePathname() || '';
@@ -50,20 +73,33 @@ export function PromoPopup({
   useEffect(() => {
     if (typeof window === 'undefined') return;
     if (suppressed) return;
-    const key = `faahm_promo_seen_${promoEndsAtMs}`;
+
+    const today = cairoDateKey();
     try {
-      if (sessionStorage.getItem(key)) return;
+      if (localStorage.getItem(SEEN_KEY) === today) return;
     } catch {
-      /* fall through — worst case popup shows once per page load */
+      /* private mode / storage disabled — fall through and show once */
     }
-    const t = setTimeout(() => setOpen(true), 1500);
+
+    const t = setTimeout(() => {
+      setOpen(true);
+      // Stamp on display, not on dismiss: ignoring the popup and browsing
+      // on still counts as having seen it today.
+      try {
+        localStorage.setItem(SEEN_KEY, today);
+      } catch {
+        /* best effort */
+      }
+    }, 1500);
     return () => clearTimeout(t);
-  }, [promoEndsAtMs, suppressed]);
+  }, [suppressed]);
 
   function dismiss() {
     setOpen(false);
+    // The daily stamp is already written on display; re-stamp defensively
+    // in case storage was unavailable at that moment.
     try {
-      sessionStorage.setItem(`faahm_promo_seen_${promoEndsAtMs}`, '1');
+      localStorage.setItem(SEEN_KEY, cairoDateKey());
     } catch {
       /* best effort */
     }

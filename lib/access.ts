@@ -61,18 +61,62 @@ export async function hasCourseEnrollment(
 }
 
 /**
- * Resolves whether a user can play a lesson. Subscription wins because it
- * covers everything; otherwise we fall through to course-level enrollment
- * and finally the lesson's own free-preview flag (checked at call site).
+ * Resolves whether a user can play a lesson.
+ *
+ * A subscription normally covers the whole catalog, with one exception:
+ * courses flagged `yearly_only` are reserved for the yearly plan. A
+ * monthly subscriber hitting one of those falls through to the same
+ * checks a non-subscriber gets — per-course enrollment (coupon / manual
+ * grant), then the lesson's own free-preview flag at the call site.
+ *
+ * `requiresYearly` is returned so the paywall can say "ده كورس للباقة
+ * السنوية" instead of the generic "اشترك" pitch to someone who is
+ * already paying.
  */
 export async function canAccessCourse(
   userId: string | null | undefined,
   courseId: string | null | undefined
-): Promise<{ subscribed: boolean; enrolled: boolean }> {
-  if (!userId || !courseId) return { subscribed: false, enrolled: false };
-  const subscribed = await hasActiveSubscription(userId);
-  if (subscribed) return { subscribed: true, enrolled: false };
+): Promise<{ subscribed: boolean; enrolled: boolean; requiresYearly: boolean }> {
+  if (!userId || !courseId) {
+    return { subscribed: false, enrolled: false, requiresYearly: false };
+  }
+
+  const [sub, yearlyOnly] = await Promise.all([
+    getActiveSubscription(userId),
+    isYearlyOnlyCourse(courseId),
+  ]);
+
+  // Yearly (or any future plan that isn't monthly) unlocks everything.
+  const planCovers = !!sub && (!yearlyOnly || sub.plan === 'yearly');
+  if (planCovers) {
+    return { subscribed: true, enrolled: false, requiresYearly: false };
+  }
+
+  // Monthly subscriber blocked by the yearly gate — an explicit
+  // per-course grant still lets them in.
   const enrolled = await hasCourseEnrollment(userId, courseId);
-  return { subscribed: false, enrolled };
+  return {
+    subscribed: false,
+    enrolled,
+    requiresYearly: yearlyOnly && !!sub && !enrolled,
+  };
+}
+
+/**
+ * Whether a course is gated behind the yearly plan. Defaults to false on
+ * a lookup miss so a transient DB hiccup can't lock a paying subscriber
+ * out of content they should have.
+ */
+export async function isYearlyOnlyCourse(
+  courseId: string | null | undefined
+): Promise<boolean> {
+  if (!courseId) return false;
+  const supabase = createServiceClient();
+  const { data } = await supabase
+    .from('courses')
+    .select('yearly_only')
+    .eq('id', courseId)
+    .maybeSingle();
+  return data?.yearly_only === true;
 }
 
