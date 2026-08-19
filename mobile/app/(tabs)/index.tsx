@@ -1,9 +1,10 @@
 import { useCallback, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import { Link, useFocusEffect, useRouter } from 'expo-router';
+import { Link, useFocusEffect } from 'expo-router';
 import { useAuth } from '../../src/lib/auth-context';
 import { api, type CourseListItem } from '../../src/lib/api';
-import { Badge, Button, Card, Loading, ProgressBar, T } from '../../src/components/ui';
+import { Badge, Card, Loading, ProgressBar, T } from '../../src/components/ui';
+import { CAN_SHOW_PURCHASE_CTA } from '../../src/lib/store-policy';
 import { colors, formatDuration, spacing } from '../../src/lib/theme';
 
 /**
@@ -13,7 +14,6 @@ import { colors, formatDuration, spacing } from '../../src/lib/theme';
  */
 export default function HomeScreen() {
   const { me, refresh } = useAuth();
-  const router = useRouter();
   const [courses, setCourses] = useState<CourseListItem[] | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -87,17 +87,16 @@ export default function HomeScreen() {
         </Card>
       ) : null}
 
-      {!me?.access.has_subscription ? (
+      {/* No upsell card in reader mode — Apple 3.1.3(a) forbids a call to
+          action pointing at an external purchase. The free-courses
+          section below is the only thing a non-subscriber is nudged
+          toward, and it costs nothing. */}
+      {CAN_SHOW_PURCHASE_CTA && !me?.access.has_subscription ? (
         <Card style={{ marginTop: spacing.lg, borderColor: colors.brand }}>
           <T weight="bold">افتح كل الكورسات</T>
           <T size="sm" color={colors.textMuted} style={{ marginTop: spacing.xs }}>
             الاشتراك السنوي بيفتحلك المكتبة كاملة + المساعد الذكي + الشهادات.
           </T>
-          <Button
-            label="شوف الباقات"
-            style={{ marginTop: spacing.md }}
-            onPress={() => router.push('/(tabs)/profile')}
-          />
         </Card>
       ) : null}
 

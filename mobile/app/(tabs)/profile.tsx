@@ -3,28 +3,30 @@ import * as WebBrowser from 'expo-web-browser';
 import { useAuth } from '../../src/lib/auth-context';
 import { API_BASE_URL } from '../../src/lib/supabase';
 import { Avatar, Badge, Button, Card, Loading, T } from '../../src/components/ui';
+import {
+  CAN_SHOW_PURCHASE_CTA,
+  SAFE_WEB_LINKS,
+} from '../../src/lib/store-policy';
 import { colors, spacing } from '../../src/lib/theme';
 
 /**
- * Account screen.
+ * Account screen — reader-app safe.
  *
- * Subscribing does NOT happen in-app. Both stores take 15–30% on
- * in-app purchases of digital content, and faahm's margin on a $40/year
- * plan can't absorb that — so checkout opens the existing web funnel in
- * a browser tab. Note this is the exact behaviour Apple's guideline
- * 3.1.1 restricts: the app must not link out to purchase from inside a
- * paid-content flow. Before the first iOS submission, decide between
- * (a) applying for the External Purchase Link entitlement, or (b)
- * shipping the app as a "reader" app where content bought elsewhere is
- * simply consumable. See docs/mobile-app-plan.md §المخاطر.
+ * Subscription state is shown as READ-ONLY information. There is no
+ * "شوف الباقات" button and no link into /pricing, /checkout, /billing,
+ * or /settings, because Apple 3.1.3(a) treats any of those as a call to
+ * action toward an external purchase. See src/lib/store-policy.ts for
+ * the full reasoning and how to turn the CTAs back on.
+ *
+ * The links that remain (help, legal, certificates) are informational —
+ * none of them reaches a payment flow.
  */
 export default function ProfileScreen() {
   const { me, signOut, loading } = useAuth();
 
   if (loading || !me) return <Loading />;
 
-  const openWeb = (path: string) =>
-    WebBrowser.openBrowserAsync(`${API_BASE_URL}${path}`);
+  const openWeb = (path: string) => WebBrowser.openBrowserAsync(`${API_BASE_URL}${path}`);
 
   return (
     <ScrollView contentContainerStyle={styles.scroll}>
@@ -47,39 +49,41 @@ export default function ProfileScreen() {
       </Card>
 
       <Card style={{ marginTop: spacing.lg }}>
-        <T weight="bold">الاشتراك</T>
+        <T weight="bold">اشتراكك</T>
         {me.subscription ? (
           <>
-            <T size="sm" color={colors.textMuted} style={{ marginTop: spacing.xs }}>
-              {me.subscription.plan === 'yearly' ? 'الباقة السنوية 👑' : 'الباقة الشهرية'} —
-              فعّالة لحد{' '}
-              {new Date(me.subscription.current_period_end).toLocaleDateString('ar-EG')}
+            <View style={{ marginTop: spacing.sm, flexDirection: 'row', gap: spacing.sm }}>
+              <Badge
+                label={me.subscription.plan === 'yearly' ? '👑 سنوي' : 'شهري'}
+                tone={me.subscription.plan === 'yearly' ? 'gold' : 'brand'}
+              />
+              <Badge label="فعّال" tone="free" />
+            </View>
+            <T size="sm" color={colors.textMuted} style={{ marginTop: spacing.sm }}>
+              ساري لحد {new Date(me.subscription.current_period_end).toLocaleDateString('ar-EG')}
             </T>
             {me.subscription.plan === 'monthly' ? (
               <T size="xs" color={colors.textFaint} style={{ marginTop: spacing.xs }}>
                 الباقة الشهرية مش شاملة كورسات n8n و AI Video و Vibe Coding.
               </T>
             ) : null}
-            <Button
-              label="إدارة الاشتراك"
-              variant="outline"
-              style={{ marginTop: spacing.md }}
-              onPress={() => openWeb('/settings')}
-            />
           </>
         ) : (
-          <>
-            <T size="sm" color={colors.textMuted} style={{ marginTop: spacing.xs }}>
-              مفيش اشتراك فعّال. الباقة السنوية بتفتحلك كل الكورسات + المساعد
-              الذكي + الشهادات.
-            </T>
-            <Button
-              label="شوف الباقات"
-              style={{ marginTop: spacing.md }}
-              onPress={() => openWeb('/pricing')}
-            />
-          </>
+          <T size="sm" color={colors.textMuted} style={{ marginTop: spacing.xs }}>
+            مفيش اشتراك فعّال على الحساب ده. الكورسات المجانية مفتوحة ليك في
+            أي وقت من تبويب الكورسات.
+          </T>
         )}
+
+        {/* Off in reader mode. See store-policy.ts before re-enabling. */}
+        {CAN_SHOW_PURCHASE_CTA ? (
+          <Button
+            label={me.subscription ? 'إدارة الاشتراك' : 'شوف الباقات'}
+            variant="outline"
+            style={{ marginTop: spacing.md }}
+            onPress={() => openWeb(me.subscription ? '/settings' : '/pricing')}
+          />
+        ) : null}
       </Card>
 
       <Card style={{ marginTop: spacing.lg }}>
@@ -91,9 +95,21 @@ export default function ProfileScreen() {
       </Card>
 
       <View style={{ marginTop: spacing.lg, gap: spacing.sm }}>
-        <Button label="الشهادات" variant="outline" onPress={() => openWeb('/certificates')} />
-        <Button label="مركز المساعدة" variant="outline" onPress={() => openWeb('/help')} />
-        <Button label="سياسة الخصوصية" variant="outline" onPress={() => openWeb('/privacy')} />
+        <Button
+          label="مركز المساعدة"
+          variant="outline"
+          onPress={() => openWeb(SAFE_WEB_LINKS.help)}
+        />
+        <Button
+          label="سياسة الخصوصية"
+          variant="outline"
+          onPress={() => openWeb(SAFE_WEB_LINKS.privacy)}
+        />
+        <Button
+          label="الشروط والأحكام"
+          variant="outline"
+          onPress={() => openWeb(SAFE_WEB_LINKS.terms)}
+        />
         <Button label="تسجيل الخروج" variant="ghost" onPress={signOut} />
       </View>
     </ScrollView>

@@ -4,8 +4,8 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import * as WebBrowser from 'expo-web-browser';
 import { ApiError, api, type LessonPayload } from '../../src/lib/api';
-import { API_BASE_URL } from '../../src/lib/supabase';
 import { useAuth } from '../../src/lib/auth-context';
+import { lockedMessage } from '../../src/lib/store-policy';
 import { Button, Card, ErrorState, Loading, T } from '../../src/components/ui';
 import { colors, formatDuration, radius, spacing } from '../../src/lib/theme';
 
@@ -107,25 +107,17 @@ export default function LessonScreen() {
   if (error) {
     // A 403 isn't an error state — it's the paywall, and it converts.
     if (error.status === 403) {
+      const locked = lockedMessage(
+        (error.lockReason as 'needs_yearly' | 'needs_subscription' | null) ?? null
+      );
       return (
         <View style={styles.locked}>
           <T size="xl" weight="extrabold" align="center">
-            {error.lockReason === 'needs_yearly' ? '👑 محتوى الباقة السنوية' : '🔒 محتوى مدفوع'}
+            {locked.title}
           </T>
           <T color={colors.textMuted} align="center" style={{ marginTop: spacing.sm }}>
-            {error.message}
+            {locked.body}
           </T>
-          <Button
-            label={error.lockReason === 'needs_yearly' ? 'حوّل للسنوي' : 'شوف الباقات'}
-            style={{ marginTop: spacing.lg }}
-            onPress={() =>
-              WebBrowser.openBrowserAsync(
-                `${API_BASE_URL}${
-                  error.lockReason === 'needs_yearly' ? '/checkout?plan=yearly' : '/pricing'
-                }`
-              )
-            }
-          />
         </View>
       );
     }

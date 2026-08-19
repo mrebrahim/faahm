@@ -1,18 +1,16 @@
 import { useCallback, useState } from 'react';
 import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
 import { api, type CourseDetail } from '../../src/lib/api';
-import { API_BASE_URL } from '../../src/lib/supabase';
 import {
   Badge,
-  Button,
   Card,
   ErrorState,
   Loading,
   ProgressBar,
   T,
 } from '../../src/components/ui';
+import { lockedMessage } from '../../src/lib/store-policy';
 import { LEVEL_LABELS, colors, formatDuration, radius, spacing } from '../../src/lib/theme';
 
 export default function CourseScreen() {
@@ -75,25 +73,15 @@ export default function CourseScreen() {
           </Card>
         ) : null}
 
+        {/* Locked state only — no price, no purchase link. Stating that
+            access is missing is allowed; pointing at where to buy is
+            what 3.1.3(a) blocks. */}
         {!access.unlocked ? (
-          <Card style={{ marginTop: spacing.lg, borderColor: colors.brand }}>
-            <T weight="bold">
-              {access.requires_yearly ? '👑 الكورس ده للباقة السنوية' : '🔒 الكورس ده بالاشتراك'}
-            </T>
+          <Card style={{ marginTop: spacing.lg }}>
+            <T weight="bold">{lockedMessage(access.lock_reason).title}</T>
             <T size="sm" color={colors.textMuted} style={{ marginTop: spacing.xs }}>
-              {access.requires_yearly
-                ? 'اشتراكك الشهري مش شامل الكورس ده. حوّل للسنوي وافتحه على طول.'
-                : 'اشترك وافتح الكورس ده وكل الكورسات التانية.'}
+              {lockedMessage(access.lock_reason).body}
             </T>
-            <Button
-              label={access.requires_yearly ? 'حوّل للباقة السنوية' : 'شوف الباقات'}
-              style={{ marginTop: spacing.md }}
-              onPress={() =>
-                WebBrowser.openBrowserAsync(
-                  `${API_BASE_URL}${access.requires_yearly ? '/checkout?plan=yearly' : '/pricing'}`
-                )
-              }
-            />
           </Card>
         ) : null}
 
