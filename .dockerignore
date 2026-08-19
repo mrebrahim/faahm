@@ -36,6 +36,12 @@ yarn-error.log*
 # Docs and PRDs aren't needed at runtime
 docs
 
+# The mobile app (Expo/React Native). Built by Codemagic, never by
+# `next build` — so it has no business being uploaded into the Coolify
+# build context on every web deploy.
+mobile
+codemagic.yaml
+
 # Tests / fixtures (if/when we add any)
 coverage
 .next-test
