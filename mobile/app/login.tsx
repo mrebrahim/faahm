@@ -16,16 +16,16 @@ import { Button, Card, T } from '../src/components/ui';
 import { colors, radius, spacing } from '../src/lib/theme';
 
 /**
- * Two ways in, because the existing student base needs both.
+ * Two ways in, because the student base needs both.
  *
- * Every one of faahm's current subscribers signed up on the web with a
- * password, so PASSWORD IS THE DEFAULT — asking them to wait for an
- * email when they already know their password is friction for no gain.
+ * EMAIL CODE IS THE DEFAULT — nothing to remember, and it's the same
+ * flow as the web's /redeem, so it works identically for a brand-new
+ * student and for someone who forgot the password they set months ago.
  *
- * The OTP path stays as the fallback: it covers anyone who forgot their
- * password, anyone whose account came from a coupon redemption, and the
- * case where a student's mail provider is slow. Between the two, a
- * paying subscriber should never be locked out of content they bought.
+ * Password stays one tap away as the fallback. That matters: every one
+ * of faahm's current subscribers created their account on the web with
+ * a password, so if the code is slow to arrive or lands in spam, a
+ * paying student still has a way into content they already bought.
  *
  * The code Supabase sends is 6 OR 8 digits depending on project config,
  * so the input is NOT capped at 6 — that exact bug bit the web flow
@@ -36,7 +36,7 @@ type Mode = 'password' | 'otp-email' | 'otp-code';
 
 export default function LoginScreen() {
   const { session, sendOtp, verifyOtp, signInWithPassword } = useAuth();
-  const [mode, setMode] = useState<Mode>('password');
+  const [mode, setMode] = useState<Mode>('otp-email');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -111,11 +111,11 @@ export default function LoginScreen() {
             أهلاً بيك في فاهم
           </T>
           <T color={colors.textMuted} align="center" style={{ marginTop: spacing.sm }}>
-            {mode === 'password'
-              ? 'ادخل بنفس الإيميل والباسورد بتوع الموقع.'
-              : mode === 'otp-email'
-                ? 'اكتب إيميلك وهنبعتلك كود دخول.'
-                : `بعتنا كود على ${email}. اكتبه هنا.`}
+            {mode === 'otp-email'
+              ? 'اكتب إيميلك وهنبعتلك كود دخول. من غير باسورد تنساه.'
+              : mode === 'otp-code'
+                ? `بعتنا كود على ${email}. اكتبه هنا.`
+                : 'ادخل بنفس الإيميل والباسورد بتوع الموقع.'}
           </T>
 
           <Card style={{ marginTop: spacing.xl, gap: spacing.md }}>
@@ -142,7 +142,7 @@ export default function LoginScreen() {
                 />
                 <Button label="ادخل" onPress={handlePassword} loading={busy} />
                 <Button
-                  label="ادخل بكود على الإيميل بدل الباسورد"
+                  label="ارجع للدخول بكود على الإيميل"
                   variant="ghost"
                   onPress={() => {
                     setMode('otp-email');
@@ -179,7 +179,7 @@ export default function LoginScreen() {
                 />
                 <Button label="ابعتلي الكود" onPress={handleSendOtp} loading={busy} />
                 <Button
-                  label="عندي باسورد — ادخل بيه"
+                  label="مش عايز تستنى الكود؟ ادخل بالباسورد"
                   variant="ghost"
                   onPress={() => {
                     setMode('password');
@@ -214,6 +214,15 @@ export default function LoginScreen() {
                 <T size="xs" color={colors.textFaint} align="center">
                   الكود مش واصل؟ بصّ في الـ spam.
                 </T>
+                <Button
+                  label="ادخل بالباسورد بدل الكود"
+                  variant="ghost"
+                  onPress={() => {
+                    setMode('password');
+                    setCode('');
+                    setError(null);
+                  }}
+                />
               </>
             )}
 

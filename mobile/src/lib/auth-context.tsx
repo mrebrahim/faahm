@@ -13,10 +13,11 @@ import { api, type Me } from './api';
 /**
  * Session + profile state for the whole app.
  *
- * Two sign-in paths. Password is the default because every existing
- * faahm subscriber created their account on the web with one. Email OTP
- * is the fallback — forgotten passwords, coupon-redemption accounts, and
- * students arriving from a WhatsApp link with no account yet.
+ * Two sign-in paths. Email OTP is the default — nothing to remember,
+ * same flow as the web's /redeem. Password is the fallback, and it
+ * matters: every existing faahm subscriber created their account on the
+ * web with one, so it's the way in when the code is slow or lands in
+ * spam.
  */
 type AuthState = {
   session: Session | null;
@@ -26,9 +27,10 @@ type AuthState = {
   sendOtp: (email: string, meta?: { full_name?: string; phone?: string }) => Promise<void>;
   verifyOtp: (email: string, token: string) => Promise<void>;
   /**
-   * Password login. Every existing faahm student signed up on the web
-   * with a password, so this is the path most of them will reach for —
-   * and it's the fallback when the OTP email lands in spam.
+   * Password login — the fallback behind the OTP flow. Every existing
+   * faahm student signed up on the web with a password, so this is what
+   * keeps a paying subscriber from being locked out when the code
+   * doesn't arrive.
    */
   signInWithPassword: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
