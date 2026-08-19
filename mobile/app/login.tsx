@@ -22,10 +22,13 @@ import { colors, radius, spacing } from '../src/lib/theme';
  * flow as the web's /redeem, so it works identically for a brand-new
  * student and for someone who forgot the password they set months ago.
  *
- * Password stays one tap away as the fallback. That matters: every one
- * of faahm's current subscribers created their account on the web with
- * a password, so if the code is slow to arrive or lands in spam, a
- * paying student still has a way into content they already bought.
+ * Password is NOT offered on the opening screen — it appears only on
+ * the code-entry screen, once a student has actually asked for a code
+ * and it hasn't shown up. That keeps the first screen to a single
+ * decision while still guaranteeing an escape hatch: every one of
+ * faahm's current subscribers created their account on the web with a
+ * password, so nobody who paid can end up locked out because an email
+ * went to spam.
  *
  * The code Supabase sends is 6 OR 8 digits depending on project config,
  * so the input is NOT capped at 6 — that exact bug bit the web flow
@@ -178,14 +181,6 @@ export default function LoginScreen() {
                   placeholder="اسمك بالكامل"
                 />
                 <Button label="ابعتلي الكود" onPress={handleSendOtp} loading={busy} />
-                <Button
-                  label="مش عايز تستنى الكود؟ ادخل بالباسورد"
-                  variant="ghost"
-                  onPress={() => {
-                    setMode('password');
-                    setError(null);
-                  }}
-                />
               </>
             )}
 
