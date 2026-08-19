@@ -13,9 +13,10 @@ import { api, type Me } from './api';
 /**
  * Session + profile state for the whole app.
  *
- * Auth is email OTP, matching the web's /redeem flow — no passwords to
- * forget, and it works for the many students who arrive from a WhatsApp
- * link with no account yet.
+ * Two sign-in paths. Password is the default because every existing
+ * faahm subscriber created their account on the web with one. Email OTP
+ * is the fallback — forgotten passwords, coupon-redemption accounts, and
+ * students arriving from a WhatsApp link with no account yet.
  */
 type AuthState = {
   session: Session | null;
@@ -24,6 +25,12 @@ type AuthState = {
   /** Send the 6–8 digit code. `shouldCreateUser` makes signup implicit. */
   sendOtp: (email: string, meta?: { full_name?: string; phone?: string }) => Promise<void>;
   verifyOtp: (email: string, token: string) => Promise<void>;
+  /**
+   * Password login. Every existing faahm student signed up on the web
+   * with a password, so this is the path most of them will reach for —
+   * and it's the fallback when the OTP email lands in spam.
+   */
+  signInWithPassword: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   /** Re-pull /api/mobile/me — call after anything that changes XP or access. */
   refresh: () => Promise<void>;
@@ -101,14 +108,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) throw new Error(otpErrorAr(error.message));
   }, []);
 
+  const signInWithPassword = useCallback(async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
+    if (error) throw new Error(otpErrorAr(error.message));
+  }, []);
+
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     setMe(null);
   }, []);
 
   const value = useMemo(
-    () => ({ session, me, loading, sendOtp, verifyOtp, signOut, refresh }),
-    [session, me, loading, sendOtp, verifyOtp, signOut, refresh]
+    () => ({ session, me, loading, sendOtp, verifyOtp, signInWithPassword, signOut, refresh }),
+    [session, me, loading, sendOtp, verifyOtp, signInWithPassword, signOut, refresh]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -123,6 +138,10 @@ export function useAuth(): AuthState {
 /** Supabase auth errors come back in English; translate the common ones. */
 function otpErrorAr(message: string): string {
   const m = message.toLowerCase();
+  // Password failures come back as "Invalid login credentials" — check
+  // that before the generic 'invalid', which would otherwise tell a
+  // password user their "code" is wrong.
+  if (m.includes('login credentials')) return 'الإيميل أو الباسورد غلط.';
   if (m.includes('expired')) return 'الكود انتهت صلاحيته. اطلب كود جديد.';
   if (m.includes('invalid')) return 'الكود غلط. راجعه وجرّب تاني.';
   if (m.includes('rate') || m.includes('too many'))
