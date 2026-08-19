@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { PhoneInput } from '@/components/phone-input';
 import { ROUTES } from '@/lib/constants';
 import { ArrowRight, LogOut, CheckCircle2 } from 'lucide-react';
-import { updateProfile } from './actions';
+import { updateProfile, deleteAccountAction } from './actions';
+import { DELETION_WARNING_AR } from '@/lib/account-deletion';
 
 export const metadata = { title: 'الإعدادات — فاهم!' };
 export const dynamic = 'force-dynamic';
@@ -183,14 +184,60 @@ export default async function SettingsPage({
           ) : null}
         </div>
 
-        <div className="bg-white border border-gray-200 rounded-2xl p-6">
+        <div className="bg-white border border-gray-200 rounded-2xl p-4 sm:p-6">
           <h2 className="font-display text-xl font-bold mb-3">الحساب</h2>
           <form action="/auth/signout" method="POST">
-            <Button type="submit" variant="outline">
+            <Button type="submit" variant="outline" className="w-full sm:w-auto">
               <LogOut className="w-4 h-4" />
               تسجيل الخروج
             </Button>
           </form>
+        </div>
+
+        {/* Account deletion. Required in-app by App Store guideline
+            5.1.1(v); offered here too so the two surfaces match. Kept
+            behind a <details> so it can't be hit by accident. */}
+        <div className="bg-white border border-destructive/30 rounded-2xl p-4 sm:p-6">
+          <h2 className="font-display text-xl font-bold mb-2 text-destructive">
+            حذف الحساب
+          </h2>
+          <p className="text-sm text-gray-600 leading-relaxed mb-3">
+            لو حذفت حسابك، مفيش رجوع.
+          </p>
+          <details className="group">
+            <summary className="cursor-pointer list-none text-sm text-destructive font-bold">
+              عايز أحذف حسابي
+            </summary>
+            <div className="mt-4 space-y-3">
+              <ul className="text-sm text-gray-600 space-y-1.5 leading-relaxed">
+                {DELETION_WARNING_AR.map((line) => (
+                  <li key={line} className="flex gap-2">
+                    <span className="text-destructive flex-shrink-0">•</span>
+                    <span>{line}</span>
+                  </li>
+                ))}
+              </ul>
+              <form action={deleteAccountAction} className="space-y-3">
+                <div>
+                  <Label htmlFor="confirm-delete" className="text-sm">
+                    اكتب <span className="font-mono font-bold">DELETE</span> للتأكيد
+                  </Label>
+                  <Input
+                    id="confirm-delete"
+                    name="confirm"
+                    required
+                    autoComplete="off"
+                    placeholder="DELETE"
+                    className="mt-1 max-w-xs"
+                    dir="ltr"
+                  />
+                </div>
+                <Button type="submit" variant="destructive" className="w-full sm:w-auto">
+                  احذف حسابي نهائياً
+                </Button>
+              </form>
+            </div>
+          </details>
         </div>
       </div>
     </div>

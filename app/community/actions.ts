@@ -5,13 +5,17 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import {
   POST_KINDS,
+  REPORT_REASONS,
+  blockUser,
   canPostToCommunity,
   createComment,
   createPost,
   deleteOwnComment,
   deleteOwnPost,
+  reportContent,
   toggleLike,
   type PostKind,
+  type ReportReason,
 } from '@/lib/community';
 
 async function requireUser() {
@@ -112,4 +116,60 @@ export async function deleteCommentAction(formData: FormData) {
   if (!commentId) return;
   await deleteOwnComment(user.id, commentId);
   revalidatePath(`/community/${postId}`);
+}
+
+/**
+ * Report content. Required by App Store guideline 1.2 — and the same
+ * control belongs on the web so a reporter isn't told to go install an
+ * app to flag something.
+ */
+export async function reportContentAction(formData: FormData) {
+  const user = await requireUser();
+  const targetType = String(formData.get('target_type') || '');
+  const targetId = String(formData.get('target_id') || '');
+  const postId = String(formData.get('post_id') || targetId);
+  const rawReason = String(formData.get('reason') || 'other');
+
+  if (!targetId || (targetType !== 'post' && targetType !== 'comment')) {
+    redirect('/community');
+  }
+
+  const reason = (REPORT_REASONS as readonly string[]).includes(rawReason)
+    ? (rawReason as ReportReason)
+    : 'other';
+
+  const result = await reportContent({
+    reporterId: user.id,
+    targetType,
+    targetId,
+    reason,
+    note: (formData.get('note') as string) || null,
+  });
+
+  const message =
+    'error' in result
+      ? result.error
+      : 'وصلنا بلاغك، وهنراجعه في أقرب وقت. شكراً ليك.';
+  const key = 'error' in result ? 'error' : 'notice';
+
+  revalidatePath(`/community/${postId}`);
+  redirect(`/community/${postId}?${key}=${encodeURIComponent(message)}`);
+}
+
+/**
+ * Block an author. Personal and one-directional — it hides their content
+ * from this user's feed only, and the filter lives in the feed RPC so
+ * every client honours it.
+ */
+export async function blockUserAction(formData: FormData) {
+  const user = await requireUser();
+  const targetUserId = String(formData.get('user_id') || '');
+  if (!targetUserId || targetUserId === user.id) redirect('/community');
+
+  await blockUser(user.id, targetUserId);
+
+  revalidatePath('/community');
+  redirect(
+    `/community?notice=${encodeURIComponent('تم حظر المستخدم ده. مش هتشوف محتواه تاني.')}`
+  );
 }

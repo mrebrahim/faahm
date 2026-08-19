@@ -22,6 +22,7 @@ import {
 } from '../../src/lib/community';
 import { useAuth } from '../../src/lib/auth-context';
 import { Avatar, Badge, Button, Card, ErrorState, Loading, T } from '../../src/components/ui';
+import { ReportSheet } from '../../src/components/report-sheet';
 import { colors, radius, spacing } from '../../src/lib/theme';
 
 export default function PostScreen() {
@@ -34,6 +35,12 @@ export default function PostScreen() {
   const [draft, setDraft] = useState('');
   const [replyTo, setReplyTo] = useState<ThreadComment | null>(null);
   const [sending, setSending] = useState(false);
+  const [reporting, setReporting] = useState<{
+    targetType: 'post' | 'comment';
+    targetId: string;
+    authorId: string;
+    authorName: string;
+  } | null>(null);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -132,7 +139,23 @@ export default function PostScreen() {
                   حذف
                 </T>
               </Pressable>
-            ) : null}
+            ) : (
+              <Pressable
+                onPress={() =>
+                  setReporting({
+                    targetType: 'post',
+                    targetId: post.id,
+                    authorId: post.user_id,
+                    authorName: post.author_name,
+                  })
+                }
+                hitSlop={8}
+              >
+                <T size="sm" color={colors.textMuted}>
+                  🚩 بلّغ
+                </T>
+              </Pressable>
+            )}
           </View>
         </Card>
 
@@ -150,6 +173,14 @@ export default function PostScreen() {
                   comment={c}
                   onLike={() => like('comment', c.id, c.liked_by_me)}
                   onReply={() => setReplyTo(c)}
+                  onReport={() =>
+                    setReporting({
+                      targetType: 'comment',
+                      targetId: c.id,
+                      authorId: c.user_id,
+                      authorName: c.author_name,
+                    })
+                  }
                   canReply={!!me?.access.can_post_community && !post.is_locked}
                 />
                 {repliesOf(c.id).map((r) => (
@@ -157,6 +188,14 @@ export default function PostScreen() {
                     <CommentCard
                       comment={r}
                       onLike={() => like('comment', r.id, r.liked_by_me)}
+                      onReport={() =>
+                        setReporting({
+                          targetType: 'comment',
+                          targetId: r.id,
+                          authorId: r.user_id,
+                          authorName: r.author_name,
+                        })
+                      }
                       canReply={false}
                     />
                   </View>
@@ -195,6 +234,18 @@ export default function PostScreen() {
           </View>
         </View>
       ) : null}
+
+      {reporting ? (
+        <ReportSheet
+          visible
+          onClose={() => setReporting(null)}
+          onDone={load}
+          targetType={reporting.targetType}
+          targetId={reporting.targetId}
+          authorId={reporting.authorId}
+          authorName={reporting.authorName}
+        />
+      ) : null}
     </KeyboardAvoidingView>
   );
 }
@@ -203,11 +254,13 @@ function CommentCard({
   comment,
   onLike,
   onReply,
+  onReport,
   canReply,
 }: {
   comment: ThreadComment;
   onLike: () => void;
   onReply?: () => void;
+  onReport?: () => void;
   canReply: boolean;
 }) {
   return (
@@ -235,6 +288,13 @@ function CommentCard({
               <Pressable onPress={onReply} hitSlop={8}>
                 <T size="xs" color={colors.brand}>
                   رد
+                </T>
+              </Pressable>
+            ) : null}
+            {!comment.is_mine && onReport ? (
+              <Pressable onPress={onReport} hitSlop={8}>
+                <T size="xs" color={colors.textFaint}>
+                  🚩 بلّغ
                 </T>
               </Pressable>
             ) : null}

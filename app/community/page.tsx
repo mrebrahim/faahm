@@ -28,7 +28,7 @@ export const dynamic = 'force-dynamic';
 export default async function CommunityPage({
   searchParams,
 }: {
-  searchParams: { kind?: string; error?: string };
+  searchParams: { kind?: string; error?: string; notice?: string };
 }) {
   const {
     data: { user },
@@ -63,6 +63,12 @@ export default async function CommunityPage({
             اسأل سؤالك، شارك اللي وصلتله، واتعلّم من ناس بتذاكر نفس الحاجة.
           </p>
         </header>
+
+        {searchParams.notice && (
+          <div className="mb-5 p-3 rounded-xl bg-brand-500/10 border border-brand-500/30 text-brand-700 text-sm leading-relaxed">
+            {searchParams.notice}
+          </div>
+        )}
 
         {searchParams.error && (
           <div className="mb-5 p-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-sm flex items-start gap-2">

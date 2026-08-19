@@ -61,6 +61,9 @@ export async function fetchFeed(opts: {
   limit?: number;
   before?: string | null;
 } = {}): Promise<FeedPost[]> {
+  // p_viewer_id is only consulted when auth.uid() is NULL (the service
+  // role path used by the website). From the app the JWT supplies it, so
+  // a client can't pass someone else's id to peek at their feed.
   const { data, error } = await supabase.rpc('community_feed', {
     p_course_id: opts.courseId ?? null,
     p_kind: opts.kind ?? null,
@@ -187,4 +190,81 @@ export function timeAgoAr(iso: string): string {
   const mon = Math.floor(day / 30);
   if (mon < 12) return `من ${mon} شهر`;
   return `من ${Math.floor(mon / 12)} سنة`;
+}
+
+// ---------------- moderation (App Store guideline 1.2) ----------------
+
+export const REPORT_REASONS = [
+  'spam',
+  'harassment',
+  'hate',
+  'sexual',
+  'violence',
+  'misinformation',
+  'off_topic',
+  'other',
+] as const;
+export type ReportReason = (typeof REPORT_REASONS)[number];
+
+export const REPORT_REASON_LABELS: Record<ReportReason, string> = {
+  spam: 'سبام أو إعلانات',
+  harassment: 'تنمّر أو إساءة',
+  hate: 'كراهية أو عنصرية',
+  sexual: 'محتوى جنسي',
+  violence: 'عنف أو تهديد',
+  misinformation: 'معلومات مغلوطة',
+  off_topic: 'خارج الموضوع',
+  other: 'سبب تاني',
+};
+
+/** File a report. A repeat tap is a no-op, so the UI can always confirm. */
+export async function reportContent(input: {
+  targetType: 'post' | 'comment';
+  targetId: string;
+  reason: ReportReason;
+  note?: string | null;
+}): Promise<void> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('محتاج تسجّل دخول الأول.');
+
+  const { error } = await supabase.from('community_reports').insert({
+    reporter_id: user.id,
+    target_type: input.targetType,
+    target_id: input.targetId,
+    reason: input.reason,
+    note: input.note?.trim() || null,
+  });
+  // 23505 = already reported by this person.
+  if (error && error.code !== '23505') throw new Error(error.message);
+}
+
+/**
+ * Block an author. One-directional and personal — the filter lives in
+ * the feed RPCs, so the next refresh simply stops returning their rows.
+ */
+export async function blockUser(blockedId: string): Promise<void> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) throw new Error('محتاج تسجّل دخول الأول.');
+  if (user.id === blockedId) return;
+
+  const { error } = await supabase
+    .from('community_blocks')
+    .insert({ blocker_id: user.id, blocked_id: blockedId });
+  if (error && error.code !== '23505') throw new Error(error.message);
+}
+
+export async function unblockUser(blockedId: string): Promise<void> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+  await supabase
+    .from('community_blocks')
+    .delete()
+    .eq('blocker_id', user.id)
+    .eq('blocked_id', blockedId);
 }

@@ -110,6 +110,10 @@ export async function getFeed(opts: {
     p_kind: opts.kind ?? null,
     p_limit: opts.limit ?? 20,
     p_before: opts.before ?? null,
+    // The service key means auth.uid() is NULL inside the function, so
+    // the viewer has to be passed in — otherwise the block filter would
+    // silently match nobody and blocked authors would still show up.
+    p_viewer_id: opts.viewerId,
   });
 
   if (error) {
@@ -183,6 +187,7 @@ export async function getThread(
 ): Promise<ThreadComment[]> {
   const { data, error } = await createServiceClient().rpc('community_thread', {
     p_post_id: postId,
+    p_viewer_id: viewerId,
   });
   if (error) {
     console.error('[community] thread failed', error.message);
@@ -402,4 +407,88 @@ export function timeAgoAr(iso: string): string {
   const mon = Math.floor(day / 30);
   if (mon < 12) return `من ${mon} شهر`;
   return `من ${Math.floor(mon / 12)} سنة`;
+}
+
+// ---------------- moderation (App Store guideline 1.2) ----------------
+
+export const REPORT_REASONS = [
+  'spam',
+  'harassment',
+  'hate',
+  'sexual',
+  'violence',
+  'misinformation',
+  'off_topic',
+  'other',
+] as const;
+export type ReportReason = (typeof REPORT_REASONS)[number];
+
+export const REPORT_REASON_LABELS: Record<ReportReason, string> = {
+  spam: 'سبام أو إعلانات',
+  harassment: 'تنمّر أو إساءة',
+  hate: 'كراهية أو عنصرية',
+  sexual: 'محتوى جنسي',
+  violence: 'عنف أو تهديد',
+  misinformation: 'معلومات مغلوطة',
+  off_topic: 'خارج الموضوع',
+  other: 'سبب تاني',
+};
+
+/**
+ * File a report. Idempotent per (reporter, target) via a unique index —
+ * a second tap is a no-op rather than an error, so the UI can always
+ * say "وصلنا بلاغك".
+ */
+export async function reportContent(opts: {
+  reporterId: string;
+  targetType: 'post' | 'comment';
+  targetId: string;
+  reason: ReportReason;
+  note?: string | null;
+}): Promise<{ ok: true } | { error: string }> {
+  const { error } = await createServiceClient().from('community_reports').insert({
+    reporter_id: opts.reporterId,
+    target_type: opts.targetType,
+    target_id: opts.targetId,
+    reason: opts.reason,
+    note: opts.note?.trim() || null,
+  });
+
+  // 23505 = already reported by this person.
+  if (error && error.code !== '23505') {
+    console.error('[community] report failed', error.message);
+    return { error: 'مقدرناش نسجّل البلاغ دلوقتي.' };
+  }
+  return { ok: true };
+}
+
+/**
+ * Block a user. One-directional and personal — it only changes what the
+ * blocker sees. The filter lives inside the feed RPCs so every client
+ * honours it without reimplementing anything.
+ */
+export async function blockUser(blockerId: string, blockedId: string): Promise<void> {
+  if (!blockerId || !blockedId || blockerId === blockedId) return;
+  const { error } = await createServiceClient()
+    .from('community_blocks')
+    .insert({ blocker_id: blockerId, blocked_id: blockedId });
+  if (error && error.code !== '23505') {
+    console.error('[community] block failed', error.message);
+  }
+}
+
+export async function unblockUser(blockerId: string, blockedId: string): Promise<void> {
+  await createServiceClient()
+    .from('community_blocks')
+    .delete()
+    .eq('blocker_id', blockerId)
+    .eq('blocked_id', blockedId);
+}
+
+export async function listBlockedUsers(blockerId: string): Promise<string[]> {
+  const { data } = await createServiceClient()
+    .from('community_blocks')
+    .select('blocked_id')
+    .eq('blocker_id', blockerId);
+  return (data ?? []).map((r: { blocked_id: string }) => r.blocked_id);
 }

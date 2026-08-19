@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { E164_REGEX } from '@/lib/countries';
+import { deleteUserAccount } from '@/lib/account-deletion';
 
 export async function updateProfile(formData: FormData) {
   const supabase = createClient();
@@ -36,4 +37,36 @@ export async function updateProfile(formData: FormData) {
 
   revalidatePath('/settings');
   redirect('/settings?saved=1');
+}
+
+
+/**
+ * Delete the signed-in user's own account.
+ *
+ * The web mirror of the in-app control required by App Store guideline
+ * 5.1.1(v). Typing the word DELETE is the guard — a stray double-submit
+ * or a prefetched link can't destroy an account on its own.
+ */
+export async function deleteAccountAction(formData: FormData) {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect('/login?redirect=/settings');
+
+  if (String(formData.get('confirm') || '').trim().toUpperCase() !== 'DELETE') {
+    redirect(
+      `/settings?error=${encodeURIComponent('اكتب كلمة DELETE بالظبط عشان نأكد الحذف.')}`
+    );
+  }
+
+  const result = await deleteUserAccount(user.id);
+  if (!result.ok) {
+    redirect(`/settings?error=${encodeURIComponent(result.error)}`);
+  }
+
+  // The session's user no longer exists; drop the cookie so the next
+  // request doesn't land on a dead session.
+  await supabase.auth.signOut();
+  redirect('/?deleted=1');
 }

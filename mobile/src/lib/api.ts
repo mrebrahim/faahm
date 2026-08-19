@@ -244,4 +244,18 @@ export const api = {
     }),
 
   xp: () => request<XpPayload>('/api/mobile/xp'),
+
+  /** The warnings shown on the delete-account confirmation sheet. */
+  deletionWarnings: () => request<{ warnings: string[] }>('/api/mobile/account'),
+
+  /**
+   * Delete the signed-in account. Required in-app by App Store guideline
+   * 5.1.1(v). The server takes the user id from the bearer token, never
+   * from the body, so this cannot be aimed at anyone else.
+   */
+  deleteAccount: () =>
+    request<{ ok: boolean }>('/api/mobile/account', {
+      method: 'DELETE',
+      body: JSON.stringify({ confirm: 'DELETE' }),
+    }),
 };

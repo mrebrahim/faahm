@@ -6,6 +6,8 @@ import { APP_NAME } from '@/lib/constants';
 import {
   POST_KIND_EMOJI,
   POST_KIND_LABELS,
+  REPORT_REASONS,
+  REPORT_REASON_LABELS,
   canPostToCommunity,
   getPost,
   getThread,
@@ -13,12 +15,14 @@ import {
 } from '@/lib/community';
 import { Avatar } from '../post-card';
 import {
+  blockUserAction,
   createCommentAction,
   deleteCommentAction,
   deletePostAction,
+  reportContentAction,
   toggleLikeAction,
 } from '../actions';
-import { AlertCircle, ArrowRight, Heart, Lock, Trash2 } from 'lucide-react';
+import { AlertCircle, ArrowRight, Flag, Heart, Lock, Trash2 } from 'lucide-react';
 
 export const metadata = {
   title: `الكوميونيتي — ${APP_NAME}`,
@@ -31,7 +35,7 @@ export default async function PostPage({
   searchParams,
 }: {
   params: { id: string };
-  searchParams: { error?: string };
+  searchParams: { error?: string; notice?: string };
 }) {
   const {
     data: { user },
@@ -65,6 +69,12 @@ export default async function PostPage({
           <ArrowRight className="w-4 h-4" />
           رجوع للكوميونيتي
         </Link>
+
+        {searchParams.notice && (
+          <div className="mb-5 p-3 rounded-xl bg-brand-500/10 border border-brand-500/30 text-brand-700 text-sm leading-relaxed">
+            {searchParams.notice}
+          </div>
+        )}
 
         {searchParams.error && (
           <div className="mb-5 p-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-sm flex items-start gap-2">
@@ -119,7 +129,7 @@ export default async function PostPage({
                   liked={post.liked_by_me}
                   count={post.like_count}
                 />
-                {post.is_mine && (
+                {post.is_mine ? (
                   <form action={deletePostAction}>
                     <input type="hidden" name="post_id" value={post.id} />
                     <button
@@ -130,6 +140,13 @@ export default async function PostPage({
                       حذف
                     </button>
                   </form>
+                ) : (
+                  <ReportControls
+                    targetType="post"
+                    targetId={post.id}
+                    postId={post.id}
+                    authorId={post.user_id}
+                  />
                 )}
               </div>
             </div>
@@ -231,7 +248,7 @@ function CommentRow({
               liked={comment.liked_by_me}
               count={comment.like_count}
             />
-            {comment.is_mine && (
+            {comment.is_mine ? (
               <form action={deleteCommentAction}>
                 <input type="hidden" name="comment_id" value={comment.id} />
                 <input type="hidden" name="post_id" value={postId} />
@@ -242,6 +259,13 @@ function CommentRow({
                   حذف
                 </button>
               </form>
+            ) : (
+              <ReportControls
+                targetType="comment"
+                targetId={comment.id}
+                postId={postId}
+                authorId={comment.user_id}
+              />
             )}
           </div>
 
@@ -270,6 +294,71 @@ function CommentRow({
         </div>
       </div>
     </div>
+  );
+}
+
+/**
+ * Reporting and blocking. Required by App Store guideline 1.2 for
+ * user-generated content, and mirrored here so a web reader has the same
+ * recourse as an app user.
+ *
+ * Rendered as a <details> disclosure so the whole thing stays a Server
+ * Component — no client JS for something used once in a blue moon.
+ */
+function ReportControls({
+  targetType,
+  targetId,
+  postId,
+  authorId,
+}: {
+  targetType: 'post' | 'comment';
+  targetId: string;
+  postId: string;
+  authorId: string;
+}) {
+  return (
+    <details className="relative">
+      <summary className="cursor-pointer list-none text-sm text-gray-400 hover:text-gray-700 transition-colors inline-flex items-center gap-1.5">
+        <Flag className="w-4 h-4" />
+        بلّغ
+      </summary>
+      <div className="mt-3 w-full sm:w-80 rounded-xl border border-gray-200 bg-white p-3 space-y-3">
+        <form action={reportContentAction} className="space-y-2">
+          <input type="hidden" name="target_type" value={targetType} />
+          <input type="hidden" name="target_id" value={targetId} />
+          <input type="hidden" name="post_id" value={postId} />
+          <label className="block text-xs font-bold">سبب البلاغ</label>
+          <select
+            name="reason"
+            className="w-full rounded-lg border border-gray-200 p-2 text-sm bg-white"
+            defaultValue="spam"
+          >
+            {REPORT_REASONS.map((r) => (
+              <option key={r} value={r}>
+                {REPORT_REASON_LABELS[r]}
+              </option>
+            ))}
+          </select>
+          <textarea
+            name="note"
+            rows={2}
+            maxLength={1000}
+            placeholder="تفاصيل زيادة (اختياري)"
+            className="w-full rounded-lg border border-gray-200 p-2 text-sm"
+          />
+          <Button type="submit" size="sm" variant="outline" className="w-full">
+            ابعت البلاغ
+          </Button>
+        </form>
+
+        <form action={blockUserAction}>
+          <input type="hidden" name="user_id" value={authorId} />
+          <Button type="submit" size="sm" variant="ghost" className="w-full text-destructive">
+            احظر صاحب المحتوى ده
+          </Button>
+        </form>
+      </div>
+    </details>
   );
 }
 
