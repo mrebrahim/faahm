@@ -57,9 +57,10 @@ export default async function LessonPage({ params }: { params: { id: string } })
   // an active subscription / per-course enrollment. canAccessCourse
   // returns false/false for null userId, so anonymous visitors only get
   // free-preview lessons.
-  const { subscribed, enrolled, requiresYearly } = user
-    ? await canAccessCourse(user.id, lesson.course_id)
-    : { subscribed: false, enrolled: false, requiresYearly: false };
+  const { subscribed, enrolled, requiresYearly } = await canAccessCourse(
+    user?.id ?? null,
+    lesson.course_id
+  );
   const canAccess = subscribed || enrolled || lesson.is_free_preview;
 
   // AI chat gate. The chat panel is YEARLY-only per PRD — we surface

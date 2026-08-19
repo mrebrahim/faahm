@@ -30,6 +30,7 @@ import {
   deleteChapter,
   deleteLesson,
   togglePreviewLesson,
+  setCourseAccessTier,
 } from './actions';
 import { deleteQuiz } from './quizzes/actions';
 import { ChapterAdder } from './chapter-adder';
@@ -156,6 +157,44 @@ export default async function CourseEditPage({
               </Button>
             </form>
           </div>
+        </div>
+      </div>
+
+      {/* Access tier — who can play this course without paying */}
+      <div className="mb-6 rounded-xl border border-gray-200 bg-white p-4 sm:p-5">
+        <div className="mb-3">
+          <h2 className="font-bold text-sm">مين يقدر يفتح الكورس ده؟</h2>
+          <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+            "مجاني" بيفتح الكورس لأي حد عامل حساب من غير اشتراك — استخدمه
+            كـ lead magnet. "سنوي بس" بيقفله على الباقة السنوية.
+          </p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2">
+          {(
+            [
+              { tier: 'free', label: '🎁 مجاني للكل', active: course.is_free },
+              {
+                tier: 'paid',
+                label: '🔒 بالاشتراك (شهري أو سنوي)',
+                active: !course.is_free && !course.yearly_only,
+              },
+              { tier: 'yearly', label: '👑 الباقة السنوية بس', active: course.yearly_only },
+            ] as const
+          ).map((opt) => (
+            <form key={opt.tier} action={setCourseAccessTier} className="w-full sm:w-auto">
+              <input type="hidden" name="id" value={course.id} />
+              <input type="hidden" name="tier" value={opt.tier} />
+              <Button
+                type="submit"
+                size="sm"
+                variant={opt.active ? 'default' : 'outline'}
+                disabled={opt.active}
+                className="w-full sm:w-auto whitespace-nowrap"
+              >
+                {opt.label}
+              </Button>
+            </form>
+          ))}
         </div>
       </div>
 

@@ -76,20 +76,33 @@ export async function hasCourseEnrollment(
 export async function canAccessCourse(
   userId: string | null | undefined,
   courseId: string | null | undefined
-): Promise<{ subscribed: boolean; enrolled: boolean; requiresYearly: boolean }> {
+): Promise<{
+  subscribed: boolean;
+  enrolled: boolean;
+  requiresYearly: boolean;
+  free: boolean;
+}> {
   if (!userId || !courseId) {
-    return { subscribed: false, enrolled: false, requiresYearly: false };
+    return { subscribed: false, enrolled: false, requiresYearly: false, free: false };
   }
 
-  const [sub, yearlyOnly] = await Promise.all([
+  const [sub, gate] = await Promise.all([
     getActiveSubscription(userId),
-    isYearlyOnlyCourse(courseId),
+    getCourseGate(courseId),
   ]);
+
+  // Free (lead-magnet) courses open for anyone signed in. Checked before
+  // the plan gate so a free course never asks a visitor to pay.
+  if (gate.isFree) {
+    return { subscribed: false, enrolled: true, requiresYearly: false, free: true };
+  }
+
+  const yearlyOnly = gate.yearlyOnly;
 
   // Yearly (or any future plan that isn't monthly) unlocks everything.
   const planCovers = !!sub && (!yearlyOnly || sub.plan === 'yearly');
   if (planCovers) {
-    return { subscribed: true, enrolled: false, requiresYearly: false };
+    return { subscribed: true, enrolled: false, requiresYearly: false, free: false };
   }
 
   // Monthly subscriber blocked by the yearly gate — an explicit
@@ -99,6 +112,28 @@ export async function canAccessCourse(
     subscribed: false,
     enrolled,
     requiresYearly: yearlyOnly && !!sub && !enrolled,
+    free: false,
+  };
+}
+
+/**
+ * The two course-level gating flags in one round trip. Both default to
+ * false on a lookup miss: a transient DB hiccup must not lock a paying
+ * subscriber out of content (yearly_only) nor silently paywall a course
+ * we advertised as free (is_free).
+ */
+export async function getCourseGate(
+  courseId: string | null | undefined
+): Promise<{ yearlyOnly: boolean; isFree: boolean }> {
+  if (!courseId) return { yearlyOnly: false, isFree: false };
+  const { data } = await createServiceClient()
+    .from('courses')
+    .select('yearly_only, is_free')
+    .eq('id', courseId)
+    .maybeSingle();
+  return {
+    yearlyOnly: data?.yearly_only === true,
+    isFree: data?.is_free === true,
   };
 }
 

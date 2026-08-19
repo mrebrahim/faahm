@@ -251,6 +251,51 @@ export async function togglePublishCourse(formData: FormData) {
 }
 
 /**
+ * Flip a course between the three access tiers:
+ *   'paid'   — the default. Any active subscription unlocks it.
+ *   'free'   — lead magnet. Open to anyone signed in, no subscription.
+ *   'yearly' — reserved for the yearly plan.
+ *
+ * The DB has a CHECK that a course can't be both free and yearly-only,
+ * so this writes both columns together rather than toggling one at a
+ * time and briefly landing in the forbidden state.
+ */
+export async function setCourseAccessTier(formData: FormData) {
+  const ctx = await requireAdmin();
+  const id = formData.get('id') as string;
+  const tier = String(formData.get('tier') || 'paid');
+
+  if (!id || !['paid', 'free', 'yearly'].includes(tier)) {
+    redirect(`/admin/courses/${id}?error=${encodeURIComponent('نوع وصول غير معروف.')}`);
+  }
+
+  await loggedAction(
+    ctx,
+    {
+      action: 'course.access_tier',
+      resourceType: 'course',
+      resourceId: id,
+      metadata: { tier },
+    },
+    async () => {
+      await createServiceClient()
+        .from('courses')
+        .update({
+          is_free: tier === 'free',
+          yearly_only: tier === 'yearly',
+        })
+        .eq('id', id);
+    }
+  );
+
+  revalidatePath(`/admin/courses/${id}`);
+  revalidatePath('/admin/courses');
+  revalidatePath('/courses');
+  revalidatePath('/');
+  redirect(`/admin/courses/${id}?success=access`);
+}
+
+/**
  * Manual re-embed of the saved ai_knowledge text. Useful when:
  *   - The first save's embed failed because OPENAI_API_KEY wasn't
  *     set yet, and the admin fixed the env without changing the

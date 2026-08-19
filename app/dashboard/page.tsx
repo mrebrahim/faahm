@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { ROUTES, APP_NAME } from '@/lib/constants';
 import { pricingFor } from '@/lib/region';
 import { listClaimableCourseIds } from '@/lib/cert-eligibility';
+import { getUserXp, levelProgress } from '@/lib/xp';
 import {
   BookOpen,
   Award,
@@ -20,6 +21,10 @@ import {
   PlayCircle,
   Sparkles,
   Download,
+  Flame,
+  Trophy,
+  Users,
+  Zap,
 } from 'lucide-react';
 
 export default async function DashboardPage() {
@@ -76,6 +81,9 @@ export default async function DashboardPage() {
     .from('certificates')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', user.id);
+
+  const xp = await getUserXp(user.id);
+  const xpProgress = levelProgress(xp.total_xp);
 
   // Get featured courses (when courses exist)
   const { data: courses } = await service
@@ -187,6 +195,67 @@ export default async function DashboardPage() {
             أهلاً، <span className="text-gradient-brand">{profile?.full_name || 'يا طالب'}</span> 👋
           </h1>
           <p className="text-gray-500">{new Date().toLocaleDateString('ar-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+        </div>
+
+        {/* XP + streak. Stacks under the welcome line on a phone and
+            sits beside the community CTA from `sm:` up. */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+          <div className="sm:col-span-2 rounded-2xl border border-gray-200 bg-white p-4 sm:p-6">
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 text-sm text-gray-500 mb-1">
+                  <Zap className="w-4 h-4 text-brand-500" />
+                  نقاطك
+                </div>
+                <div className="flex items-baseline gap-2 flex-wrap">
+                  <span className="font-display text-4xl sm:text-5xl font-extrabold text-brand-600">
+                    {xp.total_xp}
+                  </span>
+                  <span className="text-sm text-gray-500">XP</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-700 font-bold whitespace-nowrap">
+                    مستوى {xpProgress.level}
+                  </span>
+                </div>
+              </div>
+              <div className="text-end flex-shrink-0">
+                <div className="inline-flex items-center gap-1 text-orange-600 font-bold">
+                  <Flame className="w-5 h-5" />
+                  <span className="text-2xl sm:text-3xl">{xp.current_streak}</span>
+                </div>
+                <p className="text-[11px] text-gray-500 mt-0.5">يوم متواصل</p>
+              </div>
+            </div>
+            <div className="h-2.5 rounded-full bg-gray-100 overflow-hidden">
+              <div
+                className="h-full bg-brand-500 rounded-full transition-all"
+                style={{ width: `${xpProgress.percent}%` }}
+              />
+            </div>
+            <p className="text-xs text-gray-500 mt-2 leading-relaxed">
+              {xpProgress.toNext > 0
+                ? `فاضل ${xpProgress.toNext} نقطة توصل للمستوى ${xpProgress.level + 1}. كل درس بيديك 10 نقاط وكل امتحان بتنجح فيه 50.`
+                : 'كل درس بيديك 10 نقاط وكل امتحان بتنجح فيه 50.'}
+            </p>
+          </div>
+
+          <Link
+            href="/community"
+            className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-6 flex flex-col justify-between hover:border-brand-500/40 transition-colors"
+          >
+            <div>
+              <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+                <Users className="w-4 h-4 text-brand-500" />
+                الكوميونيتي
+              </div>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                اسأل، شارك إنجازك، واتعلّم من باقي الطلبة.
+              </p>
+            </div>
+            <span className="inline-flex items-center gap-1 text-sm font-bold text-brand-600 mt-4">
+              <Trophy className="w-4 h-4" />
+              ادخل دلوقتي
+            </span>
+          </Link>
         </div>
 
         {/* My courses — surfaced first for anyone with per-course grants

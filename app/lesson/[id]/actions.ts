@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { canAccessCourse } from '@/lib/access';
+import { awardLessonComplete } from '@/lib/xp';
 
 /**
  * Mark a lesson as completed (idempotent).
@@ -46,6 +47,11 @@ export async function markLessonComplete(formData: FormData) {
       },
       { onConflict: 'user_id,lesson_id' }
     );
+
+  // XP is idempotent on the lesson id, so hitting "خلصت الدرس" twice
+  // pays once. Awaited (not fire-and-forget) so the revalidate below
+  // renders the new total instead of the stale one.
+  await awardLessonComplete(user.id, lesson.id, lesson.course_id);
 
   // Bust the router cache wherever this user's completed-count is rendered:
   // the lesson page itself, the student dashboard, the course outline, and
@@ -105,6 +111,7 @@ export async function updateWatchProgress(lessonId: string, watchedSec: number) 
   // lesson into 'completed' — otherwise we'd be invalidating /dashboard
   // every 15 seconds for no visible change.
   if (shouldComplete) {
+    await awardLessonComplete(user.id, lesson.id, lesson.course_id);
     revalidatePath(`/lesson/${lessonId}`);
     revalidatePath('/dashboard');
     revalidatePath('/course/[slug]', 'page');

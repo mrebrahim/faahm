@@ -21,7 +21,7 @@ const LEVEL_LABELS: Record<string, string> = {
 export default async function CoursesPage({
   searchParams,
 }: {
-  searchParams: { q?: string; category?: string; level?: string };
+  searchParams: { q?: string; category?: string; level?: string; free?: string };
 }) {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -35,7 +35,7 @@ export default async function CoursesPage({
   let query = supabase
     .from('courses')
     .select(
-      'id, slug, title_ar, short_description_ar, thumbnail_url, level, total_lessons, total_duration_sec, category_id, what_you_learn, rating_avg, rating_count, instructors(full_name_ar)'
+      'id, slug, title_ar, short_description_ar, thumbnail_url, level, total_lessons, total_duration_sec, category_id, what_you_learn, rating_avg, rating_count, is_free, instructors(full_name_ar)'
     )
     .eq('is_published', true);
 
@@ -52,8 +52,22 @@ export default async function CoursesPage({
     const cat = categories?.find((c) => c.slug === searchParams.category);
     if (cat) query = query.eq('category_id', cat.id);
   }
+  const freeOnly = searchParams.free === '1';
+  if (freeOnly) query = query.eq('is_free', true);
 
-  const { data: courses } = await query.order('sort_order').order('created_at', { ascending: false });
+  // Free courses float to the top of the unfiltered catalog — they're
+  // the lead magnet, so they should be the first thing a cold visitor
+  // sees without having to hunt for the filter.
+  const { data: courses } = await query
+    .order('is_free', { ascending: false })
+    .order('sort_order')
+    .order('created_at', { ascending: false });
+
+  const { count: freeCount } = await supabase
+    .from('courses')
+    .select('id', { count: 'exact', head: true })
+    .eq('is_published', true)
+    .eq('is_free', true);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -108,6 +122,9 @@ export default async function CoursesPage({
           {searchParams.level && (
             <input type="hidden" name="level" value={searchParams.level} />
           )}
+          {searchParams.free && (
+            <input type="hidden" name="free" value={searchParams.free} />
+          )}
           <div className="relative">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
             <input
@@ -161,6 +178,23 @@ export default async function CoursesPage({
               />
             ))}
           </div>
+          {(freeCount ?? 0) > 0 && (
+            <div className="flex items-center gap-2 -mx-4 px-4 overflow-x-auto md:flex-wrap md:mx-0 md:px-0 md:overflow-visible">
+              <span className="inline-flex items-center gap-1.5 text-xs text-gray-500 flex-shrink-0">
+                السعر
+              </span>
+              <FilterChip
+                label="الكل"
+                active={!freeOnly}
+                href={buildHref(searchParams, { free: undefined })}
+              />
+              <FilterChip
+                label={`🎁 مجاني (${freeCount})`}
+                active={freeOnly}
+                href={buildHref(searchParams, { free: '1' })}
+              />
+            </div>
+          )}
         </div>
 
         {/* Grid */}
@@ -196,14 +230,15 @@ export default async function CoursesPage({
 }
 
 function buildHref(
-  current: { q?: string; category?: string; level?: string },
-  patch: { q?: string; category?: string; level?: string }
+  current: { q?: string; category?: string; level?: string; free?: string },
+  patch: { q?: string; category?: string; level?: string; free?: string }
 ): string {
   const next = { ...current, ...patch };
   const params = new URLSearchParams();
   if (next.q) params.set('q', next.q);
   if (next.category) params.set('category', next.category);
   if (next.level) params.set('level', next.level);
+  if (next.free) params.set('free', next.free);
   const qs = params.toString();
   return qs ? `${ROUTES.courses}?${qs}` : ROUTES.courses;
 }
@@ -257,6 +292,11 @@ function CourseCard({ course }: { course: any }) {
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-500/20 to-gray-100">
             <BookOpen className="w-12 h-12 text-brand-500/40" />
           </div>
+        )}
+        {course.is_free && (
+          <span className="absolute top-2 start-2 px-2 py-1 rounded-full bg-emerald-500 text-white text-[11px] font-bold shadow-sm">
+            🎁 مجاني
+          </span>
         )}
       </div>
       <div className="p-4 flex-1 flex flex-col gap-1.5">

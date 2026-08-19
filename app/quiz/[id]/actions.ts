@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { canAccessCourse } from '@/lib/access';
+import { awardQuizResult } from '@/lib/xp';
 
 /**
  * Single submit action — we don't bother with a separate "start attempt"
@@ -124,7 +125,18 @@ export async function submitQuizAttempt(formData: FormData) {
     );
   }
 
+  // Only a passing attempt pays, and only once per quiz — retaking a
+  // quiz you already passed doesn't farm XP.
+  await awardQuizResult({
+    userId: user.id,
+    quizId,
+    courseId: quiz.course_id,
+    score,
+    isPassed: is_passed,
+  });
+
   revalidatePath(`/quiz/${quizId}`);
+  revalidatePath('/dashboard');
   if (quiz.lesson_id) revalidatePath(`/lesson/${quiz.lesson_id}`);
   redirect(`/quiz/${quizId}?submitted=${attempt.id}`);
 }
