@@ -1,0 +1,185 @@
+# Codemagic CI/CD for the فاهم mobile app (Expo / React Native).
+#
+# The app lives in mobile/ inside the same repo as the Next.js site, so
+# every workflow cds into it first. `expo prebuild` regenerates ios/ and
+# android/ on each run — they're gitignored, so app.json is the single
+# source of truth for bundle ids, permissions, and plugins.
+#
+# Before the first run, create an encrypted environment group named
+# `faahm_mobile` in Codemagic → Environment variables containing:
+#   EXPO_PUBLIC_SUPABASE_URL
+#   EXPO_PUBLIC_SUPABASE_ANON_KEY   (anon key ONLY — never the service key)
+#   EXPO_PUBLIC_API_BASE_URL        (https://faahm.com)
+# and the signing groups documented under each workflow.
+
+definitions:
+  cache: &cache
+    cache_paths:
+      - $HOME/.npm
+      - $CM_BUILD_DIR/mobile/node_modules
+
+  scripts:
+    - &install
+      name: Install dependencies
+      script: |
+        cd mobile
+        npm ci
+
+    - &typecheck
+      name: Type-check
+      script: |
+        cd mobile
+        npm run type-check
+
+    - &prebuild
+      name: Expo prebuild
+      script: |
+        cd mobile
+        npx expo prebuild --clean --no-install
+
+workflows:
+  # ---------------------------------------------------------------
+  # Android — internal testing track on Google Play.
+  # ---------------------------------------------------------------
+  android:
+    name: فاهم Android
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      groups:
+        - faahm_mobile
+        # Keystore: CM_KEYSTORE, CM_KEYSTORE_PASSWORD, CM_KEY_ALIAS,
+        # CM_KEY_PASSWORD + GCLOUD_SERVICE_ACCOUNT_CREDENTIALS.
+        - faahm_android_signing
+      node: 20.11.1
+      java: 17
+      android_signing:
+        - faahm_keystore
+    <<: *cache
+    triggering:
+      events: [push, tag]
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+    scripts:
+      - *install
+      - *typecheck
+      - *prebuild
+      - name: Set build number from Codemagic counter
+        script: |
+          cd mobile/android
+          # Play rejects a re-used versionCode, so derive it from the
+          # monotonic build counter rather than app.json's literal 1.
+          sed -i '' "s/versionCode 1/versionCode $PROJECT_BUILD_NUMBER/" app/build.gradle || \
+            sed -i "s/versionCode 1/versionCode $PROJECT_BUILD_NUMBER/" app/build.gradle
+      - name: Build AAB
+        script: |
+          cd mobile/android
+          ./gradlew bundleRelease
+    artifacts:
+      - mobile/android/app/build/outputs/**/*.aab
+      - mobile/android/app/build/outputs/**/mapping.txt
+    publishing:
+      email:
+        recipients:
+          - moalmacademye@gmail.com
+        notify:
+          success: true
+          failure: true
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal
+        submit_as_draft: true
+
+  # ---------------------------------------------------------------
+  # iOS — TestFlight.
+  # ---------------------------------------------------------------
+  ios:
+    name: فاهم iOS
+    max_build_duration: 90
+    instance_type: mac_mini_m2
+    environment:
+      groups:
+        - faahm_mobile
+        # App Store Connect API key: APP_STORE_CONNECT_ISSUER_ID,
+        # APP_STORE_CONNECT_KEY_IDENTIFIER, APP_STORE_CONNECT_PRIVATE_KEY,
+        # CERTIFICATE_PRIVATE_KEY.
+        - faahm_ios_signing
+      node: 20.11.1
+      xcode: latest
+      cocoapods: default
+      vars:
+        BUNDLE_ID: com.faahm.app
+        XCODE_SCHEME: faahm
+    <<: *cache
+    triggering:
+      events: [push, tag]
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+    scripts:
+      - *install
+      - *typecheck
+      - *prebuild
+      - name: Install pods
+        script: |
+          cd mobile/ios
+          pod install
+      - name: Fetch signing files
+        script: |
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE --create
+          keychain initialize
+          keychain add-certificates
+          xcode-project use-profiles
+      - name: Set build number
+        script: |
+          cd mobile/ios
+          agvtool new-version -all $(($(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" 2>/dev/null || echo 0) + 1))
+      - name: Build IPA
+        script: |
+          cd mobile/ios
+          xcode-project build-ipa \
+            --workspace "$XCODE_SCHEME.xcworkspace" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - mobile/ios/build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      email:
+        recipients:
+          - moalmacademye@gmail.com
+        notify:
+          success: true
+          failure: true
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        # Store review is triggered manually for the first few releases —
+        # the External Purchase Link question (see the plan doc) has to be
+        # settled before an automated submission makes sense.
+        submit_to_app_store: false
+
+  # ---------------------------------------------------------------
+  # PR check — typecheck only, no signing, no store upload.
+  # ---------------------------------------------------------------
+  pr-check:
+    name: PR check
+    max_build_duration: 20
+    instance_type: linux
+    environment:
+      groups:
+        - faahm_mobile
+      node: 20.11.1
+    <<: *cache
+    triggering:
+      events: [pull_request]
+      branch_patterns:
+        - pattern: '*'
+          include: true
+          source: true
+    scripts:
+      - *install
+      - *typecheck

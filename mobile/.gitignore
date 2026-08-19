@@ -1,0 +1,19 @@
+node_modules/
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# expo prebuild output — regenerated on every Codemagic run, so it stays
+# out of git and the app.json config plugins remain the source of truth.
+/ios
+/android
+
+*.log
+.env
+.env.local
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
