@@ -13,6 +13,13 @@
 # and the signing groups documented under each workflow.
 
 definitions:
+  # Counter-intuitively, Codemagic's free tier grants macOS minutes and
+  # NOT Linux — `linux_x2` fails with "instance type is not available
+  # with the current billing plan". So everything runs on a Mac, even
+  # the Android builds that don't need one. Anchored here so switching
+  # to Linux after a plan upgrade is a single edit.
+  instance: &instance mac_mini_m2
+
   # Merged into each workflow with `<<: *cache`. The nested `cache:` key
   # is required — Codemagic rejects a bare `cache_paths` at workflow
   # level with "extra fields not permitted".
@@ -48,9 +55,7 @@ workflows:
   android:
     name: فاهم Android
     max_build_duration: 60
-    # Android has no need for macOS — Linux is cheaper in build credits
-    # and there's nothing in the toolchain that requires a Mac.
-    instance_type: linux_x2
+    instance_type: *instance
     environment:
       groups:
         - faahm_mobile
@@ -77,8 +82,10 @@ workflows:
           cd mobile/android
           # Play rejects a re-used versionCode, so derive it from the
           # monotonic build counter rather than app.json's literal 1.
-          # GNU sed (Linux runner) — no BSD fallback needed.
-          sed -i "s/versionCode 1/versionCode $PROJECT_BUILD_NUMBER/" app/build.gradle
+          # perl -pi, not sed -i: BSD sed (macOS) reads the next argument
+          # as a backup suffix while GNU sed does not, and these builds
+          # run on macOS.
+          perl -pi -e 's/versionCode 1/versionCode $ENV{PROJECT_BUILD_NUMBER}/' app/build.gradle
           grep -n "versionCode" app/build.gradle
       - name: Build AAB
         script: |
@@ -105,7 +112,7 @@ workflows:
   ios:
     name: فاهم iOS
     max_build_duration: 90
-    instance_type: mac_mini_m2
+    instance_type: *instance
     environment:
       groups:
         - faahm_mobile
@@ -198,7 +205,7 @@ workflows:
   huawei:
     name: فاهم Huawei (AppGallery)
     max_build_duration: 60
-    instance_type: linux_x2
+    instance_type: *instance
     environment:
       groups:
         - faahm_mobile
@@ -215,7 +222,7 @@ workflows:
       - name: Set build number from Codemagic counter
         script: |
           cd mobile/android
-          sed -i "s/versionCode 1/versionCode $PROJECT_BUILD_NUMBER/" app/build.gradle
+          perl -pi -e 's/versionCode 1/versionCode $ENV{PROJECT_BUILD_NUMBER}/' app/build.gradle
           grep -n "versionCode" app/build.gradle
       - name: Build universal APK
         script: |
@@ -240,7 +247,7 @@ workflows:
   pr-check:
     name: PR check
     max_build_duration: 20
-    instance_type: linux
+    instance_type: *instance
     environment:
       groups:
         - faahm_mobile
