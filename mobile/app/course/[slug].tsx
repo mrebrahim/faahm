@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { WebView } from 'react-native-webview';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { api, type CourseDetail } from '../../src/lib/api';
 import {
@@ -21,6 +22,7 @@ export default function CourseScreen() {
   const router = useRouter();
   const [data, setData] = useState<CourseDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [playingTrailer, setPlayingTrailer] = useState(false);
 
   const load = useCallback(async () => {
     if (!slug) return;
@@ -73,7 +75,42 @@ export default function CourseScreen() {
           showBanner && { paddingBottom: 140 },
         ]}
       >
-        <CourseImage url={course.thumbnail_url} style={styles.cover} />
+        {/* Trailer if there is one, cover image otherwise. The trailer
+            is the strongest thing we can show someone deciding whether
+            to subscribe, so it gets the prime slot. */}
+        {course.trailer ? (
+          <View style={styles.cover}>
+            {playingTrailer ? (
+              <WebView
+                source={{ uri: course.trailer.url }}
+                style={{ flex: 1, backgroundColor: '#000' }}
+                allowsFullscreenVideo
+                allowsInlineMediaPlayback
+                mediaPlaybackRequiresUserAction={false}
+                javaScriptEnabled
+                domStorageEnabled
+              />
+            ) : (
+              // Click-to-load: an autoplaying WebView on every course
+              // page would burn data before anyone asked for it.
+              <Pressable style={styles.trailerPoster} onPress={() => setPlayingTrailer(true)}>
+                <CourseImage url={course.thumbnail_url} style={StyleSheet.absoluteFillObject} />
+                <View style={styles.trailerOverlay}>
+                  <View style={styles.playBtn}>
+                    <T size="xxl" color="#fff">
+                      ▶
+                    </T>
+                  </View>
+                  <T size="sm" weight="bold" color="#fff" style={{ marginTop: spacing.sm }}>
+                    شوف الفيديو التشويقي
+                  </T>
+                </View>
+              </Pressable>
+            )}
+          </View>
+        ) : (
+          <CourseImage url={course.thumbnail_url} style={styles.cover} />
+        )}
 
         <View style={styles.tags}>
           {course.is_free ? <Badge label="🎁 مجاني" tone="free" /> : null}
@@ -206,7 +243,28 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 const styles = StyleSheet.create({
   scroll: { padding: spacing.lg, paddingBottom: spacing.xxl * 2 },
-  cover: { width: '100%', aspectRatio: 16 / 9, borderRadius: radius.lg, backgroundColor: '#f3f4f6' },
+  cover: {
+    width: '100%',
+    aspectRatio: 16 / 9,
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    backgroundColor: '#f3f4f6',
+  },
+  trailerPoster: { flex: 1 },
+  trailerOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.35)',
+  },
+  playBtn: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.brand,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   tags: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap', marginTop: spacing.lg },
   banner: {
     position: 'absolute',

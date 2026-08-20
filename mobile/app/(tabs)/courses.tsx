@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, TextInput, View } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { api, type CourseListItem } from '../../src/lib/api';
 import { track } from '../../src/lib/analytics';
 import { EmptyState, ErrorState, Loading, T } from '../../src/components/ui';
@@ -13,7 +13,11 @@ export default function CoursesScreen() {
   const [courses, setCourses] = useState<CourseListItem[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState<Filter>('all');
+  // Honour ?free=1 from the home screen's "كورسات مجانية" link —
+  // otherwise that link lands on an unfiltered catalog and the section
+  // it came from looks meaningless.
+  const { free } = useLocalSearchParams<{ free?: string }>();
+  const [filter, setFilter] = useState<Filter>(free === '1' ? 'free' : 'all');
   const [query, setQuery] = useState('');
 
   const load = useCallback(async () => {

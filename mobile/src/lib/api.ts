@@ -132,6 +132,8 @@ export type CourseDetail = {
     rating_count: number;
     is_free: boolean;
     yearly_only: boolean;
+    /** Public marketing video — no access check, unlike lesson playback. */
+    trailer: { kind: 'iframe' | 'native'; url: string } | null;
     instructor: { name: string; bio: string | null; avatar_url: string | null } | null;
   };
   access: {

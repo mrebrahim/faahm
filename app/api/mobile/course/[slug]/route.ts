@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { canAccessCourse } from '@/lib/access';
 import { getMobileUser, jsonError } from '@/lib/mobile-auth';
+import { resolveVideoEmbed } from '@/lib/video';
 
 export const dynamic = 'force-dynamic';
 
@@ -91,6 +92,16 @@ export async function GET(
     ? course.instructors[0]
     : course.instructors;
 
+  // The trailer was being SELECTed and then dropped on the floor, so the
+  // app had no way to show it. It's public marketing — no access check,
+  // unlike lesson playback.
+  const trailer = resolveVideoEmbed(
+    course.trailer_video_provider,
+    course.trailer_video_id,
+    course.trailer_video_library_id,
+    { tokenTtlSeconds: 3600 }
+  );
+
   return Response.json({
     course: {
       id: course.id,
@@ -108,6 +119,7 @@ export async function GET(
       rating_count: course.rating_count,
       is_free: course.is_free,
       yearly_only: course.yearly_only,
+      trailer: trailer ? { kind: trailer.kind, url: trailer.src } : null,
       instructor: instructor
         ? {
             name: instructor.full_name_ar,

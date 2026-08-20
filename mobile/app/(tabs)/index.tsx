@@ -99,6 +99,8 @@ export default function HomeScreen() {
   if (!data) return <Loading />;
 
   const firstName = me?.user.full_name?.split(' ')[0] || 'يا بطل';
+  const freeCourses = data.courses.filter((c) => c.is_free);
+  const paidCourses = data.courses.filter((c) => !c.is_free);
 
   return (
     <ScrollView
@@ -233,33 +235,73 @@ export default function HomeScreen() {
         </Section>
       ) : null}
 
+      {/* Free courses get their own section, above the paid ones. They
+          are the lead magnet — burying them in a mixed list is the same
+          as not having them. */}
+      {freeCourses.length > 0 ? (
+        <Section
+          title="🎁 كورسات مجانية"
+          subtitle="ابدأ من غير ما تدفع حاجة"
+          action={{ label: 'الكل', onPress: () => router.push('/(tabs)/courses?free=1') }}
+        >
+          {freeCourses.slice(0, 3).map((c) => (
+            <CourseRow key={c.id} course={c} />
+          ))}
+        </Section>
+      ) : null}
+
       <Section
-        title="📚 كورسات"
+        title="📚 كورسات فاهم"
         action={{ label: 'الكل', onPress: () => router.push('/(tabs)/courses') }}
       >
-        {data.courses.slice(0, 6).map((c) => (
+        {paidCourses.slice(0, 5).map((c) => (
           <CourseRow key={c.id} course={c} />
         ))}
       </Section>
+
+      {/* The blog lives on the website; the app links out rather than
+          re-rendering markdown. Shown even with no posts loaded so the
+          section isn't invisible on a first run. */}
+      <Card
+        style={{ marginTop: spacing.xxl }}
+        onPress={() => Linking.openURL(`${API_BASE_URL}/blog`)}
+      >
+        <T weight="bold">📰 مدونة فاهم</T>
+        <T size="sm" color={colors.textMuted} style={{ marginTop: spacing.xs }}>
+          شروحات ومقالات عن الذكاء الاصطناعي والأتمتة — بالعربي.
+        </T>
+        <T size="sm" weight="bold" color={colors.brand} style={{ marginTop: spacing.md }}>
+          اقرأ المقالات ←
+        </T>
+      </Card>
     </ScrollView>
   );
 }
 
 function Section({
   title,
+  subtitle,
   action,
   children,
 }: {
   title: string;
+  subtitle?: string;
   action?: { label: string; onPress: () => void };
   children: React.ReactNode;
 }) {
   return (
     <View style={{ marginTop: spacing.xxl, gap: spacing.md }}>
       <View style={styles.sectionHead}>
-        <T size="lg" weight="extrabold" style={{ flex: 1 }}>
-          {title}
-        </T>
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <T size="lg" weight="extrabold">
+            {title}
+          </T>
+          {subtitle ? (
+            <T size="sm" color={colors.textMuted}>
+              {subtitle}
+            </T>
+          ) : null}
+        </View>
         {action ? (
           <Button
             label={action.label}
