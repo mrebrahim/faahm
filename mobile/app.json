@@ -39,10 +39,7 @@
       "typedRoutes": true
     },
     "extra": {
-      "apiBaseUrl": "https://faahm.com",
-      "eas": {
-        "projectId": "REPLACE_WITH_EAS_PROJECT_ID"
-      }
+      "apiBaseUrl": "https://faahm.com"
     }
   }
 }
