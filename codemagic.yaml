@@ -266,10 +266,32 @@ workflows:
     environment:
       groups:
         - faahm_mobile
+      # Two of the three values are not secrets — the Supabase project
+      # URL and faahm.com already appear in the website's client bundle,
+      # visible to anyone who opens devtools. Setting them here means the
+      # faahm_mobile group only has to carry the anon key, so there's one
+      # variable to get right instead of three.
+      #
+      # A value in the group overrides one set here, so this stays a
+      # default rather than a lock.
+      vars:
+        EXPO_PUBLIC_SUPABASE_URL: https://jnxtcpicctcnmirjorje.supabase.co
+        EXPO_PUBLIC_API_BASE_URL: https://faahm.com
       node: 20.11.1
       java: 17
     <<: *cache
     scripts:
+      - name: Check the anon key is present
+        script: |
+          # Fail here with a readable message rather than 15 minutes
+          # later with an APK that opens to a login screen it can't use.
+          if [ -z "$EXPO_PUBLIC_SUPABASE_ANON_KEY" ]; then
+            echo "✗ EXPO_PUBLIC_SUPABASE_ANON_KEY is not set."
+            echo "  Add it in Codemagic → Environment variables,"
+            echo "  with Group name exactly: faahm_mobile"
+            exit 1
+          fi
+          echo "✓ anon key present (${#EXPO_PUBLIC_SUPABASE_ANON_KEY} chars)"
       - *install
       - *typecheck
       - *prebuild
