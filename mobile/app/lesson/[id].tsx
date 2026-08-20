@@ -6,6 +6,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { ApiError, api, type LessonPayload } from '../../src/lib/api';
 import { useAuth } from '../../src/lib/auth-context';
 import { lockedMessage } from '../../src/lib/store-policy';
+import { track } from '../../src/lib/analytics';
 import { Button, Card, ErrorState, Loading, T } from '../../src/components/ui';
 import { colors, formatDuration, radius, spacing } from '../../src/lib/theme';
 
@@ -44,6 +45,12 @@ export default function LessonScreen() {
     try {
       const payload = await api.lesson(id);
       setData(payload);
+      track('lesson_started', {
+        lesson_id: id,
+        course_slug: payload.lesson.course.slug,
+        duration_sec: payload.lesson.duration_sec,
+        resumed: payload.progress.watched_sec > 0,
+      });
       watchedRef.current = payload.progress.watched_sec;
       startedAtRef.current = Date.now();
     } catch (e: any) {
@@ -70,6 +77,8 @@ export default function LessonScreen() {
       try {
         const res = await api.saveProgress(id, watchedRef.current);
         if (res.xp_awarded > 0) {
+          track('lesson_completed', { lesson_id: id, trigger: 'auto' });
+          track('xp_earned', { amount: res.xp_awarded, source: 'lesson', level: res.xp.level });
           setToast(`+${res.xp_awarded} XP 🎉`);
           refresh();
         }
@@ -95,6 +104,10 @@ export default function LessonScreen() {
       setData((prev) =>
         prev ? { ...prev, progress: { ...prev.progress, is_completed: true } } : prev
       );
+      track('lesson_completed', { lesson_id: id, trigger: 'manual' });
+      if (res.xp_awarded > 0) {
+        track('xp_earned', { amount: res.xp_awarded, source: 'lesson', level: res.xp.level });
+      }
       setToast(res.xp_awarded > 0 ? `+${res.xp_awarded} XP 🎉` : 'تمام، خلصت الدرس ✅');
       refresh();
     } catch (e: any) {
@@ -178,7 +191,13 @@ export default function LessonScreen() {
               📎 ملفات الدرس
             </T>
             {data.attachments.map((a) => (
-              <Card key={a.id} onPress={() => WebBrowser.openBrowserAsync(a.url)}>
+              <Card
+                key={a.id}
+                onPress={() => {
+                  track('attachment_opened', { lesson_id: data.lesson.id, file_type: a.file_type ?? 'unknown' });
+                  WebBrowser.openBrowserAsync(a.url);
+                }}
+              >
                 <T size="sm" weight="bold" numberOfLines={2}>
                   {a.title}
                 </T>

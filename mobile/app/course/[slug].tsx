@@ -11,6 +11,7 @@ import {
   T,
 } from '../../src/components/ui';
 import { lockedMessage } from '../../src/lib/store-policy';
+import { track } from '../../src/lib/analytics';
 import { LEVEL_LABELS, colors, formatDuration, radius, spacing } from '../../src/lib/theme';
 
 export default function CourseScreen() {
@@ -23,7 +24,25 @@ export default function CourseScreen() {
     if (!slug) return;
     setError(null);
     try {
-      setData(await api.course(slug));
+      const detail = await api.course(slug);
+      setData(detail);
+      track('course_viewed', {
+        course_slug: slug,
+        course_title: detail.course.title,
+        unlocked: detail.access.unlocked,
+        is_free: detail.course.is_free,
+      });
+      if (detail.course.is_free) {
+        track('free_course_opened', { course_slug: slug });
+      }
+      if (!detail.access.unlocked) {
+        // The paywall impression is the denominator for every
+        // conversion question we'll ask later.
+        track('course_locked_seen', {
+          course_slug: slug,
+          lock_reason: detail.access.lock_reason ?? 'unknown',
+        });
+      }
     } catch (e: any) {
       setError(e.message);
     }

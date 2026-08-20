@@ -4,6 +4,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '../src/lib/auth-context';
+import { initAnalytics, stopAnalytics } from '../src/lib/analytics';
 import { colors } from '../src/lib/theme';
 
 /**
@@ -20,6 +21,11 @@ I18nManager.allowRTL(true);
 I18nManager.forceRTL(true);
 
 export default function RootLayout() {
+  useEffect(() => {
+    void initAnalytics();
+    return stopAnalytics;
+  }, []);
+
   useEffect(() => {
     if (!I18nManager.isRTL) {
       // Dev-time warning only — in a release build the native config

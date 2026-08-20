@@ -11,6 +11,7 @@ import {
 import { useRouter } from 'expo-router';
 import { POST_KINDS, POST_KIND_LABELS, createPost, type PostKind } from '../../src/lib/community';
 import { Button, Card, T } from '../../src/components/ui';
+import { track } from '../../src/lib/analytics';
 import { colors, radius, spacing } from '../../src/lib/theme';
 
 export default function NewPostScreen() {
@@ -30,6 +31,7 @@ export default function NewPostScreen() {
     setError(null);
     try {
       const id = await createPost({ kind, title, body });
+      track('community_post_created', { kind, has_title: Boolean(title.trim()), length: body.trim().length });
       router.replace(`/post/${id}`);
     } catch (e: any) {
       setError(e.message);

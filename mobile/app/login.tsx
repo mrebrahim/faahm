@@ -11,6 +11,7 @@ import {
 import { Redirect, Stack } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import { useAuth } from '../src/lib/auth-context';
+import { track } from '../src/lib/analytics';
 import { API_BASE_URL } from '../src/lib/supabase';
 import { Button, Card, T } from '../src/components/ui';
 import { colors, radius, spacing } from '../src/lib/theme';
@@ -77,13 +78,24 @@ export default function LoginScreen() {
     }
     // On success the auth listener flips the session and the guard in
     // (tabs)/_layout routes us in — no manual navigation needed.
-    run(() => signInWithPassword(email, password));
+    track('login_started', { method: 'password' });
+    run(async () => {
+      try {
+        await signInWithPassword(email, password);
+        track('login_succeeded', { method: 'password' });
+      } catch (e) {
+        track('login_failed', { method: 'password' });
+        throw e;
+      }
+    });
   };
 
   const handleSendOtp = () => {
     if (!validEmail()) return;
+    track('login_started', { method: 'otp' });
     run(async () => {
       await sendOtp(email, name.trim() ? { full_name: name.trim() } : undefined);
+      track('login_code_sent');
       setMode('otp-code');
     });
   };
@@ -93,7 +105,15 @@ export default function LoginScreen() {
       setError('اكتب الكود اللي وصلك على الإيميل.');
       return;
     }
-    run(() => verifyOtp(email, code));
+    run(async () => {
+      try {
+        await verifyOtp(email, code);
+        track('login_succeeded', { method: 'otp' });
+      } catch (e) {
+        track('login_failed', { method: 'otp' });
+        throw e;
+      }
+    });
   };
 
   return (

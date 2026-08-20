@@ -11,6 +11,7 @@ import {
   type PostKind,
 } from '../../src/lib/community';
 import { useAuth } from '../../src/lib/auth-context';
+import { track } from '../../src/lib/analytics';
 import { Avatar, Badge, Card, EmptyState, ErrorState, Loading, T } from '../../src/components/ui';
 import { colors, radius, spacing } from '../../src/lib/theme';
 
@@ -25,7 +26,9 @@ export default function CommunityScreen() {
   const load = useCallback(async () => {
     setError(null);
     try {
-      setPosts(await fetchFeed({ kind }));
+      const feed = await fetchFeed({ kind });
+      setPosts(feed);
+      track('community_viewed', { filter: kind ?? 'all', post_count: feed.length });
     } catch (e: any) {
       setError(e.message);
     }
@@ -53,6 +56,7 @@ export default function CommunityScreen() {
     );
     try {
       await toggleLike('post', post.id, wasLiked);
+      if (!wasLiked) track('community_post_liked', { post_id: post.id });
     } catch {
       setPosts((prev) =>
         (prev ?? []).map((p) =>

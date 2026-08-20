@@ -8,6 +8,7 @@ import {
   type ReportReason,
 } from '../lib/community';
 import { Button, T } from './ui';
+import { track } from '../lib/analytics';
 import { colors, radius, spacing } from '../lib/theme';
 
 /**
@@ -46,6 +47,7 @@ export function ReportSheet({
     setBusy(true);
     try {
       await reportContent({ targetType, targetId, reason, note });
+      track('community_content_reported', { target_type: targetType, reason });
       onClose();
       Alert.alert('وصلنا بلاغك', 'هنراجعه في أقرب وقت. شكراً ليك.');
       onDone?.();
@@ -68,6 +70,7 @@ export function ReportSheet({
           onPress: async () => {
             try {
               await blockUser(authorId);
+              track('community_user_blocked');
               onClose();
               Alert.alert('تم الحظر', 'مش هتشوف محتوى الشخص ده تاني.');
               onDone?.();

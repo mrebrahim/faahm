@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { api, type XpPayload } from '../../src/lib/api';
+import { track } from '../../src/lib/analytics';
 import { Avatar, Card, ErrorState, Loading, ProgressBar, T } from '../../src/components/ui';
 import { colors, spacing } from '../../src/lib/theme';
 
@@ -23,7 +24,14 @@ export default function XpScreen() {
   const load = useCallback(async () => {
     setError(null);
     try {
-      setData(await api.xp());
+      const payload = await api.xp();
+      setData(payload);
+      track('xp_screen_viewed', {
+        total_xp: payload.xp.total,
+        level: payload.xp.level,
+        streak: payload.xp.current_streak,
+        rank: payload.xp.rank,
+      });
     } catch (e: any) {
       setError(e.message);
     }

@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, TextInput, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { api, type CourseListItem } from '../../src/lib/api';
+import { track } from '../../src/lib/analytics';
 import { EmptyState, ErrorState, Loading, T } from '../../src/components/ui';
 import { CourseRow } from './index';
 import { colors, radius, spacing } from '../../src/lib/theme';
@@ -20,6 +21,7 @@ export default function CoursesScreen() {
     try {
       const res = await api.courses();
       setCourses(res.courses);
+      track('course_list_viewed', { count: res.count });
     } catch (e: any) {
       setError(e.message);
     }

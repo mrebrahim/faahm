@@ -21,6 +21,7 @@ import {
   type ThreadComment,
 } from '../../src/lib/community';
 import { useAuth } from '../../src/lib/auth-context';
+import { track } from '../../src/lib/analytics';
 import { Avatar, Badge, Button, Card, ErrorState, Loading, T } from '../../src/components/ui';
 import { ReportSheet } from '../../src/components/report-sheet';
 import { colors, radius, spacing } from '../../src/lib/theme';
@@ -65,6 +66,7 @@ export default function PostScreen() {
     setSending(true);
     try {
       await createComment({ postId: id, body: draft, parentId: replyTo?.id ?? null });
+      track('community_comment_created', { post_id: id, is_reply: Boolean(replyTo) });
       setDraft('');
       setReplyTo(null);
       await load();

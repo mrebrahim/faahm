@@ -4,6 +4,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { useAuth } from '../../src/lib/auth-context';
 import { API_BASE_URL } from '../../src/lib/supabase';
 import { api } from '../../src/lib/api';
+import { flush, track } from '../../src/lib/analytics';
 import { Avatar, Badge, Button, Card, Loading, T } from '../../src/components/ui';
 import {
   CAN_SHOW_PURCHASE_CTA,
@@ -66,6 +67,10 @@ export default function ProfileScreen() {
   async function runDelete() {
     setDeleting(true);
     try {
+      track('account_deleted');
+      // Push it now — the session is about to disappear, and a queued
+      // event with no token would report as anonymous.
+      await flush();
       await api.deleteAccount();
       // The auth user is gone; clearing the local session drops us back
       // to the login screen via the guard in (tabs)/_layout.
@@ -159,7 +164,15 @@ export default function ProfileScreen() {
           variant="outline"
           onPress={() => openWeb(SAFE_WEB_LINKS.terms)}
         />
-        <Button label="تسجيل الخروج" variant="ghost" onPress={signOut} />
+        <Button
+          label="تسجيل الخروج"
+          variant="ghost"
+          onPress={() => {
+            track('logout');
+            void flush();
+            signOut();
+          }}
+        />
       </View>
 
       {/* Account deletion — required in-app by App Store guideline
