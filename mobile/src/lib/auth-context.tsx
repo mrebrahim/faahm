@@ -7,7 +7,7 @@ import React, {
   useState,
 } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { supabase } from './supabase';
+import { supabase, withTimeout } from './supabase';
 import { api, type Me } from './api';
 
 /**
@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const {
         data: { session: current },
-      } = await supabase.auth.getSession();
+      } = await withTimeout(supabase.auth.getSession(), 10_000);
       if (!current) {
         setMe(null);
         return;
@@ -64,12 +64,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let active = true;
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (!active) return;
-      setSession(data.session);
-      setLoading(false);
-      if (data.session) refresh();
-    });
+    withTimeout(supabase.auth.getSession(), 10_000)
+      .then(({ data }) => {
+        if (!active) return;
+        setSession(data.session);
+        setLoading(false);
+        if (data.session) refresh();
+      })
+      .catch(() => {
+        // Treat a stalled session lookup as signed-out rather than
+        // leaving the app stuck on the loading spinner.
+        if (active) setLoading(false);
+      });
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
       setSession(next);
@@ -85,36 +91,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const sendOtp = useCallback(
     async (email: string, meta?: { full_name?: string; phone?: string }) => {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: email.trim().toLowerCase(),
-        options: {
-          shouldCreateUser: true,
-          // Feeds the handle_new_user trigger, which copies these into
-          // public.profiles — same contract as the web signup.
-          data: meta,
-        },
-      });
+      const { error } = await withTimeout(
+        supabase.auth.signInWithOtp({
+          email: email.trim().toLowerCase(),
+          options: {
+            shouldCreateUser: true,
+            // Feeds the handle_new_user trigger, which copies these into
+            // public.profiles — same contract as the web signup.
+            data: meta,
+          },
+        }),
+        25_000,
+        'الكود اتأخر أوي. اتأكد من النت وجرّب تاني.'
+      );
       if (error) throw new Error(otpErrorAr(error.message));
     },
     []
   );
 
   const verifyOtp = useCallback(async (email: string, token: string) => {
-    const { error } = await supabase.auth.verifyOtp({
-      email: email.trim().toLowerCase(),
-      // Supabase sends 6–8 digits depending on project config — never
-      // validate the length client-side, just pass it through.
-      token: token.trim(),
-      type: 'email',
-    });
+    const { error } = await withTimeout(
+      supabase.auth.verifyOtp({
+        email: email.trim().toLowerCase(),
+        // Supabase sends 6–8 digits depending on project config — never
+        // validate the length client-side, just pass it through.
+        token: token.trim(),
+        type: 'email',
+      })
+    );
     if (error) throw new Error(otpErrorAr(error.message));
   }, []);
 
   const signInWithPassword = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim().toLowerCase(),
-      password,
-    });
+    const { error } = await withTimeout(
+      supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      })
+    );
     if (error) throw new Error(otpErrorAr(error.message));
   }, []);
 
