@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import {
+  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -8,7 +9,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { POST_KINDS, POST_KIND_LABELS, createPost, type PostKind } from '../../src/lib/community';
 import { Button, Card, T } from '../../src/components/ui';
 import { track } from '../../src/lib/analytics';
@@ -16,6 +17,7 @@ import { colors, radius, spacing } from '../../src/lib/theme';
 
 export default function NewPostScreen() {
   const router = useRouter();
+  const { group } = useLocalSearchParams<{ group?: string }>();
   const [kind, setKind] = useState<PostKind>('discussion');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
@@ -30,9 +32,12 @@ export default function NewPostScreen() {
     setBusy(true);
     setError(null);
     try {
-      const id = await createPost({ kind, title, body });
+      await createPost({ kind, title, body, groupId: group ?? null });
       track('community_post_created', { kind, has_title: Boolean(title.trim()), length: body.trim().length });
-      router.replace(`/post/${id}`);
+      // Back to the feed, not to the post — it isn't published yet, and
+      // landing on a page that says "not found" would read as a failure.
+      Alert.alert('وصلنا بوستك ✅', 'هيظهر للناس بعد مراجعة فريق فاهم.');
+      router.back();
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -101,7 +106,10 @@ export default function NewPostScreen() {
             </T>
           ) : null}
 
-          <Button label="انشر" onPress={submit} loading={busy} />
+          <Button label="ابعت للمراجعة" onPress={submit} loading={busy} />
+          <T size="xs" color={colors.textFaint} align="center">
+            البوستات بتتراجع من فريق فاهم قبل ما تظهر للناس.
+          </T>
         </Card>
       </ScrollView>
     </KeyboardAvoidingView>

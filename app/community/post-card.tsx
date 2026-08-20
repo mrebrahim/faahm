@@ -36,6 +36,18 @@ export function PostCard({ post, href }: { post: FeedPost; href?: string }) {
                 <Pin className="w-3 h-3" /> مثبّت
               </span>
             )}
+            {/* Only ever visible to the author — the feed filters other
+                people's pending posts out entirely. */}
+            {post.status === 'pending' && (
+              <span className="px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 font-bold">
+                ⏳ تحت المراجعة
+              </span>
+            )}
+            {post.status === 'rejected' && (
+              <span className="px-1.5 py-0.5 rounded-full bg-destructive/10 text-destructive font-bold">
+                مرفوض
+              </span>
+            )}
           </div>
 
           <Link href={target} className="block mt-2 group">

@@ -32,9 +32,25 @@ export const POST_KIND_EMOJI: Record<PostKind, string> = {
   resource: '🔗',
 };
 
+export type PostStatus = 'pending' | 'approved' | 'rejected';
+
+export type CommunityGroup = {
+  id: string;
+  name: string;
+  description: string | null;
+  scope: 'course' | 'general';
+  audience: 'subscribers' | 'non_subscribers' | 'everyone';
+  allow_posts: boolean;
+  course_count: number;
+  post_count: number;
+};
+
 export type FeedPost = {
   id: string;
   user_id: string;
+  group_id: string | null;
+  group_name: string | null;
+  status: PostStatus;
   author_name: string;
   author_avatar: string | null;
   author_level: number;
@@ -97,9 +113,27 @@ export async function canPostToCommunity(userId: string | null | undefined): Pro
   return (subs ?? 0) > 0 || (grants ?? 0) > 0;
 }
 
+/**
+ * Groups the viewer is allowed to see. Membership is computed from their
+ * subscription and course access — there is no members table, so a
+ * lapsed subscription drops the paid rooms on the next request.
+ */
+export async function getGroupsFor(viewerId: string | null): Promise<CommunityGroup[]> {
+  if (!viewerId) return [];
+  const { data, error } = await createServiceClient().rpc('community_groups_for', {
+    p_viewer: viewerId,
+  });
+  if (error) {
+    console.error('[community] groups failed', error.message);
+    return [];
+  }
+  return (data ?? []) as CommunityGroup[];
+}
+
 export async function getFeed(opts: {
   viewerId: string | null;
   courseId?: string | null;
+  groupId?: string | null;
   kind?: PostKind | null;
   limit?: number;
   before?: string | null;
@@ -114,6 +148,7 @@ export async function getFeed(opts: {
     // the viewer has to be passed in — otherwise the block filter would
     // silently match nobody and blocked authors would still show up.
     p_viewer_id: opts.viewerId,
+    p_group_id: opts.groupId ?? null,
   });
 
   if (error) {
@@ -136,9 +171,11 @@ export async function getPost(postId: string, viewerId: string | null): Promise<
   const { data: raw } = await service
     .from('community_posts')
     .select(
-      `id, user_id, course_id, kind, title, body, is_pinned, is_locked, is_hidden,
+      `id, user_id, course_id, group_id, status, kind, title, body,
+       is_pinned, is_locked, is_hidden,
        like_count, comment_count, last_activity_at, created_at,
-       course:courses(slug, title_ar)`
+       course:courses(slug, title_ar),
+       group:community_groups(name)`
     )
     .eq('id', postId)
     .maybeSingle();
@@ -154,10 +191,14 @@ export async function getPost(postId: string, viewerId: string | null): Promise<
   ]);
 
   const course = Array.isArray(raw.course) ? raw.course[0] : raw.course;
+  const group = Array.isArray(raw.group) ? raw.group[0] : raw.group;
 
   const post: FeedPost = {
     id: raw.id,
     user_id: raw.user_id,
+    group_id: raw.group_id ?? null,
+    group_name: group?.name ?? null,
+    status: (raw.status ?? 'approved') as PostStatus,
     author_name: author?.full_name?.trim() || 'طالب في فاهم',
     author_avatar: author?.avatar_url ?? null,
     author_level: xp?.level ?? 1,
@@ -252,10 +293,15 @@ export async function createPost(opts: {
   title: string | null;
   body: string;
   courseId?: string | null;
-}): Promise<{ id: string } | { error: string }> {
+  groupId?: string | null;
+  /** Admin-authored posts skip the queue. */
+  autoApprove?: boolean;
+}): Promise<{ id: string; status: PostStatus } | { error: string }> {
   const body = opts.body.trim();
   if (body.length < 2) return { error: 'اكتب حاجة الأول 🙂' };
   if (body.length > 8000) return { error: 'البوست طويل أوي — قصّره شوية.' };
+
+  const status: PostStatus = opts.autoApprove ? 'approved' : 'pending';
 
   const service = createServiceClient();
   const { data, error } = await service
@@ -266,6 +312,8 @@ export async function createPost(opts: {
       title: opts.title?.trim() || null,
       body,
       course_id: opts.courseId || null,
+      group_id: opts.groupId || null,
+      status,
     })
     .select('id')
     .single();
@@ -275,15 +323,19 @@ export async function createPost(opts: {
     return { error: 'مش قادرين نحفظ البوست دلوقتي. جرّب تاني.' };
   }
 
-  // XP is keyed on the post id, so editing a post never re-pays.
-  await awardXp({
-    userId: opts.userId,
-    kind: 'community_post',
-    refKey: `post:${data.id}`,
-    courseId: opts.courseId || null,
-  });
+  // XP only on approval — otherwise someone could farm points by
+  // posting rubbish that never sees the light of day. The approval
+  // action awards it instead.
+  if (status === 'approved') {
+    await awardXp({
+      userId: opts.userId,
+      kind: 'community_post',
+      refKey: `post:${data.id}`,
+      courseId: opts.courseId || null,
+    });
+  }
 
-  return { id: data.id };
+  return { id: data.id, status };
 }
 
 export async function createComment(opts: {

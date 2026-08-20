@@ -1,9 +1,18 @@
 import Link from 'next/link';
 import { createServiceClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
-import { REPORT_REASON_LABELS, timeAgoAr, type ReportReason } from '@/lib/community';
+import {
+  POST_KIND_EMOJI,
+  POST_KIND_LABELS,
+  REPORT_REASON_LABELS,
+  timeAgoAr,
+  type PostKind,
+  type ReportReason,
+} from '@/lib/community';
 import { AlertTriangle, Eye, EyeOff, Lock, Pin, ShieldCheck, Unlock } from 'lucide-react';
 import { actionReport, hidePost, lockPost, pinPost, resolveReport } from './actions';
+import { approvePost, rejectPost } from './group-actions';
+import { GroupsTab } from './groups-tab';
 
 export const metadata = { title: 'الكوميونيتي' };
 export const dynamic = 'force-dynamic';
@@ -19,12 +28,17 @@ export const dynamic = 'force-dynamic';
 export default async function AdminCommunityPage({
   searchParams,
 }: {
-  searchParams: { tab?: string };
+  searchParams: { tab?: string; error?: string; success?: string };
 }) {
   const service = createServiceClient();
-  const tab = searchParams.tab === 'posts' ? 'posts' : 'reports';
+  const tab = (['reports', 'pending', 'groups', 'posts'] as const).includes(
+    searchParams.tab as any
+  )
+    ? (searchParams.tab as 'reports' | 'pending' | 'groups' | 'posts')
+    : 'pending';
 
-  const [{ data: reports }, { count: openCount }, { data: posts }] = await Promise.all([
+  const [{ data: reports }, { count: openCount }, { data: posts }, { data: pending }, { count: pendingCount }] =
+    await Promise.all([
     service
       .from('community_reports')
       .select('id, target_type, target_id, reason, note, status, created_at, reporter_id')
@@ -42,6 +56,18 @@ export default async function AdminCommunityPage({
       )
       .order('created_at', { ascending: false })
       .limit(50),
+    service
+      .from('community_posts')
+      .select(
+        'id, user_id, kind, title, body, created_at, group_id, community_groups(name)'
+      )
+      .eq('status', 'pending')
+      .order('created_at', { ascending: true })
+      .limit(50),
+    service
+      .from('community_posts')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'pending'),
   ]);
 
   // Resolve the reported content and the reporter in bulk — one query per
@@ -51,7 +77,11 @@ export default async function AdminCommunityPage({
     .filter((r) => r.target_type === 'comment')
     .map((r) => r.target_id);
   const authorIds = Array.from(
-    new Set([...(posts ?? []).map((p) => p.user_id), ...(reports ?? []).map((r) => r.reporter_id)])
+    new Set([
+      ...(posts ?? []).map((p) => p.user_id),
+      ...(pending ?? []).map((p) => p.user_id),
+      ...(reports ?? []).map((r) => r.reporter_id),
+    ])
   );
 
   const [{ data: reportedPosts }, { data: reportedComments }, { data: profiles }] =
@@ -84,7 +114,13 @@ export default async function AdminCommunityPage({
       <div className="-mx-4 px-4 overflow-x-auto md:mx-0 md:px-0 mb-6">
         <div className="flex gap-2 w-max md:w-auto">
           <TabLink
-            href="/admin/community"
+            href="/admin/community?tab=pending"
+            label={`تحت المراجعة${pendingCount ? ` (${pendingCount})` : ''}`}
+            active={tab === 'pending'}
+          />
+          <TabLink href="/admin/community?tab=groups" label="الجروبات" active={tab === 'groups'} />
+          <TabLink
+            href="/admin/community?tab=reports"
             label={`البلاغات${openCount ? ` (${openCount})` : ''}`}
             active={tab === 'reports'}
           />
@@ -92,7 +128,75 @@ export default async function AdminCommunityPage({
         </div>
       </div>
 
-      {tab === 'reports' ? (
+      {searchParams.error ? (
+        <div className="mb-5 p-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-sm">
+          {searchParams.error}
+        </div>
+      ) : null}
+      {searchParams.success ? (
+        <div className="mb-5 p-3 rounded-xl bg-brand-500/10 border border-brand-500/30 text-brand-700 text-sm">
+          تم الحفظ.
+        </div>
+      ) : null}
+
+      {tab === 'groups' ? (
+        <GroupsTab />
+      ) : tab === 'pending' ? (
+        <div className="space-y-3">
+          {(pending ?? []).length === 0 ? (
+            <div className="rounded-xl border border-gray-200 bg-white p-8 text-center">
+              <ShieldCheck className="w-10 h-10 mx-auto mb-3 text-emerald-500" />
+              <p className="font-bold mb-1">مفيش بوستات مستنية</p>
+              <p className="text-sm text-gray-500">كل حاجة اتراجعت.</p>
+            </div>
+          ) : (
+            (pending ?? []).map((p: any) => {
+              const grp = Array.isArray(p.community_groups)
+                ? p.community_groups[0]
+                : p.community_groups;
+              return (
+                <div key={p.id} className="rounded-xl border border-gray-200 bg-white p-4 space-y-3">
+                  <div className="flex items-center gap-2 flex-wrap text-xs text-gray-500">
+                    <span className="font-bold text-gray-900">{nameOf.get(p.user_id) ?? '—'}</span>
+                    <span>• {timeAgoAr(p.created_at)}</span>
+                    <span className="px-2 py-0.5 rounded-full bg-gray-100">
+                      {POST_KIND_EMOJI[p.kind as PostKind]} {POST_KIND_LABELS[p.kind as PostKind]}
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-700">
+                      {grp?.name ?? 'الفيد العام'}
+                    </span>
+                  </div>
+
+                  <div className="min-w-0">
+                    {p.title ? <p className="font-bold break-words">{p.title}</p> : null}
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">{p.body}</p>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <form action={approvePost} className="w-full sm:w-auto">
+                      <input type="hidden" name="id" value={p.id} />
+                      <Button type="submit" size="sm" className="w-full sm:w-auto">
+                        ✅ وافق وانشر
+                      </Button>
+                    </form>
+                    <form action={rejectPost} className="flex-1 flex flex-col sm:flex-row gap-2">
+                      <input type="hidden" name="id" value={p.id} />
+                      <input
+                        name="reason"
+                        placeholder="سبب الرفض (اختياري)"
+                        className="flex-1 min-w-0 rounded-lg border border-gray-200 px-3 text-sm h-9"
+                      />
+                      <Button type="submit" size="sm" variant="outline" className="w-full sm:w-auto">
+                        ارفض
+                      </Button>
+                    </form>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+      ) : tab === 'reports' ? (
         <div className="space-y-3">
           {(reports ?? []).length === 0 ? (
             <div className="rounded-xl border border-gray-200 bg-white p-8 text-center">

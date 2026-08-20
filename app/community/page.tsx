@@ -10,6 +10,7 @@ import {
   POST_KIND_LABELS,
   canPostToCommunity,
   getFeed,
+  getGroupsFor,
   type PostKind,
 } from '@/lib/community';
 import { getLeaderboard, getUserXp, levelProgress } from '@/lib/xp';
@@ -28,7 +29,7 @@ export const dynamic = 'force-dynamic';
 export default async function CommunityPage({
   searchParams,
 }: {
-  searchParams: { kind?: string; error?: string; notice?: string };
+  searchParams: { kind?: string; group?: string; error?: string; notice?: string };
 }) {
   const {
     data: { user },
@@ -40,12 +41,21 @@ export default async function CommunityPage({
     ? (searchParams.kind as PostKind)
     : null;
 
+  const groups = await getGroupsFor(user.id);
+  // Default to the first room the viewer can see. Landing on an
+  // undifferentiated global feed makes the group structure invisible.
+  const activeGroup = searchParams.group
+    ? groups.find((g) => g.id === searchParams.group) ?? null
+    : groups[0] ?? null;
+
   const [posts, canPost, xp, leaders] = await Promise.all([
-    getFeed({ viewerId: user.id, kind, limit: 20 }),
+    getFeed({ viewerId: user.id, kind, groupId: activeGroup?.id ?? null, limit: 20 }),
     canPostToCommunity(user.id),
     getUserXp(user.id),
     getLeaderboard(10),
   ]);
+
+  const canPostHere = canPost && (activeGroup?.allow_posts ?? false);
 
   const prog = levelProgress(xp.total_xp);
 
@@ -80,11 +90,40 @@ export default async function CommunityPage({
         {/* Single column on phones; the sidebar drops underneath. */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-4 min-w-0">
-            {canPost ? (
+            {/* Group switcher. Rooms are created by admins; a student
+                only ever picks between the ones they're admitted to. */}
+            {groups.length > 0 ? (
+              <div className="-mx-4 px-4 overflow-x-auto md:mx-0 md:px-0">
+                <div className="flex gap-2 w-max md:w-auto md:flex-wrap">
+                  {groups.map((g) => (
+                    <FilterChip
+                      key={g.id}
+                      label={`${g.name}${g.post_count ? ` (${g.post_count})` : ''}`}
+                      href={`/community?group=${g.id}`}
+                      active={activeGroup?.id === g.id}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-8 text-center">
+                <p className="font-bold mb-1">لسه مفيش جروبات ليك</p>
+                <p className="text-sm text-gray-500 leading-relaxed">
+                  فريق فاهم بيجهّز الجروبات. تعالى بصّ تاني قريب.
+                </p>
+              </div>
+            )}
+
+            {activeGroup?.description ? (
+              <p className="text-sm text-gray-600 leading-relaxed">{activeGroup.description}</p>
+            ) : null}
+
+            {canPostHere ? (
               <form
                 action={createPostAction}
                 className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 space-y-3"
               >
+                <input type="hidden" name="group_id" value={activeGroup?.id ?? ''} />
                 <Input
                   name="title"
                   placeholder="عنوان (اختياري)"
@@ -120,11 +159,18 @@ export default async function CommunityPage({
                     </div>
                   </div>
                   <Button type="submit" className="w-full sm:w-auto sm:ms-auto">
-                    انشر
+                    ابعت للمراجعة
                   </Button>
                 </div>
+                <p className="text-xs text-gray-500">
+                  البوستات بتتراجع من فريق فاهم قبل ما تظهر للناس.
+                </p>
               </form>
-            ) : (
+            ) : activeGroup && !activeGroup.allow_posts ? (
+              <div className="rounded-2xl border border-gray-200 bg-white p-4 text-sm text-gray-600">
+                الجروب ده للإعلانات بس — مفيش كتابة فيه.
+              </div>
+            ) : groups.length === 0 ? null : (
               <div className="rounded-2xl border border-brand-500/30 bg-brand-500/5 p-4 sm:p-5">
                 <p className="text-sm leading-relaxed mb-3">
                   الكتابة في الكوميونيتي لطلبة فاهم. ابدأ بكورس مجاني أو اشترك

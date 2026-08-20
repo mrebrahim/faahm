@@ -42,12 +42,15 @@ export async function createPostAction(formData: FormData) {
     ? (rawKind as PostKind)
     : 'discussion';
 
+  const groupId = (formData.get('group_id') as string) || null;
+
   const result = await createPost({
     userId: user.id,
     kind,
     title: (formData.get('title') as string) || null,
     body: String(formData.get('body') || ''),
     courseId: (formData.get('course_id') as string) || null,
+    groupId,
   });
 
   if ('error' in result) {
@@ -55,7 +58,13 @@ export async function createPostAction(formData: FormData) {
   }
 
   revalidatePath('/community');
-  redirect(`/community/${result.id}`);
+  // A student's post is queued, not published — say so instead of
+  // dropping them on a page where their post doesn't appear.
+  redirect(
+    `/community${groupId ? `?group=${groupId}` : ''}${groupId ? '&' : '?'}notice=${encodeURIComponent(
+      'وصلنا بوستك ✅ هيظهر بعد مراجعة فريق فاهم.'
+    )}`
+  );
 }
 
 export async function createCommentAction(formData: FormData) {

@@ -18,9 +18,25 @@ export const POST_KIND_LABELS: Record<PostKind, string> = {
   resource: '🔗 مصدر مفيد',
 };
 
+export type PostStatus = 'pending' | 'approved' | 'rejected';
+
+export type CommunityGroup = {
+  id: string;
+  name: string;
+  description: string | null;
+  scope: 'course' | 'general';
+  audience: 'subscribers' | 'non_subscribers' | 'everyone';
+  allow_posts: boolean;
+  course_count: number;
+  post_count: number;
+};
+
 export type FeedPost = {
   id: string;
   user_id: string;
+  group_id: string | null;
+  group_name: string | null;
+  status: PostStatus;
   author_name: string;
   author_avatar: string | null;
   author_level: number;
@@ -55,9 +71,25 @@ export type ThreadComment = {
   created_at: string;
 };
 
+/**
+ * Rooms this user is admitted to. Admin-created; membership is computed
+ * server-side from their live subscription and course access.
+ */
+export async function fetchGroups(): Promise<CommunityGroup[]> {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const { data, error } = await supabase.rpc('community_groups_for', { p_viewer: user.id });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as CommunityGroup[];
+}
+
 export async function fetchFeed(opts: {
   kind?: PostKind | null;
   courseId?: string | null;
+  groupId?: string | null;
   limit?: number;
   before?: string | null;
 } = {}): Promise<FeedPost[]> {
@@ -69,6 +101,7 @@ export async function fetchFeed(opts: {
     p_kind: opts.kind ?? null,
     p_limit: opts.limit ?? 20,
     p_before: opts.before ?? null,
+    p_group_id: opts.groupId ?? null,
   });
   if (error) throw new Error(error.message);
   return (data ?? []) as FeedPost[];
@@ -90,11 +123,17 @@ export async function fetchPost(postId: string): Promise<FeedPost | null> {
   return recent.find((p) => p.id === postId) ?? null;
 }
 
+/**
+ * Open a thread. It lands as PENDING — the RLS insert policy pins the
+ * status, so a client can't publish straight to the feed. An admin
+ * approves it from the faahm panel.
+ */
 export async function createPost(input: {
   kind: PostKind;
   title?: string | null;
   body: string;
   courseId?: string | null;
+  groupId?: string | null;
 }): Promise<string> {
   const {
     data: { user },
@@ -109,6 +148,8 @@ export async function createPost(input: {
       title: input.title?.trim() || null,
       body: input.body.trim(),
       course_id: input.courseId ?? null,
+      group_id: input.groupId ?? null,
+      status: 'pending',
     })
     .select('id')
     .single();

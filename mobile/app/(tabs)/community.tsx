@@ -2,13 +2,13 @@ import { useCallback, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, View } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import {
-  POST_KINDS,
   POST_KIND_LABELS,
   fetchFeed,
+  fetchGroups,
   toggleLike,
   timeAgoAr,
+  type CommunityGroup,
   type FeedPost,
-  type PostKind,
 } from '../../src/lib/community';
 import { useAuth } from '../../src/lib/auth-context';
 import { track } from '../../src/lib/analytics';
@@ -19,20 +19,29 @@ export default function CommunityScreen() {
   const router = useRouter();
   const { me } = useAuth();
   const [posts, setPosts] = useState<FeedPost[] | null>(null);
+  const [groups, setGroups] = useState<CommunityGroup[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [kind, setKind] = useState<PostKind | null>(null);
+  const [groupId, setGroupId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
     setError(null);
     try {
-      const feed = await fetchFeed({ kind });
+      const rooms = await fetchGroups();
+      setGroups(rooms);
+
+      // Default to the first room the user is admitted to. An
+      // undifferentiated global feed hides the group structure.
+      const active = groupId && rooms.some((g) => g.id === groupId) ? groupId : rooms[0]?.id ?? null;
+      if (active !== groupId) setGroupId(active);
+
+      const feed = active ? await fetchFeed({ groupId: active }) : [];
       setPosts(feed);
-      track('community_viewed', { filter: kind ?? 'all', post_count: feed.length });
+      track('community_viewed', { group_count: rooms.length, post_count: feed.length });
     } catch (e: any) {
       setError(e.message);
     }
-  }, [kind]);
+  }, [groupId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -69,7 +78,18 @@ export default function CommunityScreen() {
   }, []);
 
   if (error && !posts) return <ErrorState message={error} onRetry={load} />;
-  if (!posts) return <Loading />;
+  if (!posts || !groups) return <Loading />;
+
+  const activeGroup = groups.find((g) => g.id === groupId) ?? null;
+
+  if (groups.length === 0) {
+    return (
+      <EmptyState
+        title="لسه مفيش جروبات ليك"
+        body="فريق فاهم بيجهّز جروبات الكوميونيتي. تعالى بصّ تاني قريب."
+      />
+    );
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -77,16 +97,17 @@ export default function CommunityScreen() {
         <FlatList
           horizontal
           showsHorizontalScrollIndicator={false}
-          data={[null, ...POST_KINDS]}
-          keyExtractor={(k) => k ?? 'all'}
+          data={groups}
+          keyExtractor={(g) => g.id}
           contentContainerStyle={{ gap: spacing.sm, paddingVertical: spacing.md }}
           renderItem={({ item }) => (
             <Pressable
-              onPress={() => setKind(item)}
-              style={[styles.chip, kind === item && styles.chipActive]}
+              onPress={() => setGroupId(item.id)}
+              style={[styles.chip, groupId === item.id && styles.chipActive]}
             >
-              <T size="sm" weight="bold" color={kind === item ? '#fff' : colors.textMuted}>
-                {item ? POST_KIND_LABELS[item] : 'الكل'}
+              <T size="sm" weight="bold" color={groupId === item.id ? '#fff' : colors.textMuted}>
+                {item.name}
+                {item.post_count ? ` (${item.post_count})` : ''}
               </T>
             </Pressable>
           )}
@@ -111,16 +132,30 @@ export default function CommunityScreen() {
         renderItem={({ item }) => (
           <PostCard post={item} onPress={() => router.push(`/post/${item.id}`)} onLike={() => onLike(item)} />
         )}
+        ListHeaderComponent={
+          activeGroup?.description ? (
+            <T size="sm" color={colors.textMuted} style={{ marginBottom: spacing.md }}>
+              {activeGroup.description}
+            </T>
+          ) : null
+        }
         ListEmptyComponent={
           <EmptyState
-            title="لسه مفيش بوستات"
-            body="كن أول واحد يكسر السكوت — اسأل سؤالك أو شارك حاجة اتعلمتها."
+            title="لسه مفيش بوستات هنا"
+            body={
+              activeGroup?.allow_posts
+                ? 'كن أول واحد يكسر السكوت — اسأل سؤالك أو شارك حاجة اتعلمتها.'
+                : 'الجروب ده للإعلانات بس.'
+            }
           />
         }
       />
 
-      {me?.access.can_post_community ? (
-        <Pressable style={styles.fab} onPress={() => router.push('/post/new')}>
+      {me?.access.can_post_community && activeGroup?.allow_posts ? (
+        <Pressable
+          style={styles.fab}
+          onPress={() => router.push(`/post/new?group=${activeGroup.id}`)}
+        >
           <T size="xxl" color="#fff" align="center">
             +
           </T>
@@ -152,6 +187,10 @@ export function PostCard({
             <T size="xs" color={colors.textFaint}>
               {timeAgoAr(post.created_at)}
             </T>
+            {/* Only the author ever sees this — the feed filters other
+                people's pending posts out entirely. */}
+            {post.status === 'pending' ? <Badge label="⏳ تحت المراجعة" tone="gold" /> : null}
+            {post.status === 'rejected' ? <Badge label="مرفوض" /> : null}
           </View>
 
           <View style={styles.meta}>
