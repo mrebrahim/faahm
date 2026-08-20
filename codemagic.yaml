@@ -162,7 +162,14 @@ workflows:
           success: true
           failure: true
       app_store_connect:
-        auth: integration
+        # API-key auth, not `auth: integration`. The integration form
+        # requires an App Store Connect integration configured in the
+        # Codemagic UI and referenced under `integrations:` — these three
+        # variables do the same job straight from the faahm_ios_signing
+        # group, with nothing to wire up in the dashboard first.
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        key_id: $APP_STORE_CONNECT_KEY_IDENTIFIER
+        issuer_id: $APP_STORE_CONNECT_ISSUER_ID
         submit_to_testflight: true
         # Store review is triggered manually for the first few releases —
         # the External Purchase Link question (see the plan doc) has to be
