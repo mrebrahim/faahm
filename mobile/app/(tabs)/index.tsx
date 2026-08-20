@@ -1,9 +1,9 @@
 import { useCallback, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import { Link, useFocusEffect } from 'expo-router';
+import { Image, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { Link, useFocusEffect, useRouter } from 'expo-router';
 import { useAuth } from '../../src/lib/auth-context';
 import { api, type CourseListItem } from '../../src/lib/api';
-import { Badge, Card, Loading, ProgressBar, T } from '../../src/components/ui';
+import { Badge, Button, Card, Loading, ProgressBar, T } from '../../src/components/ui';
 import { CAN_SHOW_PURCHASE_CTA } from '../../src/lib/store-policy';
 import { colors, formatDuration, spacing } from '../../src/lib/theme';
 
@@ -14,6 +14,7 @@ import { colors, formatDuration, spacing } from '../../src/lib/theme';
  */
 export default function HomeScreen() {
   const { me, refresh } = useAuth();
+  const router = useRouter();
   const [courses, setCourses] = useState<CourseListItem[] | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -97,6 +98,11 @@ export default function HomeScreen() {
           <T size="sm" color={colors.textMuted} style={{ marginTop: spacing.xs }}>
             الاشتراك السنوي بيفتحلك المكتبة كاملة + المساعد الذكي + الشهادات.
           </T>
+          <Button
+            label="شوف الباقات"
+            style={{ marginTop: spacing.md }}
+            onPress={() => router.push('/subscribe')}
+          />
         </Card>
       ) : null}
 
@@ -146,8 +152,22 @@ function Section({
 export function CourseRow({ course }: { course: CourseListItem }) {
   return (
     <Link href={`/course/${course.slug}`} asChild>
-      <Card>
-        <View style={styles.rowStart}>
+      <Card style={{ padding: 0, overflow: 'hidden' }}>
+        {/* The thumbnail was missing entirely — the card rendered text
+            only. Images come from Bunny CDN over plain HTTPS, so there's
+            no allowlist to configure the way next/image needs one. */}
+        {course.thumbnail_url ? (
+          <Image
+            source={{ uri: course.thumbnail_url }}
+            style={styles.thumb}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={[styles.thumb, styles.thumbFallback]}>
+            <T size="xxl">📚</T>
+          </View>
+        )}
+        <View style={[styles.rowStart, { padding: spacing.lg }]}>
           <View style={{ flex: 1, gap: 4 }}>
             <View style={styles.tags}>
               {course.is_free ? <Badge label="🎁 مجاني" tone="free" /> : null}
@@ -174,4 +194,6 @@ const styles = StyleSheet.create({
   rowStart: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
   rowBaseline: { flexDirection: 'row', alignItems: 'baseline' },
   tags: { flexDirection: 'row', gap: spacing.xs, flexWrap: 'wrap' },
+  thumb: { width: '100%', aspectRatio: 16 / 9, backgroundColor: '#f3f4f6' },
+  thumbFallback: { alignItems: 'center', justifyContent: 'center' },
 });

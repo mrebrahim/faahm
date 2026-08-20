@@ -49,6 +49,7 @@ export default function RootLayout() {
         >
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="login" options={{ title: 'تسجيل الدخول' }} />
+          <Stack.Screen name="subscribe" options={{ title: 'الاشتراك' }} />
           <Stack.Screen name="course/[slug]" options={{ title: 'الكورس' }} />
           <Stack.Screen name="lesson/[id]" options={{ title: 'الدرس' }} />
           <Stack.Screen name="post/[id]" options={{ title: 'البوست' }} />

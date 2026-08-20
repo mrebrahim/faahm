@@ -34,7 +34,22 @@
  * against App Store Connect and Play Console at submission time rather
  * than trusting this comment.
  */
-export const READER_MODE = true;
+import { Platform } from 'react-native';
+
+/**
+ * iOS is a reader app; Android is not.
+ *
+ * Apple 3.1.3(a) forbids ANY call to action toward an outside purchase,
+ * and that is the storefront where a rejection costs the most time. On
+ * Android the pricing screen and the WhatsApp CTA are shown.
+ *
+ * ⚠️ Google Play's Payments policy also restricts steering users to
+ * outside payment for digital goods. A sideloaded APK (the AppGallery
+ * and direct-download builds) is unaffected, but a Play submission with
+ * the WhatsApp CTA visible carries real risk. If Play rejects it, set
+ * this to `true` unconditionally and rebuild — nothing else changes.
+ */
+export const READER_MODE = Platform.OS === 'ios';
 
 /** Where a purchase CTA would send the user, once CTAs are allowed at all. */
 export type PurchaseTarget = 'none' | 'iap' | 'external';
@@ -57,6 +72,20 @@ export const SAFE_WEB_LINKS = {
   privacy: '/privacy',
   terms: '/terms',
 } as const;
+
+/**
+ * Sales contact. Subscribing happens over WhatsApp with a human rather
+ * than a checkout in the app — no card handling, no store commission,
+ * and it matches how faahm already closes most sales.
+ */
+export const SALES_WHATSAPP = '201027555789';
+export const SALES_WHATSAPP_DISPLAY = '01027555789';
+export const SALES_MESSAGE = 'اريد الاشتراك بالكورسات';
+
+export function salesWhatsappUrl(context?: string): string {
+  const text = context ? `${SALES_MESSAGE} — ${context}` : SALES_MESSAGE;
+  return `https://wa.me/${SALES_WHATSAPP}?text=${encodeURIComponent(text)}`;
+}
 
 /**
  * Copy for locked content.

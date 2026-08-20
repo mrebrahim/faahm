@@ -43,7 +43,6 @@ export default function LoginScreen() {
   const [mode, setMode] = useState<Mode>('otp-email');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,8 +50,12 @@ export default function LoginScreen() {
   if (session) return <Redirect href="/(tabs)" />;
 
   function validEmail() {
-    if (!email.includes('@')) {
-      setError('اكتب إيميل صحيح.');
+    // `includes('@')` accepted "ahmed@gmail" and "ahmed@" — Supabase then
+    // reported success and the code simply never arrived, which reads as
+    // a broken app rather than a typo.
+    const ok = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim());
+    if (!ok) {
+      setError('الإيميل مش مظبوط. اتأكد منه وجرّب تاني.');
       return false;
     }
     return true;
@@ -94,7 +97,7 @@ export default function LoginScreen() {
     if (!validEmail()) return;
     track('login_started', { method: 'otp' });
     run(async () => {
-      await sendOtp(email, name.trim() ? { full_name: name.trim() } : undefined);
+      await sendOtp(email);
       track('login_code_sent');
       setMode('otp-code');
     });
@@ -193,12 +196,6 @@ export default function LoginScreen() {
                   autoCapitalize="none"
                   autoCorrect={false}
                   textAlign="left"
-                />
-                <Field
-                  label="اسمك (لو حساب جديد)"
-                  value={name}
-                  onChangeText={setName}
-                  placeholder="اسمك بالكامل"
                 />
                 <Button label="ابعتلي الكود" onPress={handleSendOtp} loading={busy} />
               </>

@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import * as WebBrowser from 'expo-web-browser';
 import { ApiError, api, type LessonPayload } from '../../src/lib/api';
 import { useAuth } from '../../src/lib/auth-context';
-import { lockedMessage } from '../../src/lib/store-policy';
+import { CAN_SHOW_PURCHASE_CTA, lockedMessage } from '../../src/lib/store-policy';
 import { track } from '../../src/lib/analytics';
 import { Button, Card, ErrorState, Loading, T } from '../../src/components/ui';
 import { colors, formatDuration, radius, spacing } from '../../src/lib/theme';
@@ -30,6 +30,7 @@ const TICK_MS = 20_000;
 
 export default function LessonScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
   const { refresh } = useAuth();
   const [data, setData] = useState<LessonPayload | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
@@ -131,6 +132,13 @@ export default function LessonScreen() {
           <T color={colors.textMuted} align="center" style={{ marginTop: spacing.sm }}>
             {locked.body}
           </T>
+          {CAN_SHOW_PURCHASE_CTA ? (
+            <Button
+              label="شوف الباقات"
+              style={{ marginTop: spacing.lg }}
+              onPress={() => router.push('/subscribe')}
+            />
+          ) : null}
         </View>
       );
     }
@@ -185,6 +193,52 @@ export default function LessonScreen() {
           style={{ marginTop: spacing.xl }}
         />
 
+        {/* Lesson-to-lesson navigation. Without it the learner has to
+            back out to the course page after every single lesson, which
+            is the difference between finishing a course and abandoning
+            it halfway. `replace` rather than `push` so the back stack
+            doesn't grow one entry per lesson watched. */}
+        <View style={styles.nav}>
+          {data.nav.previous ? (
+            <Button
+              label="⟶ السابق"
+              variant="outline"
+              style={{ flex: 1 }}
+              onPress={() => router.replace(`/lesson/${data.nav.previous!.id}`)}
+            />
+          ) : (
+            <View style={{ flex: 1 }} />
+          )}
+
+          {data.nav.next ? (
+            <Button
+              label={data.nav.next.playable ? 'التالي ⟵' : '🔒 التالي'}
+              variant={data.nav.next.playable ? 'primary' : 'outline'}
+              disabled={!data.nav.next.playable}
+              style={{ flex: 1 }}
+              onPress={() => router.replace(`/lesson/${data.nav.next!.id}`)}
+            />
+          ) : (
+            <View style={{ flex: 1 }} />
+          )}
+        </View>
+
+        {data.nav.index ? (
+          <T size="xs" color={colors.textFaint} align="center" style={{ marginTop: spacing.sm }}>
+            الدرس {data.nav.index} من {data.nav.total}
+          </T>
+        ) : null}
+
+        {data.nav.next ? (
+          <T size="sm" color={colors.textMuted} align="center" style={{ marginTop: spacing.xs }}>
+            التالي: {data.nav.next.title}
+          </T>
+        ) : (
+          <T size="sm" color={colors.brand} weight="bold" align="center" style={{ marginTop: spacing.xs }}>
+            🎉 ده آخر درس في الكورس
+          </T>
+        )}
+
         {data.attachments.length > 0 ? (
           <View style={{ marginTop: spacing.xxl, gap: spacing.md }}>
             <T size="lg" weight="extrabold">
@@ -233,6 +287,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
   },
   noVideo: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  nav: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.md },
   locked: {
     flex: 1,
     alignItems: 'center',

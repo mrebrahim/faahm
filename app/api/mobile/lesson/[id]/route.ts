@@ -54,7 +54,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     );
   }
 
-  const [{ data: progress }, { data: attachments }] = await Promise.all([
+  const [{ data: progress }, { data: attachments }, siblings] = await Promise.all([
     user
       ? service
           .from('progress')
@@ -67,7 +67,38 @@ export async function GET(request: Request, { params }: { params: { id: string }
       .from('lesson_attachments')
       .select('id, file_name_ar, file_url, file_size_kb, file_type')
       .eq('lesson_id', lesson.id),
+    // The whole course outline, ordered, so we can hand back the
+    // previous and next lesson. Without this the app can't offer a
+    // "التالي" button and the learner has to back out to the course
+    // page after every single lesson.
+    service
+      .from('lessons')
+      .select('id, title_ar, sort_order, chapter_id, is_free_preview, chapters(sort_order)')
+      .eq('course_id', lesson.course_id),
   ]);
+
+  const ordered = (siblings.data ?? [])
+    .map((l: any) => ({
+      id: l.id,
+      title: l.title_ar,
+      is_free_preview: l.is_free_preview,
+      chapterOrder: (Array.isArray(l.chapters) ? l.chapters[0] : l.chapters)?.sort_order ?? 0,
+      lessonOrder: l.sort_order ?? 0,
+    }))
+    .sort((a, b) => a.chapterOrder - b.chapterOrder || a.lessonOrder - b.lessonOrder);
+
+  const position = ordered.findIndex((l) => l.id === lesson.id);
+  const neighbour = (offset: number) => {
+    const item = position >= 0 ? ordered[position + offset] : undefined;
+    if (!item) return null;
+    return {
+      id: item.id,
+      title: item.title,
+      // A locked next lesson still gets returned so the app can show it
+      // greyed out rather than pretending the course ended.
+      playable: allowed || item.is_free_preview,
+    };
+  };
 
   const embed = resolveVideoEmbed(
     lesson.video_provider,
@@ -91,6 +122,12 @@ export async function GET(request: Request, { params }: { params: { id: string }
     progress: {
       watched_sec: progress?.watched_sec ?? 0,
       is_completed: progress?.is_completed ?? false,
+    },
+    nav: {
+      index: position >= 0 ? position + 1 : null,
+      total: ordered.length,
+      previous: neighbour(-1),
+      next: neighbour(1),
     },
     attachments: (attachments ?? []).map((a: any) => ({
       id: a.id,

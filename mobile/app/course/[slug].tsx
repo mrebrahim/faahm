@@ -4,13 +4,14 @@ import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-rou
 import { api, type CourseDetail } from '../../src/lib/api';
 import {
   Badge,
+  Button,
   Card,
   ErrorState,
   Loading,
   ProgressBar,
   T,
 } from '../../src/components/ui';
-import { lockedMessage } from '../../src/lib/store-policy';
+import { CAN_SHOW_PURCHASE_CTA, lockedMessage } from '../../src/lib/store-policy';
 import { track } from '../../src/lib/analytics';
 import { LEVEL_LABELS, colors, formatDuration, radius, spacing } from '../../src/lib/theme';
 
@@ -101,6 +102,15 @@ export default function CourseScreen() {
             <T size="sm" color={colors.textMuted} style={{ marginTop: spacing.xs }}>
               {lockedMessage(access.lock_reason).body}
             </T>
+            {/* Android only — on iOS this stays a plain statement of
+                fact, per Apple 3.1.3(a). */}
+            {CAN_SHOW_PURCHASE_CTA ? (
+              <Button
+                label="شوف الباقات"
+                style={{ marginTop: spacing.md }}
+                onPress={() => router.push('/subscribe')}
+              />
+            ) : null}
           </Card>
         ) : null}
 
@@ -144,9 +154,12 @@ export default function CourseScreen() {
                     <T size="sm" numberOfLines={2}>
                       {l.title}
                     </T>
-                    <T size="xs" color={colors.textFaint}>
+                    <T
+                      size="xs"
+                      color={l.is_free_preview && !access.unlocked ? colors.brand : colors.textFaint}
+                    >
                       {formatDuration(l.duration_sec)}
-                      {l.is_free_preview && !l.is_completed ? ' · معاينة مجانية' : ''}
+                      {l.is_free_preview ? ' · 👁 معاينة مجانية' : ''}
                     </T>
                   </View>
                 </Pressable>

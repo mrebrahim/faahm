@@ -167,6 +167,12 @@ export type LessonPayload = {
   };
   playback: { kind: 'iframe' | 'native'; url: string; expires_in_sec: number } | null;
   progress: { watched_sec: number; is_completed: boolean };
+  nav: {
+    index: number | null;
+    total: number;
+    previous: { id: string; title: string; playable: boolean } | null;
+    next: { id: string; title: string; playable: boolean } | null;
+  };
   attachments: Array<{
     id: string;
     title: string;
