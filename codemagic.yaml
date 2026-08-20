@@ -13,10 +13,14 @@
 # and the signing groups documented under each workflow.
 
 definitions:
+  # Merged into each workflow with `<<: *cache`. The nested `cache:` key
+  # is required — Codemagic rejects a bare `cache_paths` at workflow
+  # level with "extra fields not permitted".
   cache: &cache
-    cache_paths:
-      - $HOME/.npm
-      - $CM_BUILD_DIR/mobile/node_modules
+    cache:
+      cache_paths:
+        - $HOME/.npm
+        - $CM_BUILD_DIR/mobile/node_modules
 
   scripts:
     - &install
@@ -44,7 +48,9 @@ workflows:
   android:
     name: فاهم Android
     max_build_duration: 60
-    instance_type: mac_mini_m2
+    # Android has no need for macOS — Linux is cheaper in build credits
+    # and there's nothing in the toolchain that requires a Mac.
+    instance_type: linux_x2
     environment:
       groups:
         - faahm_mobile
@@ -71,8 +77,9 @@ workflows:
           cd mobile/android
           # Play rejects a re-used versionCode, so derive it from the
           # monotonic build counter rather than app.json's literal 1.
-          sed -i '' "s/versionCode 1/versionCode $PROJECT_BUILD_NUMBER/" app/build.gradle || \
-            sed -i "s/versionCode 1/versionCode $PROJECT_BUILD_NUMBER/" app/build.gradle
+          # GNU sed (Linux runner) — no BSD fallback needed.
+          sed -i "s/versionCode 1/versionCode $PROJECT_BUILD_NUMBER/" app/build.gradle
+          grep -n "versionCode" app/build.gradle
       - name: Build AAB
         script: |
           cd mobile/android
@@ -184,7 +191,7 @@ workflows:
   huawei:
     name: فاهم Huawei (AppGallery)
     max_build_duration: 60
-    instance_type: mac_mini_m2
+    instance_type: linux_x2
     environment:
       groups:
         - faahm_mobile
@@ -201,8 +208,8 @@ workflows:
       - name: Set build number from Codemagic counter
         script: |
           cd mobile/android
-          sed -i '' "s/versionCode 1/versionCode $PROJECT_BUILD_NUMBER/" app/build.gradle || \
-            sed -i "s/versionCode 1/versionCode $PROJECT_BUILD_NUMBER/" app/build.gradle
+          sed -i "s/versionCode 1/versionCode $PROJECT_BUILD_NUMBER/" app/build.gradle
+          grep -n "versionCode" app/build.gradle
       - name: Build universal APK
         script: |
           cd mobile/android
