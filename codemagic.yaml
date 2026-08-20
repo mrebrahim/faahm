@@ -242,6 +242,62 @@ workflows:
           failure: true
 
   # ---------------------------------------------------------------
+  # Android test build — an installable APK with NO signing setup.
+  #
+  # Start here. It needs only the faahm_mobile variable group: no
+  # keystore, no Google Play service account, no Apple account. That
+  # means you can prove the whole pipeline works and put the app on a
+  # real phone before dealing with store paperwork.
+  #
+  # Expo's generated build.gradle points the `release` build type at the
+  # DEBUG keystore, so `assembleRelease` produces a fully bundled,
+  # installable APK without any signing configuration. Download it from
+  # the artifacts, send it to your phone, and install it (Android will
+  # ask you to allow installing from unknown sources).
+  #
+  # It is NOT uploadable to Google Play — Play needs the real upload key,
+  # which is what the `android` workflow is for. Treat this as the
+  # test-on-a-device build, nothing more.
+  # ---------------------------------------------------------------
+  android-test:
+    name: فاهم Android (تجربة — من غير توقيع)
+    max_build_duration: 45
+    instance_type: *instance
+    environment:
+      groups:
+        - faahm_mobile
+      node: 20.11.1
+      java: 17
+    <<: *cache
+    scripts:
+      - *install
+      - *typecheck
+      - *prebuild
+      - name: Build test APK
+        script: |
+          cd mobile/android
+          ./gradlew assembleRelease
+      - name: Confirm the JS bundle is inside the APK
+        script: |
+          # A release APK missing index.android.bundle installs fine and
+          # then opens to a blank screen — check here rather than on a
+          # phone.
+          APK=$(find mobile/android/app/build/outputs -name "*.apk" | head -1)
+          echo "APK: $APK"
+          unzip -l "$APK" | grep -q "index.android.bundle" \
+            && echo "✓ JS bundle present" \
+            || { echo "✗ JS bundle MISSING — the app would open blank"; exit 1; }
+    artifacts:
+      - mobile/android/app/build/outputs/**/*.apk
+    publishing:
+      email:
+        recipients:
+          - moalmacademye@gmail.com
+        notify:
+          success: true
+          failure: true
+
+  # ---------------------------------------------------------------
   # PR check — typecheck only, no signing, no store upload.
   # ---------------------------------------------------------------
   pr-check:
