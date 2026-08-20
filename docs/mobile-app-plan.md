@@ -137,9 +137,27 @@ mobile/
 
 ### ٣.٦ البناء والنشر
 
-`codemagic.yaml` في جذر المستودع، تلات workflows:
-`android` (AAB → Play internal track)، `ios` (IPA → TestFlight)،
-و`pr-check` (فحص الأنواع بس).
+`codemagic.yaml` في جذر المستودع، أربع workflows:
+
+| الـ workflow | المخرج | الوجهة |
+|---|---|---|
+| `android` | AAB | Google Play — مسار الاختبار الداخلي |
+| `ios` | IPA | TestFlight |
+| `huawei` | APK | AppGallery (رفع يدوي) |
+| `pr-check` | — | فحص أنواع بس، من غير توقيع |
+
+**عن Huawei:** أجهزة Huawei بنظام EMUI هي أندرويد عادي من غير خدمات
+جوجل. التطبيق ده **مبيعتمدش على أي خدمة جوجل** — لا Firebase ولا خرايط
+ولا Google Sign-In ولا Play Billing (لإنه reader app) — فنفس الكود
+بيشتغل عليها كما هو، بـ APK بدل AAB.
+
+**HarmonyOS NEXT مش مدعوم** — النظام ده شال دعم تطبيقات أندرويد
+بالكامل، وReact Native مبيشتغلش عليه. لو اتطلب، ده مشروع منفصل مش
+نسخة من ده.
+
+**تحذير للمستقبل:** أول ما نضيف إشعارات، `expo-notifications` بيمشي
+على FCM اللي مش موجود على أجهزة Huawei — ساعتها هنحتاج Huawei Push Kit
+كتنفيذ تاني. ده أول حاجة هتكسر نسخة Huawei.
 
 ---
 

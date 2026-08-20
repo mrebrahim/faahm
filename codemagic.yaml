@@ -163,6 +163,64 @@ workflows:
         submit_to_app_store: false
 
   # ---------------------------------------------------------------
+  # Huawei AppGallery — same source, APK instead of AAB.
+  #
+  # Huawei phones running EMUI are ordinary Android without Google
+  # Mobile Services. This app depends on ZERO Google services (no
+  # Firebase, no Maps, no Google Sign-In, and no Play Billing since it
+  # ships as a reader app), so the identical build runs there.
+  #
+  # If push notifications are ever added, THIS is the workflow that
+  # breaks: expo-notifications routes through FCM, which does not exist
+  # on a Huawei device. That would need Huawei Push Kit as a second
+  # implementation — see docs/mobile-app-plan.md Phase 3.
+  #
+  # Note this does NOT cover HarmonyOS NEXT, which dropped Android app
+  # support entirely; React Native does not run there.
+  #
+  # Codemagic has no built-in AppGallery publisher, so the APK comes out
+  # as an artifact and gets uploaded to AppGallery Connect by hand.
+  # ---------------------------------------------------------------
+  huawei:
+    name: فاهم Huawei (AppGallery)
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      groups:
+        - faahm_mobile
+        - faahm_android_signing
+      node: 20.11.1
+      java: 17
+      android_signing:
+        - faahm_keystore
+    <<: *cache
+    scripts:
+      - *install
+      - *typecheck
+      - *prebuild
+      - name: Set build number from Codemagic counter
+        script: |
+          cd mobile/android
+          sed -i '' "s/versionCode 1/versionCode $PROJECT_BUILD_NUMBER/" app/build.gradle || \
+            sed -i "s/versionCode 1/versionCode $PROJECT_BUILD_NUMBER/" app/build.gradle
+      - name: Build universal APK
+        script: |
+          cd mobile/android
+          # A universal APK, not per-ABI splits — AppGallery takes a
+          # single file and the size cost is worth not juggling four.
+          ./gradlew assembleRelease
+    artifacts:
+      - mobile/android/app/build/outputs/**/*.apk
+      - mobile/android/app/build/outputs/**/mapping.txt
+    publishing:
+      email:
+        recipients:
+          - moalmacademye@gmail.com
+        notify:
+          success: true
+          failure: true
+
+  # ---------------------------------------------------------------
   # PR check — typecheck only, no signing, no store upload.
   # ---------------------------------------------------------------
   pr-check:
