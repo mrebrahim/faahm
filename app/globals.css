@@ -140,3 +140,35 @@
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-gray-400;
 }
+
+/* ---------------------------------------------------------------
+   Blog body typography.
+   The article HTML comes from lib/blog.ts renderMarkdown(), which
+   already carries Tailwind classes on most elements. These rules cover
+   what markdown produces without a class of its own, and set the
+   comfortable reading measure Arabic prose needs.
+   --------------------------------------------------------------- */
+.blog-body {
+  line-height: 1.9;
+}
+.blog-body > *:first-child {
+  margin-top: 0;
+}
+.blog-body img {
+  max-width: 100%;
+  height: auto;
+}
+/* Wide tables scroll inside the article instead of pushing the page
+   sideways — the same rule the rest of the site follows. */
+.blog-body table {
+  display: block;
+  overflow-x: auto;
+  max-width: 100%;
+  border-collapse: collapse;
+}
+.blog-body pre {
+  max-width: 100%;
+}
+.blog-body a {
+  word-break: break-word;
+}

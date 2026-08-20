@@ -36,14 +36,51 @@ export default function SubscribeScreen() {
   const [data, setData] = useState<Pricing | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  /**
+   * Baked-in defaults. The API is the source of truth because the yearly
+   * price moves on a promo cycle, but a pricing screen that shows NOTHING
+   * because of a network hiccup — or a route that hasn't finished
+   * deploying — is worse than one showing last-known numbers. The
+   * WhatsApp conversation settles the final price anyway.
+   */
+  const FALLBACK: Pricing = {
+    currency: 'USD',
+    monthly: {
+      amount: 10,
+      per: 'شهر',
+      features: ['وصول لمعظم الكورسات', 'فيديوهات بجودة عالية', 'ملفات وموارد قابلة للتحميل'],
+      missing: ['بدون n8n و AI Video و Vibe Coding', 'بدون المساعد الذكي', 'بدون شهادة إتمام'],
+    },
+    yearly: {
+      amount: 40,
+      anchor: 120,
+      savings_pct: 67,
+      per: 'سنة',
+      features: [
+        'وصول كامل لكل الكورسات',
+        'كورسات n8n و AI Video و Vibe Coding',
+        'المساعد الذكي فاهم',
+        'شهادة إتمام لكل كورس',
+      ],
+      badge: 'وفّر 67%',
+    },
+    local: { currency: 'ج.م', monthly: 500, yearly: 4000, methods: ['InstaPay', 'Vodafone Cash'] },
+  };
+
   const load = useCallback(async () => {
     setError(null);
     try {
       const res = await fetch(`${API_BASE_URL}/api/mobile/pricing`);
-      if (!res.ok) throw new Error('تعذّر تحميل الأسعار.');
+      // A 404 from the CDN returns an HTML error page, and .json() on
+      // that throws "Unexpected character: <" — check the type before
+      // parsing so the failure is understandable.
+      const type = res.headers.get('content-type') ?? '';
+      if (!res.ok || !type.includes('application/json')) {
+        throw new Error('pricing endpoint unavailable');
+      }
       setData(await res.json());
-    } catch (e: any) {
-      setError(e.message ?? 'مفيش نت.');
+    } catch {
+      setData(FALLBACK);
     }
   }, []);
 

@@ -44,6 +44,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // moment they ship. Service client bypasses RLS (safe — these rows
   // are public-readable anyway via is_published=true).
   let courseEntries: MetadataRoute.Sitemap = [];
+  let blogEntries: MetadataRoute.Sitemap = [];
   try {
     const service = createServiceClient();
     const { data: courses } = await service
@@ -56,10 +57,33 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'weekly' as const,
       priority: 0.8,
     }));
+    // Blog posts. `no_index` articles are excluded — a page carrying a
+    // noindex tag has no business being advertised in the sitemap;
+    // Search Console flags exactly that contradiction.
+    const { data: posts } = await service
+      .from('blog_posts')
+      .select('slug, updated_at, published_at')
+      .eq('status', 'published')
+      .eq('no_index', false)
+      .lte('published_at', now.toISOString());
+
+    blogEntries = (posts || []).map(
+      (p: { slug: string; updated_at: string | null; published_at: string | null }) => ({
+        url: `${CANONICAL_URL}/blog/${p.slug}`,
+        lastModified: p.updated_at ? new Date(p.updated_at) : now,
+        changeFrequency: 'monthly' as const,
+        priority: 0.7,
+      })
+    );
   } catch {
     // Sitemap should never 500 the build/runtime — fall back to static
     // entries if the DB read blows up.
   }
 
-  return [...staticEntries, ...courseEntries];
+  return [
+    ...staticEntries,
+    { url: `${CANONICAL_URL}/blog`, lastModified: now, changeFrequency: 'daily' as const, priority: 0.8 },
+    ...courseEntries,
+    ...blogEntries,
+  ];
 }

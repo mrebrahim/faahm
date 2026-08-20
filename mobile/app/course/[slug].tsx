@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { api, type CourseDetail } from '../../src/lib/api';
 import {
@@ -13,6 +13,7 @@ import {
 } from '../../src/components/ui';
 import { CAN_SHOW_PURCHASE_CTA, lockedMessage } from '../../src/lib/store-policy';
 import { track } from '../../src/lib/analytics';
+import { CourseImage } from '../../src/components/course-image';
 import { LEVEL_LABELS, colors, formatDuration, radius, spacing } from '../../src/lib/theme';
 
 export default function CourseScreen() {
@@ -60,13 +61,19 @@ export default function CourseScreen() {
 
   const { course, access, progress, chapters } = data;
 
+  const showBanner = !access.unlocked && CAN_SHOW_PURCHASE_CTA;
+
   return (
     <>
       <Stack.Screen options={{ title: course.title }} />
-      <ScrollView contentContainerStyle={styles.scroll}>
-        {course.thumbnail_url ? (
-          <Image source={{ uri: course.thumbnail_url }} style={styles.cover} />
-        ) : null}
+      <ScrollView
+        contentContainerStyle={[
+          styles.scroll,
+          // Leave room so the sticky banner never covers the last lesson.
+          showBanner && { paddingBottom: 140 },
+        ]}
+      >
+        <CourseImage url={course.thumbnail_url} style={styles.cover} />
 
         <View style={styles.tags}>
           {course.is_free ? <Badge label="🎁 مجاني" tone="free" /> : null}
@@ -102,15 +109,6 @@ export default function CourseScreen() {
             <T size="sm" color={colors.textMuted} style={{ marginTop: spacing.xs }}>
               {lockedMessage(access.lock_reason).body}
             </T>
-            {/* Android only — on iOS this stays a plain statement of
-                fact, per Apple 3.1.3(a). */}
-            {CAN_SHOW_PURCHASE_CTA ? (
-              <Button
-                label="شوف الباقات"
-                style={{ marginTop: spacing.md }}
-                onPress={() => router.push('/subscribe')}
-              />
-            ) : null}
           </Card>
         ) : null}
 
@@ -168,6 +166,29 @@ export default function CourseScreen() {
           ))}
         </Section>
       </ScrollView>
+
+      {/* The sell lives HERE — on a course someone actually wanted to
+          open — not on the home screen. Somebody browsing the library
+          hasn't shown intent yet; somebody who tapped into a locked
+          course has. */}
+      {showBanner ? (
+        <View style={styles.banner}>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <T size="sm" weight="bold" color="#fff">
+              الكورس ده مقفول
+            </T>
+            <T size="xs" color="rgba(255,255,255,0.85)">
+              اشترك دلوقتي وافتحه مع باقي المكتبة
+            </T>
+          </View>
+          <Button
+            label="اشترك دلوقتي"
+            variant="outline"
+            style={styles.bannerBtn}
+            onPress={() => router.push('/subscribe')}
+          />
+        </View>
+      ) : null}
     </>
   );
 }
@@ -187,6 +208,25 @@ const styles = StyleSheet.create({
   scroll: { padding: spacing.lg, paddingBottom: spacing.xxl * 2 },
   cover: { width: '100%', aspectRatio: 16 / 9, borderRadius: radius.lg, backgroundColor: '#f3f4f6' },
   tags: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap', marginTop: spacing.lg },
+  banner: {
+    position: 'absolute',
+    bottom: 0,
+    start: 0,
+    end: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.lg,
+    backgroundColor: colors.brand,
+    borderTopLeftRadius: radius.lg,
+    borderTopRightRadius: radius.lg,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: -3 },
+  },
+  bannerBtn: { backgroundColor: '#fff', borderColor: '#fff', paddingHorizontal: spacing.lg, minHeight: 44 },
   lesson: {
     flexDirection: 'row',
     alignItems: 'center',

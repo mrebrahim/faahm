@@ -4,7 +4,7 @@ import { useFocusEffect } from 'expo-router';
 import { api, type CourseListItem } from '../../src/lib/api';
 import { track } from '../../src/lib/analytics';
 import { EmptyState, ErrorState, Loading, T } from '../../src/components/ui';
-import { CourseRow } from './index';
+import { CourseRow } from '../../src/components/course-row';
 import { colors, radius, spacing } from '../../src/lib/theme';
 
 type Filter = 'all' | 'free' | 'mine';

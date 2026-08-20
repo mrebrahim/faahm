@@ -93,6 +93,9 @@ export function MainNav({
           <Link href="/community" className="hover:text-foreground transition-colors">
             الكوميونيتي
           </Link>
+          <Link href="/blog" className="hover:text-foreground transition-colors">
+            المدونة
+          </Link>
           <Link href={ROUTES.pricing} className="hover:text-foreground transition-colors">
             الأسعار
           </Link>
@@ -248,6 +251,7 @@ function MobilePanel({
           <MobileLink href={ROUTES.courses} label="الكورسات" onClick={onClose} />
           <MobileLink href="/courses?free=1" label="🎁 كورسات مجانية" onClick={onClose} />
           <MobileLink href="/community" label="👥 الكوميونيتي" onClick={onClose} />
+          <MobileLink href="/blog" label="📝 المدونة" onClick={onClose} />
           <MobileLink href={ROUTES.pricing} label="الأسعار" onClick={onClose} />
           <Link
             href="/video-dubbing"
