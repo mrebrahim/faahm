@@ -16,7 +16,12 @@ export async function POST(request: Request) {
   const user = await getMobileUser(request);
   if (!user) return unauthorized();
 
-  let body: { lesson_id?: string; question?: string; timestamp_sec?: number };
+  let body: {
+    lesson_id?: string;
+    question?: string;
+    timestamp_sec?: number;
+    attachment_url?: string;
+  };
   try {
     body = await request.json();
   } catch {
@@ -43,6 +48,7 @@ export async function POST(request: Request) {
     userId: user.id,
     lessonId,
     question: String(body.question || ''),
+    attachmentUrl: String(body.attachment_url || ''),
     timestampSec:
       typeof body.timestamp_sec === 'number' && Number.isFinite(body.timestamp_sec)
         ? Math.floor(body.timestamp_sec)
@@ -54,6 +60,8 @@ export async function POST(request: Request) {
   return Response.json({
     ok: true,
     id: result.id,
-    message: 'وصلنا سؤالك ✅ هنرد عليك على الإيميل.',
+    message: result.linkWarning
+      ? `وصلنا سؤالك ✅ — بس ${result.linkWarning}`
+      : 'وصلنا سؤالك ✅ هنرد عليك على الإيميل.',
   });
 }

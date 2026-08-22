@@ -1,6 +1,14 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { CANONICAL_URL } from '@/lib/constants';
 import { SUPPORT_INBOX, emailLayout, escapeHtml, sendEmail } from '@/lib/email';
+import {
+  LINK_KIND_LABELS,
+  PRIVATE_LINK_HINT,
+  checkLinkAccess,
+  parseSharedLink,
+  type LinkAccess,
+  type LinkKind,
+} from '@/lib/shared-links';
 
 /**
  * Lesson Q&A.
@@ -18,6 +26,9 @@ export type LessonQuestion = {
   asker_name: string;
   question: string;
   timestamp_sec: number | null;
+  attachment_url: string | null;
+  attachment_kind: LinkKind | null;
+  attachment_access: LinkAccess | null;
   status: 'pending' | 'answered' | 'rejected';
   answer: string | null;
   answered_at: string | null;
@@ -52,10 +63,32 @@ export async function askLessonQuestion(opts: {
   lessonId: string;
   question: string;
   timestampSec?: number | null;
-}): Promise<{ id: string } | { error: string }> {
+  /** Optional Drive / YouTube / Loom link — a screenshot or recording. */
+  attachmentUrl?: string | null;
+}): Promise<{ id: string; linkWarning?: string } | { error: string }> {
   const question = opts.question.trim();
   if (question.length < 5) return { error: 'اكتب سؤالك بتفصيل شوية.' };
   if (question.length > 2000) return { error: 'السؤال طويل أوي — اختصره.' };
+
+  // Parse and probe the attachment BEFORE saving, so a locked Drive
+  // link is caught while the student is still on the page rather than
+  // days later when someone tries to open it.
+  let link = null as ReturnType<typeof parseSharedLink>;
+  let access: LinkAccess | null = null;
+
+  const rawLink = (opts.attachmentUrl ?? '').trim();
+  if (rawLink) {
+    link = parseSharedLink(rawLink);
+    if (!link) {
+      return { error: 'اللينك مش مظبوط. لازم يبدأ بـ https://' };
+    }
+    access = await checkLinkAccess(link);
+    if (access === 'private') {
+      // Refuse rather than accept a link nobody can open — accepting it
+      // would just move the failure to whoever answers.
+      return { error: PRIVATE_LINK_HINT };
+    }
+  }
 
   const service = createServiceClient();
 
@@ -90,6 +123,9 @@ export async function askLessonQuestion(opts: {
       lesson_id: lesson.id,
       question,
       timestamp_sec: opts.timestampSec ?? null,
+      attachment_url: link?.url ?? null,
+      attachment_kind: link?.kind ?? null,
+      attachment_access: access,
     })
     .select('id')
     .single();
@@ -129,14 +165,35 @@ export async function askLessonQuestion(opts: {
         }
         <div style="margin-top:16px;padding:16px;background:#f9fafb;border-radius:12px;border-right:4px solid #16a34a;">
           ${escapeHtml(question).replace(/\n/g, '<br/>')}
-        </div>`,
+        </div>
+        ${
+          link
+            ? `<p style="margin:16px 0 0;">
+                 <strong>مرفق (${escapeHtml(LINK_KIND_LABELS[link.kind])}):</strong><br/>
+                 <a href="${link.url}" style="color:#16a34a;word-break:break-all;">${escapeHtml(
+                   link.url
+                 )}</a>
+                 ${
+                   access === 'unknown'
+                     ? '<br/><span style="color:#b45309;font-size:13px;">⚠️ مقدرناش نتأكد إن اللينك مفتوح.</span>'
+                     : ''
+                 }
+               </p>`
+            : ''
+        }`,
       ctaLabel: 'رد على السؤال',
       ctaUrl: `${CANONICAL_URL}/admin/questions`,
       footer: 'الرد على الإيميل ده بيروح للطالب مباشرة.',
     }),
   });
 
-  return { id: data.id };
+  return {
+    id: data.id,
+    linkWarning:
+      access === 'unknown'
+        ? 'مقدرناش نتأكد إن اللينك مفتوح — اتأكد إن أي حد معاه اللينك يقدر يفتحه.'
+        : undefined,
+  };
 }
 
 /** Admin answers. Emails the student that their question got a reply. */

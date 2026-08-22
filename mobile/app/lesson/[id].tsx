@@ -1,5 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import {
+  Alert,
+  Linking,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import * as WebBrowser from 'expo-web-browser';
@@ -37,6 +45,7 @@ export default function LessonScreen() {
   const [toast, setToast] = useState<string | null>(null);
   const [completing, setCompleting] = useState(false);
   const [question, setQuestion] = useState('');
+  const [attachment, setAttachment] = useState('');
   const [asking, setAsking] = useState(false);
 
   const watchedRef = useRef(0);
@@ -127,8 +136,9 @@ export default function LessonScreen() {
     }
     setAsking(true);
     try {
-      const res = await api.askQuestion(id, question.trim());
+      const res = await api.askQuestion(id, question.trim(), attachment.trim() || undefined);
       setQuestion('');
+      setAttachment('');
       Alert.alert('وصلنا سؤالك ✅', res.message);
       // Reload so the pending question shows under the lesson — proof
       // to the asker that it actually landed.
@@ -307,6 +317,22 @@ export default function LessonScreen() {
             maxLength={2000}
             style={styles.questionInput}
           />
+          <TextInput
+            value={attachment}
+            onChangeText={setAttachment}
+            placeholder="https://drive.google.com/... (اختياري)"
+            placeholderTextColor={colors.textFaint}
+            autoCapitalize="none"
+            autoCorrect={false}
+            keyboardType="url"
+            style={[styles.questionInput, { minHeight: 48, textAlign: 'left' }]}
+          />
+          <T size="xs" color={colors.textFaint}>
+            عندك صورة أو فيديو يوضّح المشكلة؟ ارفعه على Google Drive أو YouTube
+            وحط اللينك هنا.{'\n'}
+            ⚠️ لو على Drive: اضغط Share وغيّر Restricted لـ "Anyone with the
+            link" — من غير كده مش هنقدر نفتحه.
+          </T>
           <Button label="ابعت السؤال" onPress={askQuestion} loading={asking} />
 
           {data.questions.length > 0 ? (
@@ -326,6 +352,17 @@ export default function LessonScreen() {
                   <T size="sm" style={{ marginTop: spacing.xs }}>
                     {q.question}
                   </T>
+                  {q.attachment_url ? (
+                    <Pressable
+                      onPress={() => Linking.openURL(q.attachment_url!)}
+                      hitSlop={8}
+                      style={{ marginTop: spacing.xs }}
+                    >
+                      <T size="xs" color={colors.brand}>
+                        📎 مرفق
+                      </T>
+                    </Pressable>
+                  ) : null}
                   {q.answer ? (
                     <View style={styles.answer}>
                       <T size="xs" weight="bold" color={colors.brandDark}>

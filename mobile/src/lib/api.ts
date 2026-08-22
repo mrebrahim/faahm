@@ -191,6 +191,8 @@ export type LessonQuestion = {
   id: string;
   asker_name: string;
   question: string;
+  attachment_url: string | null;
+  attachment_kind: string | null;
   status: 'pending' | 'answered' | 'rejected';
   answer: string | null;
   is_mine: boolean;
@@ -267,10 +269,14 @@ export const api = {
   xp: () => request<XpPayload>('/api/mobile/xp'),
 
   /** Ask about the lesson you're watching. Goes to the admin queue. */
-  askQuestion: (lessonId: string, question: string) =>
+  askQuestion: (lessonId: string, question: string, attachmentUrl?: string) =>
     request<{ ok: boolean; message: string }>('/api/mobile/question', {
       method: 'POST',
-      body: JSON.stringify({ lesson_id: lessonId, question }),
+      body: JSON.stringify({
+        lesson_id: lessonId,
+        question,
+        attachment_url: attachmentUrl ?? '',
+      }),
     }),
 
   /** The warnings shown on the delete-account confirmation sheet. */

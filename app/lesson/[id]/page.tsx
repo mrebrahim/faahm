@@ -379,6 +379,25 @@ export default async function LessonPage({
                   placeholder="اكتب سؤالك عن الدرس ده…"
                   className="w-full rounded-xl border border-gray-200 p-3 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-brand-500/40 resize-y"
                 />
+
+                <div>
+                  <input
+                    type="url"
+                    name="attachment_url"
+                    dir="ltr"
+                    placeholder="https://drive.google.com/... (اختياري)"
+                    className="w-full rounded-xl border border-gray-200 p-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/40"
+                  />
+                  <p className="text-xs text-gray-500 mt-1.5 leading-relaxed">
+                    عندك صورة أو فيديو يوضّح المشكلة؟ ارفعه على{' '}
+                    <strong>Google Drive</strong> أو <strong>YouTube</strong> وحط اللينك هنا.
+                    <br />
+                    ⚠️ لو على Drive: اضغط <strong>Share</strong> وغيّر{' '}
+                    <span className="font-mono text-[11px]">Restricted</span> لـ{' '}
+                    <span className="font-mono text-[11px]">Anyone with the link</span> —
+                    من غير كده مش هنقدر نفتحه.
+                  </p>
+                </div>
                 <Button type="submit" className="w-full sm:w-auto">
                   ابعت السؤال
                 </Button>
@@ -401,6 +420,16 @@ export default async function LessonPage({
                       <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">
                         {q.question}
                       </p>
+                      {q.attachment_url && (
+                        <a
+                          href={q.attachment_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 mt-2 text-xs text-brand-600 hover:underline break-all"
+                        >
+                          📎 مرفق
+                        </a>
+                      )}
                       {q.answer && (
                         <div className="mt-3 p-3 rounded-lg bg-brand-500/5 border border-brand-500/20">
                           <span className="text-xs font-bold text-brand-700 block mb-1">

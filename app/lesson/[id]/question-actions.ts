@@ -41,6 +41,7 @@ export async function askQuestionAction(formData: FormData) {
     userId: user.id,
     lessonId,
     question: String(formData.get('question') || ''),
+    attachmentUrl: String(formData.get('attachment_url') || ''),
   });
 
   revalidatePath(`/lesson/${lessonId}`);
@@ -48,7 +49,8 @@ export async function askQuestionAction(formData: FormData) {
   if ('error' in result) {
     redirect(`/lesson/${lessonId}?qerror=${encodeURIComponent(result.error)}`);
   }
-  redirect(
-    `/lesson/${lessonId}?qok=${encodeURIComponent('وصلنا سؤالك ✅ هنرد عليك على الإيميل.')}#questions`
-  );
+  const notice = result.linkWarning
+    ? `وصلنا سؤالك ✅ — بس ${result.linkWarning}`
+    : 'وصلنا سؤالك ✅ هنرد عليك على الإيميل.';
+  redirect(`/lesson/${lessonId}?qok=${encodeURIComponent(notice)}#questions`);
 }

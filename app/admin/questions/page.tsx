@@ -28,6 +28,7 @@ export default async function AdminQuestionsPage({
       .from('lesson_questions')
       .select(
         `id, question, answer, status, timestamp_sec, created_at, answered_at, user_id,
+         attachment_url, attachment_kind, attachment_access,
          lesson:lessons(id, title_ar),
          course:courses(slug, title_ar)`
       )
@@ -114,6 +115,27 @@ export default async function AdminQuestionsPage({
                 <div className="p-3 rounded-lg bg-gray-50 border-e-4 border-brand-500 text-sm whitespace-pre-wrap break-words">
                   {q.question}
                 </div>
+
+                {q.attachment_url ? (
+                  <div className="flex items-start gap-2 flex-wrap text-sm">
+                    <a
+                      href={q.attachment_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-brand-600 hover:underline break-all min-w-0"
+                    >
+                      📎 {q.attachment_kind === 'drive' ? 'Google Drive' : q.attachment_kind === 'youtube' ? 'YouTube' : 'مرفق'}
+                    </a>
+                    {/* Links probed as private are refused at submit, so
+                        anything flagged here is one we couldn't verify —
+                        worth knowing before you click. */}
+                    {q.attachment_access === 'unknown' ? (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">
+                        ⚠️ مش متأكدين إنه مفتوح
+                      </span>
+                    ) : null}
+                  </div>
+                ) : null}
 
                 {q.status === 'answered' ? (
                   <div className="p-3 rounded-lg bg-brand-500/5 border border-brand-500/20 text-sm whitespace-pre-wrap break-words">
