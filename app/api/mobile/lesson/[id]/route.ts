@@ -2,6 +2,7 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { canAccessCourse } from '@/lib/access';
 import { getMobileUser, jsonError, unauthorized } from '@/lib/mobile-auth';
 import { resolveVideoEmbed } from '@/lib/video';
+import { getLessonQuestions } from '@/lib/lesson-questions';
 
 export const dynamic = 'force-dynamic';
 
@@ -129,6 +130,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
       previous: neighbour(-1),
       next: neighbour(1),
     },
+    // Answered questions double as an FAQ on the lesson — one good
+    // answer serves everyone who gets stuck in the same place.
+    questions: await getLessonQuestions(lesson.id, user?.id ?? null),
     attachments: (attachments ?? []).map((a: any) => ({
       id: a.id,
       title: a.file_name_ar,

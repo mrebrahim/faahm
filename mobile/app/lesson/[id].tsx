@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import * as WebBrowser from 'expo-web-browser';
@@ -36,6 +36,8 @@ export default function LessonScreen() {
   const [error, setError] = useState<ApiError | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [completing, setCompleting] = useState(false);
+  const [question, setQuestion] = useState('');
+  const [asking, setAsking] = useState(false);
 
   const watchedRef = useRef(0);
   const startedAtRef = useRef<number | null>(null);
@@ -115,6 +117,26 @@ export default function LessonScreen() {
       setToast(e.message);
     } finally {
       setCompleting(false);
+    }
+  }
+
+  async function askQuestion() {
+    if (!id || question.trim().length < 5) {
+      setToast('اكتب سؤالك بتفصيل شوية.');
+      return;
+    }
+    setAsking(true);
+    try {
+      const res = await api.askQuestion(id, question.trim());
+      setQuestion('');
+      Alert.alert('وصلنا سؤالك ✅', res.message);
+      // Reload so the pending question shows under the lesson — proof
+      // to the asker that it actually landed.
+      await load();
+    } catch (e: any) {
+      Alert.alert('حصلت مشكلة', e.message);
+    } finally {
+      setAsking(false);
     }
   }
 
@@ -264,6 +286,61 @@ export default function LessonScreen() {
             ))}
           </View>
         ) : null}
+        {/* Q&A. Sits under the lesson because that's where someone
+            realises they didn't follow it — asking from a support page
+            three taps away loses the context of which lesson and which
+            moment. */}
+        <View style={{ marginTop: spacing.xxl, gap: spacing.md }}>
+          <T size="lg" weight="extrabold">
+            🙋 مش فاهم حاجة؟
+          </T>
+          <T size="sm" color={colors.textMuted}>
+            اسأل وفريق فاهم هيرد عليك، والرد هيوصلك على الإيميل.
+          </T>
+
+          <TextInput
+            value={question}
+            onChangeText={setQuestion}
+            placeholder="اكتب سؤالك عن الدرس ده…"
+            placeholderTextColor={colors.textFaint}
+            multiline
+            maxLength={2000}
+            style={styles.questionInput}
+          />
+          <Button label="ابعت السؤال" onPress={askQuestion} loading={asking} />
+
+          {data.questions.length > 0 ? (
+            <View style={{ gap: spacing.md, marginTop: spacing.md }}>
+              {data.questions.map((q) => (
+                <Card key={q.id}>
+                  <View style={styles.qMeta}>
+                    <T size="xs" weight="bold" numberOfLines={1} style={{ flex: 1 }}>
+                      {q.is_mine ? 'سؤالك' : q.asker_name}
+                    </T>
+                    {q.status === 'pending' ? (
+                      <T size="xs" color={colors.gold}>
+                        ⏳ مستني الرد
+                      </T>
+                    ) : null}
+                  </View>
+                  <T size="sm" style={{ marginTop: spacing.xs }}>
+                    {q.question}
+                  </T>
+                  {q.answer ? (
+                    <View style={styles.answer}>
+                      <T size="xs" weight="bold" color={colors.brandDark}>
+                        رد فاهم
+                      </T>
+                      <T size="sm" style={{ marginTop: 2 }}>
+                        {q.answer}
+                      </T>
+                    </View>
+                  ) : null}
+                </Card>
+              ))}
+            </View>
+          ) : null}
+        </View>
       </ScrollView>
 
       {toast ? (
@@ -287,6 +364,25 @@ const styles = StyleSheet.create({
     backgroundColor: '#000',
   },
   noVideo: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  questionInput: {
+    minHeight: 90,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    fontSize: 15,
+    color: colors.text,
+    backgroundColor: '#fff',
+    textAlign: 'right',
+    textAlignVertical: 'top',
+  },
+  qMeta: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  answer: {
+    marginTop: spacing.md,
+    padding: spacing.md,
+    borderRadius: radius.md,
+    backgroundColor: colors.brandLight,
+  },
   nav: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.md },
   locked: {
     flex: 1,

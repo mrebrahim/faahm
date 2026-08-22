@@ -85,6 +85,8 @@ export type Me = {
     has_subscription: boolean;
     unlocks_yearly_only: boolean;
     can_post_community: boolean;
+    /** Community is a yearly-plan benefit. */
+    can_use_community: boolean;
   };
   xp: {
     total: number;
@@ -182,6 +184,17 @@ export type LessonPayload = {
     size_kb: number | null;
     file_type: string | null;
   }>;
+  questions: LessonQuestion[];
+};
+
+export type LessonQuestion = {
+  id: string;
+  asker_name: string;
+  question: string;
+  status: 'pending' | 'answered' | 'rejected';
+  answer: string | null;
+  is_mine: boolean;
+  created_at: string;
 };
 
 export type XpPayload = {
@@ -252,6 +265,13 @@ export const api = {
     }),
 
   xp: () => request<XpPayload>('/api/mobile/xp'),
+
+  /** Ask about the lesson you're watching. Goes to the admin queue. */
+  askQuestion: (lessonId: string, question: string) =>
+    request<{ ok: boolean; message: string }>('/api/mobile/question', {
+      method: 'POST',
+      body: JSON.stringify({ lesson_id: lessonId, question }),
+    }),
 
   /** The warnings shown on the delete-account confirmation sheet. */
   deletionWarnings: () => request<{ warnings: string[] }>('/api/mobile/account'),

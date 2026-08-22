@@ -12,7 +12,8 @@ import {
 } from '../../src/lib/community';
 import { useAuth } from '../../src/lib/auth-context';
 import { track } from '../../src/lib/analytics';
-import { Avatar, Badge, Card, EmptyState, ErrorState, Loading, T } from '../../src/components/ui';
+import { Avatar, Badge, Button, Card, EmptyState, ErrorState, Loading, T } from '../../src/components/ui';
+import { CAN_SHOW_PURCHASE_CTA } from '../../src/lib/store-policy';
 import { colors, radius, spacing } from '../../src/lib/theme';
 
 export default function CommunityScreen() {
@@ -81,6 +82,23 @@ export default function CommunityScreen() {
   if (!posts || !groups) return <Loading />;
 
   const activeGroup = groups.find((g) => g.id === groupId) ?? null;
+
+  // Yearly-plan benefit. Say why rather than showing an empty room —
+  // "nothing here" reads as broken, "not in your plan" reads as a
+  // decision the user can act on.
+  if (!me?.access.can_use_community) {
+    return (
+      <EmptyState
+        title="👑 الكوميونيتي للباقة السنوية"
+        body="تقدر تسأل، تشارك نقاش، تحط مصدر مفيد، وتدخل جروبات الكورسات اللي معاك."
+        action={
+          CAN_SHOW_PURCHASE_CTA ? (
+            <Button label="شوف الباقات" onPress={() => router.push('/subscribe')} />
+          ) : undefined
+        }
+      />
+    );
+  }
 
   if (groups.length === 0) {
     return (

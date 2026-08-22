@@ -8,6 +8,7 @@ import {
   POST_KINDS,
   POST_KIND_EMOJI,
   POST_KIND_LABELS,
+  canAccessCommunity,
   canPostToCommunity,
   getFeed,
   getGroupsFor,
@@ -36,6 +37,13 @@ export default async function CommunityPage({
   } = await createClient().auth.getUser();
 
   if (!user) redirect('/login?redirect=/community');
+
+  // The community is a yearly-plan benefit. Show the reason rather than
+  // an empty room — a monthly subscriber staring at nothing assumes the
+  // feature is broken.
+  if (!(await canAccessCommunity(user.id))) {
+    return <CommunityLocked />;
+  }
 
   const kind = (POST_KINDS as readonly string[]).includes(searchParams.kind || '')
     ? (searchParams.kind as PostKind)
@@ -269,6 +277,35 @@ export default async function CommunityPage({
               )}
             </div>
           </aside>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CommunityLocked() {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="container mx-auto px-4 py-12 sm:py-20 max-w-lg">
+        <div className="rounded-2xl border border-gray-200 bg-white p-6 sm:p-8 text-center">
+          <div className="w-14 h-14 mx-auto mb-4 rounded-2xl bg-amber-50 flex items-center justify-center text-3xl">
+            👑
+          </div>
+          <h1 className="font-display text-2xl sm:text-3xl font-extrabold mb-3">
+            الكوميونيتي للباقة السنوية
+          </h1>
+          <p className="text-gray-600 leading-relaxed mb-6">
+            كوميونيتي فاهم متاح لمشتركي الباقة السنوية. تقدر تسأل، تشارك
+            نقاش، تحط مصدر مفيد، وتدخل جروبات الكورسات اللي معاك.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button asChild className="w-full sm:w-auto">
+              <Link href="/checkout?plan=yearly">اشترك سنوي</Link>
+            </Button>
+            <Button asChild variant="outline" className="w-full sm:w-auto">
+              <Link href="/pricing">شوف الباقات</Link>
+            </Button>
+          </div>
         </div>
       </div>
     </div>

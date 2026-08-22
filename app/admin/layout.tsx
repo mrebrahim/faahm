@@ -65,6 +65,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <NavLink href="/admin/quizzes" icon={HelpCircle}>المسابقات</NavLink>
             <NavLink href="/admin/certificates" icon={Award}>الشهادات</NavLink>
             <NavLink href="/admin/community" icon={MessagesSquare}>الكوميونيتي</NavLink>
+            <NavLink href="/admin/questions" icon={HelpCircle}>أسئلة الطلبة</NavLink>
             <NavLink href="/admin/blog" icon={FileText}>المدونة</NavLink>
             <NavLink href="/admin/media" icon={ImageIcon}>صور الكورسات</NavLink>
           </NavSection>

@@ -2,7 +2,7 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { getActiveSubscription } from '@/lib/access';
 import { getMobileUser, unauthorized } from '@/lib/mobile-auth';
 import { getUserXp, levelProgress } from '@/lib/xp';
-import { canPostToCommunity } from '@/lib/community';
+import { canAccessCommunity } from '@/lib/community';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,7 +28,7 @@ export async function GET(request: Request) {
       .maybeSingle(),
     getActiveSubscription(user.id),
     getUserXp(user.id),
-    canPostToCommunity(user.id),
+    canAccessCommunity(user.id),
     service
       .from('progress')
       .select('id', { count: 'exact', head: true })
@@ -65,7 +65,9 @@ export async function GET(request: Request) {
     access: {
       has_subscription: !!sub,
       unlocks_yearly_only: sub?.plan === 'yearly',
+      // Yearly-plan benefit. The app renders a locked tab when false.
       can_post_community: canPost,
+      can_use_community: canPost,
     },
     xp: {
       total: xp.total_xp,

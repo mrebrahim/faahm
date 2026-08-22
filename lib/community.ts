@@ -86,31 +86,28 @@ export type ThreadComment = {
 };
 
 /**
- * Posting is for signed-in learners with a real stake in the platform:
- * an active subscription, a course grant, or a free-course enrollment.
- * Reading is open to every signed-in user — a fresh lead who just
- * claimed a free course should see the room before they can talk in it,
- * and that asymmetry is what keeps the feed from filling with spam
- * accounts.
+ * The community is a YEARLY-plan benefit.
+ *
+ * Not "any subscription" — a monthly subscriber gets the locked state
+ * with a clear reason, which is a far better experience than an empty
+ * room, and it gives the yearly plan something concrete that the
+ * monthly one doesn't have.
+ *
+ * The same check gates reading and posting: there's no half-access
+ * tier here, and `community_groups_for` enforces the identical rule in
+ * SQL so the app (which queries Supabase directly) can't bypass it.
  */
-export async function canPostToCommunity(userId: string | null | undefined): Promise<boolean> {
+export async function canAccessCommunity(userId: string | null | undefined): Promise<boolean> {
   if (!userId) return false;
-  const service = createServiceClient();
+  const { data } = await createServiceClient().rpc('has_yearly_subscription', {
+    p_user: userId,
+  });
+  return data === true;
+}
 
-  const [{ count: subs }, { count: grants }] = await Promise.all([
-    service
-      .from('subscriptions')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .in('status', ['active', 'trialing'])
-      .gt('current_period_end', new Date().toISOString()),
-    service
-      .from('enrollments')
-      .select('id', { count: 'exact', head: true })
-      .eq('user_id', userId),
-  ]);
-
-  return (subs ?? 0) > 0 || (grants ?? 0) > 0;
+/** Kept as the posting check so existing call sites keep reading clearly. */
+export async function canPostToCommunity(userId: string | null | undefined): Promise<boolean> {
+  return canAccessCommunity(userId);
 }
 
 /**

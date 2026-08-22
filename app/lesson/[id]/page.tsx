@@ -11,6 +11,8 @@ import { signLessonAttachment } from '@/lib/storage';
 import { LessonPlayer } from './player';
 import { CourseAiChat } from '@/components/course-ai-chat';
 import { LessonCompleteBar, LessonNav } from './lesson-actions';
+import { askQuestionAction } from './question-actions';
+import { getLessonQuestions } from '@/lib/lesson-questions';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -25,7 +27,13 @@ export const metadata = {
   title: 'الدرس — فاهم!',
 };
 
-export default async function LessonPage({ params }: { params: { id: string } }) {
+export default async function LessonPage({
+  params,
+  searchParams,
+}: {
+  params: { id: string };
+  searchParams: { qok?: string; qerror?: string };
+}) {
   const supabase = createClient();
   const service = createServiceClient();
 
@@ -172,6 +180,10 @@ export default async function LessonPage({ params }: { params: { id: string } })
         .in('quiz_id', (quizzesForCourse || []).map((q: any) => q.id) as any)
     : { data: null as any };
   const passedQuizzes = new Set((passedAttempts || []).map((a: any) => a.quiz_id));
+
+  // Answered questions double as an FAQ on the lesson — one good answer
+  // serves everyone who gets stuck in the same place.
+  const questions = canAccess ? await getLessonQuestions(lesson.id, user?.id ?? null) : [];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -334,6 +346,77 @@ export default async function LessonPage({ params }: { params: { id: string } })
               </div>
             )}
           </div>
+
+          {/* Q&A — under the lesson, because that's where someone
+              realises they didn't follow it. Asking from a support page
+              three clicks away loses which lesson they were on. */}
+          {canAccess && (
+            <div id="questions" className="mt-6 bg-white border border-gray-200 rounded-2xl p-4 sm:p-6">
+              <h2 className="font-display text-xl font-bold mb-1">🙋 مش فاهم حاجة؟</h2>
+              <p className="text-sm text-gray-500 mb-4 leading-relaxed">
+                اسأل وفريق فاهم هيرد عليك، والرد هيوصلك على الإيميل.
+              </p>
+
+              {searchParams.qok && (
+                <div className="mb-4 p-3 rounded-xl bg-brand-500/10 border border-brand-500/30 text-brand-700 text-sm">
+                  {searchParams.qok}
+                </div>
+              )}
+              {searchParams.qerror && (
+                <div className="mb-4 p-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-sm">
+                  {searchParams.qerror}
+                </div>
+              )}
+
+              <form action={askQuestionAction} className="space-y-3">
+                <input type="hidden" name="lesson_id" value={lesson.id} />
+                <textarea
+                  name="question"
+                  required
+                  minLength={5}
+                  maxLength={2000}
+                  rows={3}
+                  placeholder="اكتب سؤالك عن الدرس ده…"
+                  className="w-full rounded-xl border border-gray-200 p-3 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-brand-500/40 resize-y"
+                />
+                <Button type="submit" className="w-full sm:w-auto">
+                  ابعت السؤال
+                </Button>
+              </form>
+
+              {questions.length > 0 && (
+                <div className="mt-6 space-y-3">
+                  {questions.map((q) => (
+                    <div key={q.id} className="rounded-xl border border-gray-200 p-4">
+                      <div className="flex items-center gap-2 flex-wrap text-xs text-gray-500 mb-2">
+                        <span className="font-bold text-gray-900">
+                          {q.is_mine ? 'سؤالك' : q.asker_name}
+                        </span>
+                        {q.status === 'pending' && (
+                          <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">
+                            ⏳ مستني الرد
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">
+                        {q.question}
+                      </p>
+                      {q.answer && (
+                        <div className="mt-3 p-3 rounded-lg bg-brand-500/5 border border-brand-500/20">
+                          <span className="text-xs font-bold text-brand-700 block mb-1">
+                            رد فاهم
+                          </span>
+                          <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">
+                            {q.answer}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           <LessonNav
             lessonId={lesson.id}
