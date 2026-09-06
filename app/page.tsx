@@ -6,7 +6,15 @@ import { Button } from '@/components/ui/button';
 import { MainNav } from '@/components/main-nav';
 import { ROUTES, APP_NAME } from '@/lib/constants';
 import { pricingFor } from '@/lib/region';
-import { COURSE_PRICE_USD } from '@/lib/catalog';
+import {
+  COURSE_PRICE_USD,
+  PAID_COURSES,
+  PAID_COURSE_SLUGS,
+  AI_BUNDLE,
+  BUNDLE_ANCHOR_USD,
+  BUNDLE_SAVINGS_USD,
+  BUNDLE_SAVINGS_PCT,
+} from '@/lib/catalog';
 import { SARMoney } from '@/components/sar-money';
 import {
   ArrowLeft,
@@ -198,14 +206,80 @@ export default async function HomePage({
         <div className="container mx-auto max-w-5xl">
           <SectionHeader
             label="الأسعار"
-            title="اشترك واحصل على كل شيء"
-            subtitle="مفيش شراء كورسات منفصلة. اشتراك واحد بيفتحلك كل المحتوى."
+            title="اختار اللي يناسبك"
+            subtitle="اشتراك بيفتحلك كورسات المنصة، أو اشتري كورس بريميوم لوحده ويفضل معاك للأبد."
           />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12 max-w-3xl mx-auto">
             <PricingCard kind="yearly" featured />
             <PricingCard kind="monthly" />
           </div>
+
+          {/* Sold-separately block. The homepage used to say "مفيش شراء
+              كورسات منفصلة" right here, which is now the opposite of what
+              we sell — and a visitor who only ever sees the subscription
+              cards has no idea the premium courses exist as products. */}
+          <div className="mt-10 sm:mt-12 max-w-3xl mx-auto">
+            <div className="text-center mb-5">
+              <div className="inline-flex items-center gap-2 px-3 py-1 mb-3 rounded-full bg-amber-500/10 border border-amber-500/30">
+                <Star className="w-3.5 h-3.5 text-amber-600" />
+                <span className="text-xs font-bold text-amber-700">كورسات بريميوم</span>
+              </div>
+              <h3 className="font-display text-xl sm:text-2xl font-extrabold mb-2">
+                أو اشتري كورس لوحده
+              </h3>
+              <p className="text-sm text-gray-600 leading-relaxed">
+                التلاتة دول مش داخلين في الاشتراك — بتدفع مرة واحدة والوصول{' '}
+                <strong>دايم</strong>.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4">
+              {PAID_COURSE_SLUGS.map((slug) => {
+                const product = PAID_COURSES[slug];
+                return (
+                  <Link
+                    key={slug}
+                    href={ROUTES.course(slug)}
+                    className="rounded-2xl border border-gray-200 bg-white p-4 text-center hover:border-brand-500/40 hover:shadow-sm transition-all"
+                  >
+                    <div className="font-bold text-sm mb-1 min-w-0">{product.titleAr}</div>
+                    <div
+                      className="font-display text-2xl font-extrabold text-brand-700"
+                      dir="ltr"
+                    >
+                      ${product.priceUsd}
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+
+            <Link
+              href="/ai-bundle"
+              className="block rounded-2xl border-2 border-brand-500/40 bg-gradient-to-br from-brand-500/5 to-white p-5 text-center hover:border-brand-500/60 transition-colors"
+            >
+              <div className="text-sm text-gray-600 mb-1">التلاتة مع بعض</div>
+              <div className="mb-1">
+                <span
+                  className="text-base text-gray-400 line-through font-medium me-2"
+                  dir="ltr"
+                >
+                  ${BUNDLE_ANCHOR_USD}
+                </span>
+                <span
+                  className="font-display text-3xl sm:text-4xl font-extrabold text-brand-700"
+                  dir="ltr"
+                >
+                  ${AI_BUNDLE.priceUsd}
+                </span>
+              </div>
+              <div className="text-xs font-bold text-emerald-700">
+                وفّر ${BUNDLE_SAVINGS_USD} ({BUNDLE_SAVINGS_PCT}%) + بونصات مجانية
+              </div>
+            </Link>
+          </div>
+
           <p className="text-center text-xs text-gray-500 mt-6">
             <Link href={ROUTES.pricing} className="underline hover:text-foreground">
               شوف كل تفاصيل الباقات

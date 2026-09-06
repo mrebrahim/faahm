@@ -107,7 +107,7 @@ export default function AboutPage() {
             <Bullet
               n="03"
               title="اشتراك واحد، وصول لكل حاجة"
-              body={`بدل ما تدفع لكل كورس لوحده، اشترك بـ $${pricing.yearlyAmount}/سنة (بدل $${pricing.yearlyAnchor} — خصم ${pricing.savingsPct}% لفترة محدودة) وافتح كل المحتوى. تقدر تلغي في أي وقت.`}
+              body={`اشترك بـ $${pricing.yearlyAmount}/سنة (بدل $${pricing.yearlyAnchor} — خصم ${pricing.savingsPct}%) وافتح كل كورسات الاشتراك، وتقدر تلغي في أي وقت. وكورسات n8n و AI Video و Vibe Coding بتتشترى لوحدها ويفضلوا معاك للأبد.`}
             />
             <Bullet
               n="04"
@@ -129,7 +129,7 @@ export default function AboutPage() {
           جاهز تبدأ رحلتك؟
         </h2>
         <p className="text-gray-600 mb-8 leading-relaxed">
-          ابدأ بتصفّح الكورسات أو اشترك دلوقتي وافتح كل المحتوى.
+          ابدأ بتصفّح الكورسات أو اشترك دلوقتي وافتح كورسات الاشتراك كلها.
         </p>
         <div className="flex flex-wrap items-center justify-center gap-3">
           <Button asChild size="lg">

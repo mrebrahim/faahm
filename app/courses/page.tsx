@@ -109,7 +109,8 @@ export default async function CoursesPage({
             كل <span className="text-gradient-brand">الكورسات</span>
           </h1>
           <p className="text-gray-600">
-            {courses?.length || 0} كورس متاح — اشتراك واحد بيفتحلك المحتوى كله.
+            {courses?.length || 0} كورس متاح — اشتراك واحد بيفتح كورسات المنصة، وكورسات
+            البريميوم بتتشترى لوحدها.
           </p>
         </div>
 
