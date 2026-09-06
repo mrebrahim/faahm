@@ -90,7 +90,9 @@ export default async function AIBundlePage() {
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-white">
-      <StickyMobileCTA />
+      {/* Defaults point at '#pricing' + the subscription wording, which
+          is a dead anchor on this page and sells the wrong thing. */}
+      <StickyMobileCTA href={CHECKOUT_HREF} label={`خد الـ Bundle بـ $${PRICE}`} />
       <LandingTracker />
       <MainNav signedIn={false} isAdmin={false} />
 

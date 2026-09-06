@@ -6,7 +6,6 @@ import { Analytics } from '@/components/analytics';
 import { WhatsAppButton } from '@/components/whatsapp-button';
 import { LearnerCountBar } from '@/components/learner-count-bar';
 import { PromoBanner } from '@/components/promo-banner';
-import { PromoPopup } from '@/components/promo-popup';
 import { getPromoState } from '@/lib/promo';
 
 const cairo = Cairo({
@@ -84,23 +83,24 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="font-sans min-h-screen bg-background text-foreground">
-        {/* Sitewide promo banner — permanent \$40/year offer with a live
-            countdown to the end of the current monthly cycle. Sits above
-            the '+1000 طالب' strip so it's the first thing the visitor
-            reads on ANY page. */}
-        <PromoBanner />
+        {/* Sitewide promo banner — the permanent \$40/year offer with a
+            live countdown. Sits above the '+1000 طالب' strip so it's the
+            first thing a visitor reads — except on the pages selling the
+            one-off courses and the bundle, where a "\$40" line next to a
+            \$60 or \$99 price is misleading rather than persuasive. The
+            banner hides itself there; see components/promo-banner.tsx. */}
+        <PromoBanner
+          yearlyAmount={promo.yearlyAmount}
+          yearlyAnchor={promo.yearlyAnchor}
+          savingsPct={promo.savingsPct}
+          promoEndsAtMs={promo.promoEndsAtMs}
+        />
         {/* Site-wide '+1,000 طالب' trust strip — first thing every
             visitor reads. Hides itself on checkout / billing / offline
             so it doesn't compete with the payment moment. */}
         <LearnerCountBar />
         {children}
         <WhatsAppButton />
-        <PromoPopup
-          yearlyAmount={promo.yearlyAmount}
-          yearlyAnchor={promo.yearlyAnchor}
-          savingsPct={promo.savingsPct}
-          promoEndsAtMs={promo.promoEndsAtMs}
-        />
         <Analytics />
       </body>
     </html>
