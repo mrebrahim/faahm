@@ -87,8 +87,9 @@ export default function HelpPage() {
             <Faq q="ازاي أشترك في فاهم؟">
               ادخل على <Link href={ROUTES.pricing} className="text-brand-600 underline hover:no-underline">صفحة الأسعار</Link>،
               اختار الخطة المناسبة، وكمل الدفع بأمان عبر Stripe.
-              الوصول بيتفعّل فور تأكيد الدفع — الباقة السنوية بتفتح كل الكورسات،
-              والشهرية بتفتح معظمها.
+              الوصول بيتفعّل فور تأكيد الدفع. الاشتراك بيفتح كورسات المنصة —
+              أما كورسات n8n و AI Video و Vibe Coding فبتتشترى لوحدها (٦٠ دولار
+              للكورس، أو ٩٩ دولار للتلاتة مع بعض).
             </Faq>
             <Faq q="هل أقدر ألغي الاشتراك في أي وقت؟">
               أكيد. من <Link href={ROUTES.settings} className="text-brand-600 underline hover:no-underline">الإعدادات</Link> تقدر

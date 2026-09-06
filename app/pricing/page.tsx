@@ -3,6 +3,16 @@ import { createClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
 import { APP_NAME, ROUTES } from '@/lib/constants';
 import { pricingFor, type Region } from '@/lib/region';
+import {
+  PAID_COURSES,
+  PAID_COURSE_SLUGS,
+  AI_BUNDLE,
+  BUNDLE_ANCHOR_USD,
+  BUNDLE_SAVINGS_USD,
+  BUNDLE_SAVINGS_PCT,
+  COURSE_PRICE_USD,
+  checkoutHrefFor,
+} from '@/lib/catalog';
 import { SARMoney } from '@/components/sar-money';
 import { SocialProofToast } from '@/components/social-proof-toast';
 import { CheckCircle2, XCircle, ArrowLeft, Sparkles, Star, Zap } from 'lucide-react';
@@ -10,7 +20,7 @@ import { CheckCircle2, XCircle, ArrowLeft, Sparkles, Star, Zap } from 'lucide-re
 export const metadata = {
   title: 'الأسعار — فاهم!',
   description:
-    'اشتراك واحد بسيط بيفتحلك كل كورسات فاهم — اختار الباقة اللي تناسبك وابدأ التعلم.',
+    'اشتراك واحد بيفتحلك كورسات فاهم، وكورسات n8n و AI Video و Vibe Coding بتتشترى لوحدها. شوف الأسعار كلها.',
 };
 
 export const dynamic = 'force-dynamic';
@@ -99,7 +109,7 @@ export default async function PricingPage({
           >
             <Sparkles className="w-4 h-4 text-brand-500" />
             <span className="text-sm font-medium text-brand-700">
-              اشتراك واحد، كل الكورسات
+              اشتراك واحد لكل كورسات المنصة
             </span>
           </Link>
           <h1 className="font-display text-3xl sm:text-4xl md:text-6xl font-extrabold mb-4">
@@ -140,6 +150,84 @@ export default async function PricingPage({
             price={pricing.monthlyAmount}
           />
         </div>
+
+        {/* ── Sold separately ──────────────────────────────────────────
+            The three premium courses sit OUTSIDE both plans. Putting
+            them on the pricing page next to the subscription is the
+            only place a visitor can see the whole price list at once —
+            leaving them off is what makes someone buy the $40 plan and
+            then ask why n8n is locked. */}
+        <section id="courses" className="mt-14 sm:mt-20 max-w-3xl mx-auto scroll-mt-20">
+          <div className="text-center mb-6 sm:mb-8">
+            <div className="inline-flex items-center gap-2 px-3 py-1 mb-3 rounded-full bg-amber-500/10 border border-amber-500/30">
+              <Star className="w-3.5 h-3.5 text-amber-600" />
+              <span className="text-xs font-bold text-amber-700">كورسات بريميوم</span>
+            </div>
+            <h2 className="font-display text-2xl sm:text-3xl font-extrabold mb-2">
+              كورسات بتتشترى لوحدها
+            </h2>
+            <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
+              التلات كورسات دي مش داخلة في الاشتراك الشهري ولا السنوي — بتدفع مرة
+              واحدة والوصول <strong>دايم</strong>.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-5">
+            {PAID_COURSE_SLUGS.map((slug) => {
+              const product = PAID_COURSES[slug];
+              return (
+                <div
+                  key={slug}
+                  className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 text-center flex flex-col"
+                >
+                  <div className="font-bold text-sm sm:text-base mb-2 min-w-0">
+                    {product.titleAr}
+                  </div>
+                  <div
+                    className="font-display text-2xl sm:text-3xl font-extrabold text-brand-700 mb-3"
+                    dir="ltr"
+                  >
+                    ${product.priceUsd}
+                  </div>
+                  <Button asChild variant="outline" size="sm" className="w-full mt-auto">
+                    <Link href={checkoutHrefFor(product)}>اشتري الكورس</Link>
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* The bundle is the point of this section — it's why someone
+              weighing one course buys three. */}
+          <div className="rounded-2xl border-2 border-brand-500/40 bg-gradient-to-br from-brand-500/5 to-white p-5 sm:p-6 text-center">
+            <div className="text-sm text-gray-600 mb-1">التلاتة مع بعض</div>
+            <div className="mb-2">
+              <span className="text-lg text-gray-400 line-through font-medium me-2" dir="ltr">
+                ${BUNDLE_ANCHOR_USD}
+              </span>
+              <span
+                className="font-display text-4xl sm:text-5xl font-extrabold text-brand-700"
+                dir="ltr"
+              >
+                ${AI_BUNDLE.priceUsd}
+              </span>
+            </div>
+            <div className="text-xs sm:text-sm text-emerald-700 font-bold mb-4">
+              وفّر ${BUNDLE_SAVINGS_USD} ({BUNDLE_SAVINGS_PCT}%) + بونصات مجانية
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button asChild size="lg" className="w-full sm:w-auto font-bold">
+                <Link href={checkoutHrefFor(AI_BUNDLE)}>
+                  خد الـ Bundle بـ ${AI_BUNDLE.priceUsd}
+                  <ArrowLeft className="w-4 h-4" />
+                </Link>
+              </Button>
+              <Button asChild size="lg" variant="outline" className="w-full sm:w-auto">
+                <Link href="/ai-bundle">شوف التفاصيل</Link>
+              </Button>
+            </div>
+          </div>
+        </section>
 
         {/* Trust strip. F.1: refund-policy badge now actually links —
             matches the /checkout behaviour. The other two stay static
@@ -270,12 +358,15 @@ function YearlyCard({
 
         {/* Feature list */}
         <ul className="space-y-2.5 mb-6">
-          <Feature text="وصول كامل لكل الكورسات" />
-          <Feature text="كورسات n8n و AI Video و Vibe Coding" />
+          <Feature text="وصول لكل كورسات الاشتراك" />
           <Feature text="المساعد الذكي فاهم" />
           <Feature text="شهادة إتمام لكل كورس" />
           <Feature text="أولوية الدعم الفني" />
           <Feature text="وصول مبكر للكورسات الجديدة" />
+          {/* Said out loud on the most expensive card, not buried in an
+              FAQ. A buyer who finds this out after paying asks for a
+              refund; one who reads it here buys the bundle too. */}
+          <MissingFeature text={`n8n و AI Video و Vibe Coding بتتشترى لوحدها ($${COURSE_PRICE_USD})`} />
         </ul>
 
         {/* CTA — solid green */}
@@ -335,8 +426,8 @@ function MonthlyCard({
             the comparison vs. yearly isn't just price — the visitor sees
             exactly what they lose if they don't take the yearly. */}
         <ul className="space-y-2.5 mb-6">
-          <Feature text="وصول لمعظم الكورسات" muted />
-          <MissingFeature text="بدون n8n و AI Video و Vibe Coding" />
+          <Feature text="وصول لكورسات الاشتراك" muted />
+          <MissingFeature text={`n8n و AI Video و Vibe Coding بتتشترى لوحدها ($${COURSE_PRICE_USD})`} />
           <MissingFeature text="بدون المساعد الذكي فاهم" />
           <MissingFeature text="بدون شهادة إتمام" />
           <MissingFeature text="بدون أولوية الدعم الفني" />

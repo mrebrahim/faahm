@@ -13,7 +13,11 @@ import { WebView } from 'react-native-webview';
 import * as WebBrowser from 'expo-web-browser';
 import { ApiError, api, type LessonPayload } from '../../src/lib/api';
 import { useAuth } from '../../src/lib/auth-context';
-import { CAN_SHOW_PURCHASE_CTA, lockedMessage } from '../../src/lib/store-policy';
+import {
+  CAN_SHOW_PURCHASE_CTA,
+  lockedMessage,
+  type LockReason,
+} from '../../src/lib/store-policy';
 import { track } from '../../src/lib/analytics';
 import { Button, Card, ErrorState, Loading, T } from '../../src/components/ui';
 import { colors, formatDuration, radius, spacing } from '../../src/lib/theme';
@@ -153,9 +157,7 @@ export default function LessonScreen() {
   if (error) {
     // A 403 isn't an error state — it's the paywall, and it converts.
     if (error.status === 403) {
-      const locked = lockedMessage(
-        (error.lockReason as 'needs_yearly' | 'needs_subscription' | null) ?? null
-      );
+      const locked = lockedMessage((error.lockReason as LockReason) ?? null);
       return (
         <View style={styles.locked}>
           <T size="xl" weight="extrabold" align="center">

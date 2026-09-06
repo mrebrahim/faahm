@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { Stack, useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { api, type CourseDetail } from '../../src/lib/api';
@@ -12,7 +12,11 @@ import {
   ProgressBar,
   T,
 } from '../../src/components/ui';
-import { CAN_SHOW_PURCHASE_CTA, lockedMessage } from '../../src/lib/store-policy';
+import {
+  CAN_SHOW_PURCHASE_CTA,
+  lockedMessage,
+  purchaseWhatsappUrl,
+} from '../../src/lib/store-policy';
 import { track } from '../../src/lib/analytics';
 import { CourseImage } from '../../src/components/course-image';
 import { LEVEL_LABELS, colors, formatDuration, radius, spacing } from '../../src/lib/theme';
@@ -64,6 +68,10 @@ export default function CourseScreen() {
   const { course, access, progress, chapters } = data;
 
   const showBanner = !access.unlocked && CAN_SHOW_PURCHASE_CTA;
+  // A sold-separately course is not opened by any subscription, so the
+  // banner has to offer the right thing — pointing someone at /subscribe
+  // for a $60 course sells them something that leaves it locked.
+  const needsPurchase = access.lock_reason === 'needs_purchase';
 
   return (
     <>
@@ -114,7 +122,7 @@ export default function CourseScreen() {
 
         <View style={styles.tags}>
           {course.is_free ? <Badge label="🎁 مجاني" tone="free" /> : null}
-          {course.yearly_only ? <Badge label="👑 الباقة السنوية" tone="gold" /> : null}
+          {course.sold_separately ? <Badge label="👑 بريميوم" tone="gold" /> : null}
           <Badge label={LEVEL_LABELS[course.level] ?? course.level} />
         </View>
 
@@ -212,17 +220,25 @@ export default function CourseScreen() {
         <View style={styles.banner}>
           <View style={{ flex: 1, minWidth: 0 }}>
             <T size="sm" weight="bold" color="#fff">
-              الكورس ده مقفول
+              {needsPurchase ? 'كورس بيتباع لوحده' : 'الكورس ده مقفول'}
             </T>
             <T size="xs" color="rgba(255,255,255,0.85)">
-              اشترك دلوقتي وافتحه مع باقي المكتبة
+              {needsPurchase
+                ? course.price_usd
+                  ? `مش داخل في الاشتراك — $${course.price_usd} مرة واحدة`
+                  : 'مش داخل في الاشتراك — بيتشترى مرة واحدة'
+                : 'اشترك دلوقتي وافتحه مع باقي المكتبة'}
             </T>
           </View>
           <Button
-            label="اشترك دلوقتي"
+            label={needsPurchase ? 'اشتري الكورس' : 'اشترك دلوقتي'}
             variant="outline"
             style={styles.bannerBtn}
-            onPress={() => router.push('/subscribe')}
+            onPress={() =>
+              needsPurchase
+                ? Linking.openURL(purchaseWhatsappUrl(course.title))
+                : router.push('/subscribe')
+            }
           />
         </View>
       ) : null}

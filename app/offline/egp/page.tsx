@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { CheckoutTracker } from '@/components/checkout-tracker';
 import { WhatsAppConfirmButton } from '../_components/whatsapp-confirm';
+import { productById } from '@/lib/catalog';
 
 const GUEST_EMAIL_COOKIE = 'guest_checkout_email';
 
@@ -47,11 +48,25 @@ const EGP_AMOUNT: Record<PlanId, number> = {
 export default async function EgyptOfflinePage({
   searchParams,
 }: {
-  searchParams: { plan?: string };
+  searchParams: { plan?: string; product?: string };
 }) {
+  // Two things can be paid for on this rail: a subscription (?plan=)
+  // and a one-off course or bundle (?product=). Both end the same way —
+  // the visitor transfers locally and sends a screenshot on WhatsApp,
+  // and an admin grants access — so they share one page rather than
+  // duplicating the InstaPay / Vodafone Cash instructions.
+  const product = productById(searchParams.product);
   const planParam = searchParams.plan;
-  if (!isPlan(planParam)) redirect(ROUTES.pricing);
-  const plan = PLANS[planParam];
+
+  if (!product && !isPlan(planParam)) redirect(ROUTES.pricing);
+
+  const itemName = product ? product.titleAr : PLANS[planParam as PlanId].name;
+  const itemId = product ? product.id : (planParam as PlanId);
+  const backHref = product
+    ? product.slugs.length > 1
+      ? '/ai-bundle'
+      : `/course/${product.slugs[0]}`
+    : `/checkout?plan=${planParam}`;
 
   // Guest checkout: accept visitors with just an email in the cookie.
   // Admins confirm manually after the WhatsApp screenshot lands.
@@ -61,11 +76,13 @@ export default async function EgyptOfflinePage({
   } = await supabase.auth.getUser();
   const guestEmail = user ? null : cookies().get(GUEST_EMAIL_COOKIE)?.value || null;
   if (!user && !guestEmail) {
-    redirect(`/checkout?plan=${planParam}`);
+    // A one-off buyer has no /checkout step to fall back to, so send
+    // them to sign in — the grant needs an account to land on.
+    redirect(product ? `${ROUTES.login}?next=/offline/egp?product=${product.id}` : `/checkout?plan=${planParam}`);
   }
   const ownerEmail = user?.email ?? guestEmail ?? '';
 
-  const egpAmount = EGP_AMOUNT[planParam];
+  const egpAmount = product ? product.priceEgp : EGP_AMOUNT[planParam as PlanId];
   const instapayLink = OFFLINE_PAYMENTS.instapay.link;
   const vodafoneNumber = OFFLINE_PAYMENTS.vodafoneCash.phone;
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=8&data=${encodeURIComponent(instapayLink)}`;
@@ -73,20 +90,20 @@ export default async function EgyptOfflinePage({
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <CheckoutTracker
-        eventId={`checkout-egp-${user?.id ?? ownerEmail ?? 'guest'}-${planParam}`}
+        eventId={`checkout-egp-${user?.id ?? ownerEmail ?? 'guest'}-${itemId}`}
         value={egpAmount}
         currency="EGP"
-        contentName={plan.name}
-        contentIds={[planParam]}
+        contentName={itemName}
+        contentIds={[itemId]}
         step="egp"
       />
       <div className="container mx-auto px-4 max-w-md">
         <Link
-          href={`/checkout?plan=${planParam}`}
+          href={backHref}
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-foreground mb-4"
         >
           <ArrowRight className="w-4 h-4" />
-          العودة لطرق الدفع
+          {product ? 'رجوع' : 'العودة لطرق الدفع'}
         </Link>
 
         <div className="rounded-2xl bg-white border border-gray-200 overflow-hidden">
@@ -110,7 +127,7 @@ export default async function EgyptOfflinePage({
           <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
             <div>
               <div className="text-xs text-gray-500">المبلغ المطلوب</div>
-              <div className="text-xs text-gray-400 mt-0.5">{plan.name}</div>
+              <div className="text-xs text-gray-400 mt-0.5">{itemName}</div>
             </div>
             <div className="font-display text-3xl font-extrabold text-brand-600" dir="ltr">
               {egpAmount}
@@ -205,11 +222,13 @@ export default async function EgyptOfflinePage({
             <p className="text-xs text-gray-600 leading-relaxed mb-3 flex items-start gap-1.5">
               <Copy className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-gray-400" />
               بعد الدفع (بأي من الطريقتين)، خد سكرين شوت من إشعار النجاح
-              وابعتها على واتساب عشان نفعّل اشتراكك خلال ساعات قليلة.
+              وابعتها على واتساب عشان نفعّل{' '}
+              {product ? 'الكورس' : 'اشتراكك'} خلال ساعات قليلة.
             </p>
             <WhatsAppConfirmButton
               email={ownerEmail}
-              plan={planParam}
+              plan={product ? undefined : (planParam as PlanId)}
+              itemLabel={product ? product.titleAr : undefined}
               amount={egpAmount}
               currencyLabel="ج.م"
               channel="InstaPay / Vodafone Cash"

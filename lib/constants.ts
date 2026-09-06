@@ -22,6 +22,11 @@ export const CANONICAL_URL = 'https://faahm.com';
 // most visitors who don't have an immediate cancel risk reach for the
 // yearly plan. Monthly is intentionally feature-limited (courses only)
 // so the comparison isn't just about price.
+//
+// NEITHER plan covers n8n, AI Video or Vibe Coding. Those three are
+// bought outright ($60 each, $99 for all three) — see lib/catalog.ts.
+// Every feature list below has to keep saying so, because a plan that
+// silently implies it unlocks them turns into a refund request.
 export const PLANS = {
   monthly: {
     id: 'monthly',
@@ -31,9 +36,7 @@ export const PLANS = {
     currency: 'USD',
     interval: 'month',
     features: [
-      // NOT "كل الكورسات" — courses flagged `yearly_only` in the DB
-      // (n8n, ai-video, vibe-coding) are excluded from this plan.
-      'وصول لمعظم الكورسات',
+      'وصول لكورسات الاشتراك',
       'فيديوهات بجودة عالية',
       'ملفات وموارد قابلة للتحميل',
       'مسابقات تفاعلية',
@@ -42,7 +45,7 @@ export const PLANS = {
     // bullets on /pricing so visitors see exactly what they lose vs.
     // the yearly plan, not just a vague feature gap.
     missingFeatures: [
-      'بدون n8n و AI Video و Vibe Coding',
+      'n8n و AI Video و Vibe Coding بتتشترى لوحدها',
       'بدون المساعد الذكي فاهم',
       'بدون شهادة إتمام',
       'بدون أولوية الدعم الفني',
@@ -57,12 +60,14 @@ export const PLANS = {
     interval: 'year',
     badge: 'وفّر 67%',
     features: [
-      'وصول كامل لكل الكورسات',
-      'كورسات n8n و AI Video و Vibe Coding',
+      'وصول لكل كورسات الاشتراك',
       'المساعد الذكي فاهم',
       'شهادة إتمام لكل كورس',
       'أولوية الدعم الفني',
       'وصول مبكر للكورسات الجديدة',
+    ],
+    missingFeatures: [
+      'n8n و AI Video و Vibe Coding بتتشترى لوحدها ($60 للكورس)',
     ],
   },
 } as const;

@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { getActiveSubscription } from '@/lib/access';
 import { getMobileUser } from '@/lib/mobile-auth';
+import { productForCourseSlug } from '@/lib/catalog';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,8 +43,12 @@ export async function GET(request: Request) {
 
   const rows = (courses ?? []).map((c: any) => {
     const instructor = Array.isArray(c.instructors) ? c.instructors[0] : c.instructors;
-    const planCovers = !!sub && (!c.yearly_only || sub.plan === 'yearly');
+    // `yearly_only` is the legacy column for "sold separately" — no
+    // plan covers these, only a purchase (which lands as an enrollment).
+    const soldSeparately = c.yearly_only === true;
+    const planCovers = !!sub && !soldSeparately;
     const unlocked = c.is_free || planCovers || enrolledIds.has(c.id);
+    const product = productForCourseSlug(c.slug);
 
     return {
       id: c.id,
@@ -58,14 +63,16 @@ export async function GET(request: Request) {
       rating_count: c.rating_count,
       instructor: instructor?.full_name_ar ?? null,
       is_free: c.is_free,
-      yearly_only: c.yearly_only,
+      sold_separately: soldSeparately,
+      /** USD price when the course is bought on its own; null otherwise. */
+      price_usd: product?.priceUsd ?? null,
       unlocked,
       // Why it's locked, so the app can show the right CTA instead of a
-      // generic "اشترك" on a course the user is one upgrade away from.
+      // generic "اشترك" on a course no subscription would open.
       lock_reason: unlocked
         ? null
-        : c.yearly_only && sub
-          ? 'needs_yearly'
+        : soldSeparately
+          ? 'needs_purchase'
           : 'needs_subscription',
     };
   });

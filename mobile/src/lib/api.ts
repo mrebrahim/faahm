@@ -83,6 +83,7 @@ export type Me = {
   } | null;
   access: {
     has_subscription: boolean;
+    /** Always false — no plan covers the sold-separately courses. */
     unlocks_yearly_only: boolean;
     can_post_community: boolean;
     /** Community is a yearly-plan benefit. */
@@ -112,9 +113,12 @@ export type CourseListItem = {
   rating_count: number;
   instructor: string | null;
   is_free: boolean;
-  yearly_only: boolean;
+  /** n8n / AI Video / Vibe Coding — bought once, not covered by a plan. */
+  sold_separately: boolean;
+  /** Standalone USD price, or null when the course comes with a plan. */
+  price_usd: number | null;
   unlocked: boolean;
-  lock_reason: 'needs_yearly' | 'needs_subscription' | null;
+  lock_reason: 'needs_purchase' | 'needs_subscription' | null;
 };
 
 export type CourseDetail = {
@@ -133,7 +137,8 @@ export type CourseDetail = {
     rating_avg: number;
     rating_count: number;
     is_free: boolean;
-    yearly_only: boolean;
+    sold_separately: boolean;
+    price_usd: number | null;
     /** Public marketing video — no access check, unlike lesson playback. */
     trailer: { kind: 'iframe' | 'native'; url: string } | null;
     instructor: { name: string; bio: string | null; avatar_url: string | null } | null;
@@ -141,8 +146,8 @@ export type CourseDetail = {
   access: {
     unlocked: boolean;
     free: boolean;
-    requires_yearly: boolean;
-    lock_reason: 'needs_yearly' | 'needs_subscription' | null;
+    requires_purchase: boolean;
+    lock_reason: 'needs_purchase' | 'needs_subscription' | null;
   };
   progress: { completed_lessons: number; total_lessons: number; percent: number };
   chapters: Array<{

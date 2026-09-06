@@ -20,7 +20,7 @@ export function CourseRow({ course }: { course: CourseListItem }) {
         <View style={styles.body}>
           <View style={styles.tags}>
             {course.is_free ? <Badge label="🎁 مجاني" tone="free" /> : null}
-            {course.yearly_only ? <Badge label="👑 سنوي" tone="gold" /> : null}
+            {course.sold_separately ? <Badge label="👑 بريميوم" tone="gold" /> : null}
             {!course.unlocked && !course.is_free ? <Badge label="🔒 مقفول" /> : null}
           </View>
           <T weight="bold" numberOfLines={2}>

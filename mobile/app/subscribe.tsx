@@ -27,6 +27,8 @@ type Pricing = {
     savings_pct: number;
     per: string;
     features: string[];
+    /** What the plan does NOT open — the sold-separately courses. */
+    missing?: string[];
     badge?: string;
   };
   local: { currency: string; monthly: number; yearly: number; methods: string[] };
@@ -48,8 +50,12 @@ export default function SubscribeScreen() {
     monthly: {
       amount: 10,
       per: 'شهر',
-      features: ['وصول لمعظم الكورسات', 'فيديوهات بجودة عالية', 'ملفات وموارد قابلة للتحميل'],
-      missing: ['بدون n8n و AI Video و Vibe Coding', 'بدون المساعد الذكي', 'بدون شهادة إتمام'],
+      features: ['وصول لكورسات الاشتراك', 'فيديوهات بجودة عالية', 'ملفات وموارد قابلة للتحميل'],
+      missing: [
+        'n8n و AI Video و Vibe Coding بتتشترى لوحدها',
+        'بدون المساعد الذكي',
+        'بدون شهادة إتمام',
+      ],
     },
     yearly: {
       amount: 40,
@@ -57,14 +63,15 @@ export default function SubscribeScreen() {
       savings_pct: 67,
       per: 'سنة',
       features: [
-        'وصول كامل لكل الكورسات',
-        'كورسات n8n و AI Video و Vibe Coding',
+        'وصول لكل كورسات الاشتراك',
         'المساعد الذكي فاهم',
         'شهادة إتمام لكل كورس',
+        'أولوية الدعم الفني',
       ],
+      missing: ['n8n و AI Video و Vibe Coding بتتشترى لوحدها'],
       badge: 'وفّر 67%',
     },
-    local: { currency: 'ج.م', monthly: 500, yearly: 4000, methods: ['InstaPay', 'Vodafone Cash'] },
+    local: { currency: 'ج.م', monthly: 500, yearly: 2000, methods: ['InstaPay', 'Vodafone Cash'] },
   };
 
   const load = useCallback(async () => {
@@ -138,6 +145,13 @@ export default function SubscribeScreen() {
             {data.yearly.features.map((f) => (
               <T key={f} size="sm">
                 ✅ {f}
+              </T>
+            ))}
+            {/* Stating what the plan does NOT open is the difference
+                between a sale and a refund request a week later. */}
+            {(data.yearly.missing ?? []).map((f) => (
+              <T key={f} size="sm" color={colors.textMuted}>
+                ❌ {f}
               </T>
             ))}
           </View>

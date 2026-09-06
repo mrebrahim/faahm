@@ -64,7 +64,9 @@ export async function GET(request: Request) {
     // re-implementing the gating rules client-side.
     access: {
       has_subscription: !!sub,
-      unlocks_yearly_only: sub?.plan === 'yearly',
+      // No plan covers n8n / AI Video / Vibe Coding any more — they are
+      // bought outright, so the app must never imply a plan unlocks them.
+      unlocks_yearly_only: false,
       // Yearly-plan benefit. The app renders a locked tab when false.
       can_post_community: canPost,
       can_use_community: canPost,

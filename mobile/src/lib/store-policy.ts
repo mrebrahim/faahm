@@ -88,20 +88,38 @@ export function salesWhatsappUrl(context?: string): string {
 }
 
 /**
+ * n8n / AI Video / Vibe Coding are bought once, not subscribed to, so
+ * the WhatsApp opener says "buy" rather than "subscribe" — otherwise
+ * sales gets a stream of messages asking about the wrong product.
+ *
+ * Still gated behind CAN_SHOW_PURCHASE_CTA at every call site: this is
+ * a purchase call-to-action and must never render in reader mode.
+ */
+export function purchaseWhatsappUrl(courseTitle: string): string {
+  const text = `عايز اشتري كورس ${courseTitle}`;
+  return `https://wa.me/${SALES_WHATSAPP}?text=${encodeURIComponent(text)}`;
+}
+
+/**
  * Copy for locked content.
  *
  * Deliberately states the FACT that access is missing and stops there —
  * no price, no "اشترك من الموقع", no hint about where to buy. That
  * silence is what keeps the build inside 3.1.3(a).
  */
-export function lockedMessage(reason: 'needs_yearly' | 'needs_subscription' | null): {
+export type LockReason = 'needs_purchase' | 'needs_subscription' | null;
+
+export function lockedMessage(reason: LockReason): {
   title: string;
   body: string;
 } {
-  if (reason === 'needs_yearly') {
+  if (reason === 'needs_purchase') {
+    // n8n / AI Video / Vibe Coding are bought outright on the web. In
+    // reader mode we may not name the price or say where to buy, so the
+    // copy stops at "not on this account" — deliberately.
     return {
-      title: '👑 مش متاح في باقتك',
-      body: 'الكورس ده مش داخل في نوع الاشتراك المفعّل على حسابك دلوقتي.',
+      title: '👑 كورس مش موجود في حسابك',
+      body: 'الكورس ده بيتفتح لوحده مش بالاشتراك، ولسه مش مفعّل على حسابك.',
     };
   }
   return {

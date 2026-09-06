@@ -7,6 +7,12 @@ import { pricingFor } from '@/lib/region';
 import { formatDuration } from '@/lib/utils';
 import { resolveVideoEmbed } from '@/lib/video';
 import { canAccessCourse } from '@/lib/access';
+import {
+  productForCourseSlug,
+  checkoutHrefFor,
+  AI_BUNDLE,
+  BUNDLE_SAVINGS_USD,
+} from '@/lib/catalog';
 import { signLessonAttachment } from '@/lib/storage';
 import { LessonPlayer } from './player';
 import { CourseAiChat } from '@/components/course-ai-chat';
@@ -65,7 +71,7 @@ export default async function LessonPage({
   // an active subscription / per-course enrollment. canAccessCourse
   // returns false/false for null userId, so anonymous visitors only get
   // free-preview lessons.
-  const { subscribed, enrolled, requiresYearly } = await canAccessCourse(
+  const { subscribed, enrolled } = await canAccessCourse(
     user?.id ?? null,
     lesson.course_id
   );
@@ -244,7 +250,7 @@ export default async function LessonPage({
             <PaywallBlock
               lessonId={lesson.id}
               loggedIn={!!user}
-              requiresYearly={requiresYearly}
+              courseSlug={course.slug}
             />
           )}
 
@@ -608,44 +614,48 @@ function UnplayableBlock() {
 function PaywallBlock({
   lessonId,
   loggedIn,
-  requiresYearly = false,
+  courseSlug,
 }: {
   lessonId: string;
   loggedIn: boolean;
-  /** Monthly subscriber hitting a yearly-only course — they're already
-   *  paying, so pitch the upgrade rather than a generic 'subscribe'. */
-  requiresYearly?: boolean;
+  /** Used to work out whether this course is bought or subscribed to. */
+  courseSlug?: string | null;
 }) {
   const pricing = pricingFor('us');
+  // n8n / AI Video / Vibe Coding are bought outright — pitching a
+  // subscription on one of their lessons would sell something that
+  // doesn't unlock the page the visitor is looking at.
+  const product = productForCourseSlug(courseSlug);
+
   // Logged-in but unsubscribed users see a subscribe CTA. Anonymous
   // visitors get the guest-checkout funnel (/personal-plan) — they
   // can pay before signing up, and the post-payment claim form
   // provisions the account from their email.
-  const cta = requiresYearly
-    ? { href: '/checkout?plan=yearly', label: 'رقّي للباقة السنوية' }
+  const cta = product
+    ? { href: checkoutHrefFor(product), label: `اشتري بـ $${product.priceUsd}` }
     : loggedIn
       ? { href: ROUTES.pricing, label: 'اشترك دلوقتي' }
       : { href: '/personal-plan', label: 'احصل على خطتك الشخصية' };
 
-  const heading = requiresYearly
-    ? 'الكورس ده في الباقة السنوية'
+  const heading = product
+    ? 'الكورس ده بيتباع لوحده'
     : loggedIn
       ? 'الدرس ده للمشتركين فقط'
       : 'الدرس ده مش معاينة مجانية';
 
-  const body = requiresYearly
-    ? `اشتراكك الشهري بيفتحلك باقي كورسات فاهم. الكورس ده متاح في الباقة السنوية — بـ $${pricing.yearlyAmount}/سنة بدل $${pricing.yearlyAnchor}.`
+  const body = product
+    ? `الكورس ده مش داخل في الاشتراك. بتدفع $${product.priceUsd} مرة واحدة والوصول دايم — أو خد التلات كورسات مع بعض بـ $${AI_BUNDLE.priceUsd}.`
     : loggedIn
-      ? `اشترك دلوقتي بـ $${pricing.yearlyAmount}/سنة (بدل $${pricing.yearlyAnchor} — خصم ${pricing.savingsPct}% لفترة محدودة) واحصل على كل دروس الكورس + كل كورسات فاهم!`
+      ? `اشترك دلوقتي بـ $${pricing.yearlyAmount}/سنة (بدل $${pricing.yearlyAnchor} — خصم ${pricing.savingsPct}% لفترة محدودة) واحصل على كل دروس الكورس + كل كورسات الاشتراك!`
       : 'سجّل حساب مجاني عشان تشوف الدروس المجانية، أو اشترك للوصول الكامل.';
 
   return (
-    <div className="aspect-video w-full rounded-2xl border border-gray-200 bg-gradient-to-br from-gray-900 to-gray-700 text-white flex items-center justify-center p-8">
+    <div className="aspect-video w-full rounded-2xl border border-gray-200 bg-gradient-to-br from-gray-900 to-gray-700 text-white flex items-center justify-center p-6 sm:p-8">
       <div className="text-center max-w-md">
         <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur">
-          {requiresYearly ? <Star className="w-8 h-8" /> : <Lock className="w-8 h-8" />}
+          {product ? <Star className="w-8 h-8" /> : <Lock className="w-8 h-8" />}
         </div>
-        <h2 className="font-display text-2xl font-bold mb-2">{heading}</h2>
+        <h2 className="font-display text-xl sm:text-2xl font-bold mb-2">{heading}</h2>
         <p className="text-sm text-gray-300 mb-6">{body}</p>
         <Button asChild size="lg" className="bg-white text-gray-900 hover:bg-gray-100 shadow-none">
           <Link href={cta.href}>
@@ -653,6 +663,14 @@ function PaywallBlock({
             <ArrowLeft className="w-4 h-4" />
           </Link>
         </Button>
+        {product && (
+          <Link
+            href="/ai-bundle"
+            className="mt-4 block text-xs text-gray-300 hover:text-white underline underline-offset-4"
+          >
+            التلات كورسات بـ ${AI_BUNDLE.priceUsd} — وفّر ${BUNDLE_SAVINGS_USD}
+          </Link>
+        )}
       </div>
     </div>
   );

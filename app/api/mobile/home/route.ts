@@ -2,6 +2,7 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { getActiveSubscription } from '@/lib/access';
 import { getMobileUser } from '@/lib/mobile-auth';
 import { getUserXp, levelProgress } from '@/lib/xp';
+import { productForCourseSlug } from '@/lib/catalog';
 
 export const dynamic = 'force-dynamic';
 
@@ -106,9 +107,11 @@ export async function GET(request: Request) {
       total_lessons: c.total_lessons,
       total_duration_sec: c.total_duration_sec,
       is_free: c.is_free,
-      yearly_only: c.yearly_only,
+      // Legacy column name for "sold separately" — see lib/catalog.ts.
+      sold_separately: c.yearly_only === true,
+      price_usd: productForCourseSlug(c.slug)?.priceUsd ?? null,
       rating_avg: Number(c.rating_avg) || 0,
-      unlocked: c.is_free || (!!sub && (!c.yearly_only || sub.plan === 'yearly')),
+      unlocked: c.is_free || (!!sub && c.yearly_only !== true),
       lock_reason: null,
     })),
     news: (postsRes.data ?? []).map((p: any) => ({

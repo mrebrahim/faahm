@@ -124,22 +124,19 @@ function SuccessView({ plan }: { plan: 'monthly' | 'yearly' }) {
           <p className="text-base opacity-95 leading-relaxed">
             تم تفعيل اشتراكك بنجاح لمدة{' '}
             <span className="font-bold">{durationLabel}</span> —{' '}
-            {plan === 'yearly'
-              ? 'كل الكورسات دلوقتي مفتوحة لك مجاناً.'
-              : 'الكورسات دلوقتي مفتوحة لك مجاناً.'}
+            كورسات الاشتراك دلوقتي مفتوحة لك مجاناً.
           </p>
         </div>
 
         <div className="p-6 text-center">
-          {/* The monthly grant doesn't cover the yearly-only courses or the
-              AI assistant / certificates, so we don't promise them here. */}
+          {/* Neither grant covers n8n / AI Video / Vibe Coding — those are
+              bought outright — and the monthly one also excludes the AI
+              assistant and certificates. Nothing here promises otherwise. */}
           <ul className="space-y-2.5 text-start text-sm text-gray-700 mb-6">
             <li className="flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
               <span>
-                {plan === 'yearly'
-                  ? 'وصول كامل لكل الكورسات على فاهم'
-                  : 'وصول لمعظم الكورسات على فاهم'}
+                وصول لكل كورسات الاشتراك على فاهم
               </span>
             </li>
             <li className="flex items-start gap-2">

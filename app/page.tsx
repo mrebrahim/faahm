@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { MainNav } from '@/components/main-nav';
 import { ROUTES, APP_NAME } from '@/lib/constants';
 import { pricingFor } from '@/lib/region';
+import { COURSE_PRICE_USD } from '@/lib/catalog';
 import { SARMoney } from '@/components/sar-money';
 import {
   ArrowLeft,
@@ -575,16 +576,17 @@ function PricingCard({
       <ul className="space-y-3 mb-8">
         {isYearly ? (
           <>
-            <Feat ok text="وصول كامل لكل الكورسات" />
-            <Feat ok text="كورسات n8n و AI Video و Vibe Coding" />
+            <Feat ok text="وصول لكل كورسات الاشتراك" />
             <Feat ok text="المساعد الذكي فاهم" />
             <Feat ok text="شهادة إتمام لكل كورس" />
             <Feat ok text="أولوية الدعم الفني" />
+            {/* Stated on the card, not hidden in an FAQ — see lib/catalog.ts. */}
+            <Feat text={`n8n و AI Video و Vibe Coding بتتشترى لوحدها ($${COURSE_PRICE_USD})`} />
           </>
         ) : (
           <>
-            <Feat ok text="وصول لمعظم الكورسات" muted />
-            <Feat text="بدون n8n و AI Video و Vibe Coding" />
+            <Feat ok text="وصول لكورسات الاشتراك" muted />
+            <Feat text={`n8n و AI Video و Vibe Coding بتتشترى لوحدها ($${COURSE_PRICE_USD})`} />
             <Feat text="بدون المساعد الذكي فاهم" />
             <Feat text="بدون شهادة إتمام" />
             <Feat text="بدون أولوية الدعم الفني" />

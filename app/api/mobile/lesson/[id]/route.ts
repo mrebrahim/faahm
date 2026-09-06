@@ -46,9 +46,9 @@ export async function GET(request: Request, { params }: { params: { id: string }
     return Response.json(
       {
         error: 'locked',
-        lock_reason: access.requiresYearly ? 'needs_yearly' : 'needs_subscription',
-        message: access.requiresYearly
-          ? 'الكورس ده متاح في الباقة السنوية.'
+        lock_reason: access.requiresPurchase ? 'needs_purchase' : 'needs_subscription',
+        message: access.requiresPurchase
+          ? 'الكورس ده بيتباع لوحده — مش داخل في الاشتراك.'
           : 'محتاج اشتراك عشان تفتح الدرس ده.',
       },
       { status: 403 }

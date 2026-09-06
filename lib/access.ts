@@ -60,30 +60,56 @@ export async function hasCourseEnrollment(
   return true;
 }
 
+export type CourseAccess = {
+  subscribed: boolean;
+  enrolled: boolean;
+  /** The course is sold on its own and this user hasn't bought it. */
+  requiresPurchase: boolean;
+  free: boolean;
+  /** True for n8n / AI Video / Vibe Coding — no plan covers these. */
+  soldSeparately: boolean;
+  /** Course slug, so a paywall can look up the standalone price. */
+  slug: string | null;
+};
+
 /**
  * Resolves whether a user can play a lesson.
  *
- * A subscription normally covers the whole catalog, with one exception:
- * courses flagged `yearly_only` are reserved for the yearly plan. A
- * monthly subscriber hitting one of those falls through to the same
- * checks a non-subscriber gets — per-course enrollment (coupon / manual
- * grant), then the lesson's own free-preview flag at the call site.
+ * A subscription covers the general catalogue. It does NOT cover the
+ * three courses flagged `yearly_only` (n8n, AI Video, Vibe Coding) —
+ * those are bought once at $60, or together in the $99 bundle, and the
+ * purchase lands as an `enrollments` row. See lib/catalog.ts for why
+ * they sit outside the plan.
  *
- * `requiresYearly` is returned so the paywall can say "ده كورس للباقة
- * السنوية" instead of the generic "اشترك" pitch to someone who is
- * already paying.
+ * `requiresPurchase` is returned so the paywall can offer the actual
+ * price instead of pitching a subscription that would not unlock the
+ * page the visitor is standing on.
  */
 export async function canAccessCourse(
   userId: string | null | undefined,
   courseId: string | null | undefined
-): Promise<{
-  subscribed: boolean;
-  enrolled: boolean;
-  requiresYearly: boolean;
-  free: boolean;
-}> {
-  if (!userId || !courseId) {
-    return { subscribed: false, enrolled: false, requiresYearly: false, free: false };
+): Promise<CourseAccess> {
+  const locked: CourseAccess = {
+    subscribed: false,
+    enrolled: false,
+    requiresPurchase: false,
+    free: false,
+    soldSeparately: false,
+    slug: null,
+  };
+
+  if (!courseId) return locked;
+
+  // The gate is course-level, so it resolves even for a signed-out
+  // visitor — the paywall needs to know the price to show them.
+  if (!userId) {
+    const gate = await getCourseGate(courseId);
+    return {
+      ...locked,
+      soldSeparately: gate.soldSeparately,
+      slug: gate.slug,
+      requiresPurchase: gate.soldSeparately && !gate.isFree,
+    };
   }
 
   const [sub, gate] = await Promise.all([
@@ -92,57 +118,69 @@ export async function canAccessCourse(
   ]);
 
   // Free (lead-magnet) courses open for anyone signed in. Checked before
-  // the plan gate so a free course never asks a visitor to pay.
+  // every paid gate so a free course never asks a visitor to pay.
   if (gate.isFree) {
-    return { subscribed: false, enrolled: true, requiresYearly: false, free: true };
+    return {
+      ...locked,
+      enrolled: true,
+      free: true,
+      slug: gate.slug,
+    };
   }
 
-  const yearlyOnly = gate.yearlyOnly;
-
-  // Yearly (or any future plan that isn't monthly) unlocks everything.
-  const planCovers = !!sub && (!yearlyOnly || sub.plan === 'yearly');
-  if (planCovers) {
-    return { subscribed: true, enrolled: false, requiresYearly: false, free: false };
+  // Sold-separately courses ignore the subscription entirely. The only
+  // key is an enrollment row — written by a purchase, a coupon redeem,
+  // an admin grant, or the grandfather backfill for subscribers who
+  // already had access when this pricing shipped.
+  if (gate.soldSeparately) {
+    const enrolled = await hasCourseEnrollment(userId, courseId);
+    return {
+      ...locked,
+      enrolled,
+      soldSeparately: true,
+      slug: gate.slug,
+      requiresPurchase: !enrolled,
+    };
   }
 
-  // Monthly subscriber blocked by the yearly gate — an explicit
-  // per-course grant still lets them in.
+  // Everything else: any live plan opens it.
+  if (sub) {
+    return { ...locked, subscribed: true, slug: gate.slug };
+  }
+
   const enrolled = await hasCourseEnrollment(userId, courseId);
-  return {
-    subscribed: false,
-    enrolled,
-    requiresYearly: yearlyOnly && !!sub && !enrolled,
-    free: false,
-  };
+  return { ...locked, enrolled, slug: gate.slug };
 }
 
 /**
- * The two course-level gating flags in one round trip. Both default to
- * false on a lookup miss: a transient DB hiccup must not lock a paying
- * subscriber out of content (yearly_only) nor silently paywall a course
- * we advertised as free (is_free).
+ * The course-level gating flags in one round trip. Both booleans default
+ * to false on a lookup miss: a transient DB hiccup must not paywall a
+ * course we advertised as free (is_free), nor push a subscriber at a
+ * purchase page for a course their plan already covers (yearly_only).
  */
 export async function getCourseGate(
   courseId: string | null | undefined
-): Promise<{ yearlyOnly: boolean; isFree: boolean }> {
-  if (!courseId) return { yearlyOnly: false, isFree: false };
+): Promise<{ soldSeparately: boolean; isFree: boolean; slug: string | null }> {
+  if (!courseId) return { soldSeparately: false, isFree: false, slug: null };
   const { data } = await createServiceClient()
     .from('courses')
-    .select('yearly_only, is_free')
+    // `yearly_only` is the legacy column name for "sold separately".
+    .select('yearly_only, is_free, slug')
     .eq('id', courseId)
     .maybeSingle();
   return {
-    yearlyOnly: data?.yearly_only === true,
+    soldSeparately: data?.yearly_only === true,
     isFree: data?.is_free === true,
+    slug: data?.slug ?? null,
   };
 }
 
 /**
- * Whether a course is gated behind the yearly plan. Defaults to false on
- * a lookup miss so a transient DB hiccup can't lock a paying subscriber
- * out of content they should have.
+ * Whether a course is sold on its own rather than covered by a plan.
+ * Defaults to false on a lookup miss so a transient DB hiccup can't
+ * paywall content a subscriber should have.
  */
-export async function isYearlyOnlyCourse(
+export async function isSoldSeparately(
   courseId: string | null | undefined
 ): Promise<boolean> {
   if (!courseId) return false;

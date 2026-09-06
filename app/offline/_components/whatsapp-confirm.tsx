@@ -14,23 +14,31 @@ import { OFFLINE_PAYMENTS, type PlanId } from '@/lib/constants';
 export function WhatsAppConfirmButton({
   email,
   plan,
+  itemLabel,
   amount,
   currencyLabel,
   channel,
 }: {
   email: string;
-  plan: PlanId;
+  /** Subscription being paid for. Omit when passing `itemLabel`. */
+  plan?: PlanId;
+  /**
+   * What was bought, when it isn't a plan — a one-off course or the
+   * bundle. Takes precedence over `plan` so the admin reconciling the
+   * screenshot sees the actual product name, not "شهري".
+   */
+  itemLabel?: string;
   amount: number;
   /** e.g. 'ر.س' or 'ج.م' — whatever the channel charged in. */
   currencyLabel: string;
   /** Free-form channel label used in the message body. */
   channel: string;
 }) {
-  const planLabel = plan === 'yearly' ? 'سنوي' : 'شهري';
+  const label = itemLabel ?? (plan === 'yearly' ? 'سنوي' : 'شهري');
   const message = [
     'لقد اشتركت في فاهم وهذه اسكرين شوت من الدفع.',
     `الإيميل: ${email}`,
-    `الخطة: ${planLabel} (${amount} ${currencyLabel})`,
+    `الطلب: ${label} (${amount} ${currencyLabel})`,
     `طريقة الدفع: ${channel}`,
   ].join('\n');
 

@@ -7,6 +7,14 @@ import { LandingTracker } from '@/components/landing-tracker';
 import { PromoCountdown } from '@/components/promo-countdown';
 import { LiteYouTube } from '@/components/lite-youtube';
 import { APP_NAME } from '@/lib/constants';
+import {
+  AI_BUNDLE,
+  BUNDLE_ANCHOR_USD,
+  BUNDLE_SAVINGS_USD,
+  BUNDLE_SAVINGS_PCT,
+  COURSE_PRICE_USD,
+  checkoutHrefFor,
+} from '@/lib/catalog';
 import { getPromoState } from '@/lib/promo';
 import {
   ArrowLeft,
@@ -28,12 +36,11 @@ import {
 } from 'lucide-react';
 
 export const metadata = {
-  title: `AI Bundle — ٣ كورسات AI + سيرفر مجاني بـ $40 | ${APP_NAME}`,
-  description: `اتعلم أتمتة n8n + صناعة فيديو AI + برمجة Vibe Coding في Bundle واحد بـ $40 بدلاً من $120. ضمان استرداد ٧ أيام.`,
+  title: `AI Bundle — ٣ كورسات AI + سيرفر مجاني بـ $${AI_BUNDLE.priceUsd} | ${APP_NAME}`,
+  description: `اتعلم أتمتة n8n + صناعة فيديو AI + برمجة Vibe Coding في Bundle واحد بـ $${AI_BUNDLE.priceUsd} بدلاً من $${BUNDLE_ANCHOR_USD}. وصول دائم + ضمان استرداد ٧ أيام.`,
   openGraph: {
-    title: 'AI Bundle — ٣ مصادر دخل. ٩٠ يوم. $40',
-    description:
-      '٣ كورسات AI عربية + سيرفر مجاني + ١٥,٠٠٠ قالب + دعم WhatsApp. اشترك بـ $40 بدلاً من $120.',
+    title: `AI Bundle — ٣ مصادر دخل. ٩٠ يوم. $${AI_BUNDLE.priceUsd}`,
+    description: `٣ كورسات AI عربية + سيرفر مجاني + ١٥,٠٠٠ قالب + دعم WhatsApp. خدهم بـ $${AI_BUNDLE.priceUsd} بدلاً من $${BUNDLE_ANCHOR_USD}.`,
     type: 'website',
   },
   robots: { index: true, follow: true },
@@ -41,13 +48,16 @@ export const metadata = {
 
 export const revalidate = 300;
 
-// CTAs stay entirely on faahm.com — /checkout is the standard yearly
-// funnel with Stripe / PayPal / Barq / InstaPay / Vodafone Cash options,
-// so the visitor never leaves the brand.
-const CHECKOUT_HREF = '/checkout?plan=yearly';
-const PRICE = 40;
-const ANCHOR = 120;
-const SAVINGS_PCT = Math.round(((ANCHOR - PRICE) / ANCHOR) * 100);
+// The bundle is a ONE-OFF purchase, not the subscription funnel — it
+// opens a Stripe Checkout Session priced from lib/catalog.ts and grants
+// the three courses permanently. Every number on this page comes from
+// that same catalogue so the sticker price can't drift from the charge.
+//
+// The anchor is honest arithmetic: 3 × $60 bought separately.
+const CHECKOUT_HREF = checkoutHrefFor(AI_BUNDLE);
+const PRICE = AI_BUNDLE.priceUsd;
+const ANCHOR = BUNDLE_ANCHOR_USD;
+const SAVINGS_PCT = BUNDLE_SAVINGS_PCT;
 
 // Video IDs — YouTube facades (thumbnail on initial paint, iframe loads
 // only when the visitor taps play). Keeps the initial network cost tiny.
@@ -65,6 +75,15 @@ const AI_VIDEO_THUMB =
   'https://n8nar.com/wp-content/uploads/2026/03/Gemini_Generated_Image_7ak3qw7ak3qw7ak3-ezgif.com-png-to-webp-converter-scaled.webp';
 const VIBE_THUMB =
   'https://n8nar.com/wp-content/uploads/2026/02/Gemini_Generated_Image_iey2hciey2hciey2-ezgif.com-jpg-to-webp-converter.webp';
+
+/**
+ * The bonus stack, and the total the value recap adds up to. Kept next
+ * to the ValueRow figures below so the arithmetic printed on the page
+ * is derived, never hand-typed — a stale "you save $X" line is the
+ * fastest way to lose a sceptical buyer.
+ */
+const BONUS_VALUE = 244 + 50 + 30 + 30 + 40;
+const TOTAL_VALUE = COURSE_PRICE_USD * 3 + BONUS_VALUE;
 
 export default async function AIBundlePage() {
   const promo = getPromoState();
@@ -121,7 +140,7 @@ export default async function AIBundlePage() {
                 ${PRICE}
               </span>
               <span className="block text-[11px] text-gray-400 mt-1">
-                خصم {SAVINGS_PCT}% لفترة محدودة · ضمان استرداد ٧ أيام
+                وفّر ${BUNDLE_SAVINGS_USD} · وصول دائم · ضمان استرداد ٧ أيام
               </span>
             </div>
             <div className="mb-3 py-2 px-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium">
@@ -139,8 +158,17 @@ export default async function AIBundlePage() {
               </Link>
             </Button>
             <div className="mt-3 text-[11px] text-gray-500 leading-relaxed">
-              ✓ وصول فوري · 🛡️ ضمان ٧ أيام · 💬 دعم بالعربي 100%
+              ✓ وصول فوري ودائم · 🛡️ ضمان ٧ أيام · 💬 دعم بالعربي 100%
             </div>
+            {/* Egypt is the biggest slice of the audience and most of it
+                can't pay on Stripe. The local rail has to be visible at
+                the point of decision, not buried in an FAQ. */}
+            <Link
+              href={`/offline/egp?product=${AI_BUNDLE.id}`}
+              className="mt-3 block text-[11px] text-gray-500 hover:text-brand-700 underline underline-offset-4"
+            >
+              من مصر؟ ادفع بـ InstaPay أو Vodafone Cash ({AI_BUNDLE.priceEgp} ج.م)
+            </Link>
           </div>
 
           {/* Stats grid */}
@@ -148,7 +176,7 @@ export default async function AIBundlePage() {
             <TrustStat icon={Users} value="+1,000" label="طالب انضم" />
             <TrustStat icon={Star} value="4.9★" label="متوسط التقييم" />
             <TrustStat icon={Video} value="+180" label="محاضرة" />
-            <TrustStat icon={Gift} value="$394" label="بونصات مجاناً" />
+            <TrustStat icon={Gift} value={`$${BONUS_VALUE}`} label="بونصات مجاناً" />
           </div>
         </div>
       </section>
@@ -251,7 +279,7 @@ export default async function AIBundlePage() {
                 </tr>
               </thead>
               <tbody className="text-xs sm:text-sm">
-                <CompareRow feature="السعر" bundle={`$${PRICE}`} a="$500-2000" b="$3000+" c="مجاني (بضريبة الوقت)" />
+                <CompareRow feature="السعر" bundle={`$${PRICE} مرة واحدة`} a="$500-2000" b="$3000+" c="مجاني (بضريبة الوقت)" />
                 <CompareRow feature="اللغة" bundle="✅ عربي كامل" a="❌ إنجليزي" b="حسب المدرّب" c="حسب المصدر" />
                 <CompareRow feature="الوقت للنتيجة" bundle="✅ ٧ أيام" a="30-60 يوم" b="60-90 يوم" c="❌ 6-12 شهر" />
                 <CompareRow feature="٣ مهارات موازية" bundle="✅" a="❌" b="❌" c="❌" />
@@ -328,7 +356,7 @@ export default async function AIBundlePage() {
               بونصات مجانية
             </div>
             <h2 className="font-display text-3xl sm:text-5xl font-extrabold mb-3">
-              <span className="text-amber-600">$394</span> بونصات إضافية
+              <span className="text-amber-600">${BONUS_VALUE}</span> بونصات إضافية
             </h2>
             <p className="text-gray-600">مع كل Bundle — بدون أي تكلفة إضافية.</p>
           </div>
@@ -344,7 +372,7 @@ export default async function AIBundlePage() {
           <div className="mt-8 text-center">
             <p className="text-sm text-gray-600 mb-1">إجمالي قيمة البونصات:</p>
             <p className="font-display text-3xl sm:text-4xl font-extrabold text-amber-600" dir="ltr">
-              $394 <span className="text-lg font-medium text-gray-500">— مجاناً</span>
+              ${BONUS_VALUE} <span className="text-lg font-medium text-gray-500">— مجاناً</span>
             </p>
           </div>
         </div>
@@ -359,9 +387,9 @@ export default async function AIBundlePage() {
           </div>
 
           <div className="rounded-2xl border-2 border-brand-500/40 bg-white p-5 sm:p-6 shadow-lg">
-            <ValueRow icon="🤖" text="كورس n8n Automation" value={40} />
-            <ValueRow icon="🎬" text="كورس AI Video Master" value={40} />
-            <ValueRow icon="💻" text="كورس Vibe Coding" value={40} />
+            <ValueRow icon="🤖" text="كورس n8n Automation" value={COURSE_PRICE_USD} />
+            <ValueRow icon="🎬" text="كورس AI Video Master" value={COURSE_PRICE_USD} />
+            <ValueRow icon="💻" text="كورس Vibe Coding" value={COURSE_PRICE_USD} />
             <div className="my-3 border-t border-dashed border-gray-200" />
             <ValueRow icon="🎁" text="+5,000 فيديو AI (PLR/MRR)" value={244} />
             <ValueRow icon="📦" text="15,000 سكربت أتمتة n8n" value={50} />
@@ -371,14 +399,14 @@ export default async function AIBundlePage() {
             <div className="my-4 border-t-2 border-gray-300" />
             <div className="flex items-center justify-between text-lg font-bold mb-2">
               <span>القيمة الإجمالية:</span>
-              <span dir="ltr" className="line-through text-gray-400">$514</span>
+              <span dir="ltr" className="line-through text-gray-400">${TOTAL_VALUE}</span>
             </div>
             <div className="flex items-center justify-between text-2xl sm:text-3xl font-extrabold text-brand-700">
               <span>سعرك اليوم:</span>
               <span dir="ltr">${PRICE}</span>
             </div>
             <div className="mt-4 py-2 px-3 rounded-lg bg-emerald-100 text-emerald-800 text-center text-sm font-bold">
-              ✅ وفّرت $474 — خصم 92%
+              ✅ وفّرت ${TOTAL_VALUE - PRICE} — خصم {Math.round(((TOTAL_VALUE - PRICE) / TOTAL_VALUE) * 100)}%
             </div>
           </div>
 
@@ -445,7 +473,7 @@ export default async function AIBundlePage() {
           <div className="space-y-3">
             <FaqItem q="أنا مبتدئ تماماً — هينفع معايا؟" a="أيوه، الـ ٣ كورسات مصممين من الصفر. الدرس الأول في كل كورس بيفترض إنك لسه ما استخدمتش أي أداة قبل كده." />
             <FaqItem q="لو مش عاجبني، هرجّع فلوسي إزاي؟" a="كلّمنا على واتساب خلال ٧ أيام من تاريخ الشراء، ابعت رقم الطلب، وهنرجّعلك المبلغ كامل خلال ٤٨ ساعة." />
-            <FaqItem q="الوصول امتى؟" a="فوري بعد الدفع. الإيميل والوصول للـ ٣ كورسات بيوصلك في نفس اللحظة." />
+            <FaqItem q="الوصول امتى؟" a="فوري بعد الدفع. الإيميل والوصول للـ ٣ كورسات بيوصلك في نفس اللحظة، والوصول دايم من غير تجديد." />
           </div>
         </div>
       </section>
@@ -466,7 +494,7 @@ export default async function AIBundlePage() {
           <Button asChild size="lg" className="bg-white text-brand-700 hover:bg-gray-100 font-bold min-h-[60px] text-base sm:text-lg w-full sm:w-auto">
             <Link href={CHECKOUT_HREF}>
               <Gift className="w-5 h-5" />
-              اشترك في الـ Bundle بـ ${PRICE}
+              خد الـ Bundle بـ ${PRICE}
               <ArrowLeft className="w-5 h-5" />
             </Link>
           </Button>
@@ -496,9 +524,12 @@ export default async function AIBundlePage() {
             <FaqItem q="امتى هاخد الوصول؟" a="فوراً بعد الدفع. بتوصلك رسالة تأكيد فيها بيانات الدخول لكل الكورسات." />
             <FaqItem q="سياسة الاسترداد؟" a="ضمان استرداد كامل خلال ٧ أيام من الشراء — بدون أسئلة. كلّمنا على واتساب وارجعلك فلوسك." />
             <FaqItem q="الكورسات محدثة لـ 2026؟" a="أيوه. الأدوات (n8n, Runway, Kling, Cursor, إلخ) بتتحدث كل شوية، وإحنا بنحدث الكورسات باستمرار. التحديثات كلها مجاناً لسنة كاملة." />
-            <FaqItem q="طرق الدفع المتاحة؟" a="بطاقات فيزا وماستركارد (عبر Stripe) و PayPal. للعملاء في مصر: InstaPay أو Vodafone Cash. للعملاء في السعودية: Barq." />
+            <FaqItem q="طرق الدفع المتاحة؟" a="بطاقات فيزا وماستركارد (عبر Stripe). للعملاء في مصر: InstaPay أو Vodafone Cash — كلّمنا على واتساب وهنفعّلهولك." />
             <FaqItem q="الدعم الفني بعد الشراء؟" a="مجتمع WhatsApp خاص فيه المدرّبين + الطلاب. ترد على أي سؤال خلال ساعات، مش يومين." />
-            <FaqItem q="أقدر أشتري كورس واحد بس؟" a="أيوه — الكورسات متاحة فرادى بسعر $40 لكل كورس. بس الـ Bundle بيديك الـ ٣ + البونصات ($394 قيمة إضافية) بنفس السعر — عرض أفضل بمراحل." />
+            <FaqItem
+              q="أقدر أشتري كورس واحد بس؟"
+              a={`أيوه — أي كورس منهم لوحده بـ $${COURSE_PRICE_USD}. بس التلاتة مع بعض بـ $${PRICE} بدل $${ANCHOR}، يعني بتوفّر $${BUNDLE_SAVINGS_USD} + البونصات كلها ($${BONUS_VALUE} قيمة إضافية) من غير أي فرق في السعر.`}
+            />
           </div>
         </div>
       </section>

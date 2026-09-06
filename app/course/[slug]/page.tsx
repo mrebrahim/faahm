@@ -9,6 +9,13 @@ import { pricingFor } from '@/lib/region';
 import { formatDuration } from '@/lib/utils';
 import { resolveVideoEmbed } from '@/lib/video';
 import { canAccessCourse } from '@/lib/access';
+import {
+  productForCourseSlug,
+  checkoutHrefFor,
+  AI_BUNDLE,
+  BUNDLE_ANCHOR_USD,
+  BUNDLE_SAVINGS_USD,
+} from '@/lib/catalog';
 import { pickRelated, type RelatedCandidate } from '@/lib/related-courses';
 import { CourseSocialProof } from '@/components/course-social-proof';
 import { RelatedCourses } from '@/components/related-courses';
@@ -136,6 +143,9 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
   );
 
   const access = await canAccessCourse(user?.id, course.id);
+  // Non-null only for n8n / AI Video / Vibe Coding — the courses no
+  // subscription covers. Drives the paywall's whole shape below.
+  const courseProduct = productForCourseSlug(course.slug);
   // For the rest of this page we treat enrollment the same as subscription —
   // both grant full access to *this* course.
   const subscribed = access.subscribed || access.enrolled;
@@ -185,15 +195,20 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
       )
     : null;
 
-  // Primary CTA destination. We point both guest visitors AND
-  // signed-in-but-unsubscribed visitors at /personal-plan + the same
-  // 'احصل على خطتك الشخصية' wording — the marketing funnel does a
-  // better job at converting than the bare /pricing surface, and
-  // keeping the label identical across desktop / mobile means there's
-  // no inconsistency between the auth states the merchant sees.
+  // Primary CTA destination. For the general catalogue we point both
+  // guest visitors AND signed-in-but-unsubscribed visitors at
+  // /personal-plan + the same 'احصل على خطتك الشخصية' wording — the
+  // marketing funnel converts better than the bare /pricing surface,
+  // and one label across auth states keeps the page consistent.
+  //
+  // A sold-separately course is the exception: no subscription opens
+  // it, so the CTA is the price and goes straight to checkout.
   let ctaHref: string;
   let ctaLabel: string;
-  if (!subscribed) {
+  if (!subscribed && courseProduct) {
+    ctaHref = checkoutHrefFor(courseProduct);
+    ctaLabel = `اشتري الكورس بـ $${courseProduct.priceUsd}`;
+  } else if (!subscribed) {
     ctaHref = '/personal-plan';
     ctaLabel = 'احصل على خطتك الشخصية';
   } else if (resumeLessonId) {
@@ -535,53 +550,103 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
         <aside className="lg:col-span-2 space-y-4">
           {!subscribed && (
             <div className="p-5 sm:p-6 rounded-2xl bg-gradient-to-br from-brand-500/10 to-white border border-brand-500/30">
-              {course.yearly_only && (
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 mb-3 rounded-full bg-amber-500 text-white text-[11px] font-bold">
-                  <Star className="w-3 h-3 fill-white" />
-                  حصري للباقة السنوية
-                </div>
-              )}
-              <h3 className="font-display text-xl font-bold mb-2">
-                {access.requiresYearly
-                  ? 'رقّي للباقة السنوية عشان تفتح الكورس ده'
-                  : 'اشترك واحصل على كل الكورسات'}
-              </h3>
-              <p className="text-sm text-gray-600 mb-4">
-                {access.requiresYearly ? (
-                  <>
-                    اشتراكك الشهري بيفتحلك باقي كورسات فاهم. الكورس ده متاح في الباقة
-                    السنوية بس — بـ <strong>${pricing.yearlyAmount}/سنة</strong> بدل $
-                    {pricing.yearlyAnchor}.
-                  </>
-                ) : (
-                  <>
-                    مفيش شراء كل كورس لوحده. اشتراك سنوي دلوقتي بـ{' '}
+              {courseProduct ? (
+                /* Sold on its own — a subscription doesn't open it, so
+                   pitching one here would be a lie the buyer discovers
+                   after paying. Show the real price instead. */
+                <>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 mb-3 rounded-full bg-amber-500 text-white text-[11px] font-bold">
+                    <Star className="w-3 h-3 fill-white" />
+                    كورس بريميوم — بيتباع لوحده
+                  </div>
+                  <h3 className="font-display text-xl font-bold mb-2">
+                    اشتري الكورس ده مرة واحدة
+                  </h3>
+                  <div className="mb-3">
+                    <span
+                      className="font-display text-4xl font-extrabold text-brand-700"
+                      dir="ltr"
+                    >
+                      ${courseProduct.priceUsd}
+                    </span>
+                    <span className="text-sm text-gray-500 ms-2">مرة واحدة</span>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-4">
+                    الكورس ده مش داخل في الاشتراك الشهري ولا السنوي. بتدفع مرة
+                    واحدة والوصول <strong>دايم</strong>.
+                  </p>
+                  <ul className="space-y-2 mb-5 text-sm">
+                    {[
+                      'وصول دائم — من غير تجديد',
+                      'كل التحديثات المستقبلية مجاناً',
+                      'شهادة إتمام',
+                      'ضمان استرداد ٧ أيام',
+                    ].map((f) => (
+                      <li key={f} className="flex items-start gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-brand-500 mt-0.5 flex-shrink-0" />
+                        <span className="text-gray-700">{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Button asChild className="w-full" size="lg">
+                    <Link href={checkoutHrefFor(courseProduct)}>
+                      اشتري بـ ${courseProduct.priceUsd}
+                      <ArrowLeft className="w-4 h-4" />
+                    </Link>
+                  </Button>
+                  {/* The bundle is the better deal for anyone weighing a
+                      second course — surfacing it here is where that
+                      decision actually gets made. */}
+                  <Link
+                    href="/ai-bundle"
+                    className="mt-3 block text-center text-xs text-gray-600 hover:text-brand-700 leading-relaxed"
+                  >
+                    أو خد التلات كورسات مع بعض بـ{' '}
+                    <strong className="text-brand-700">${AI_BUNDLE.priceUsd}</strong> بدل $
+                    {BUNDLE_ANCHOR_USD} — وفّر ${BUNDLE_SAVINGS_USD}
+                  </Link>
+                  {/* Most of the audience is in Egypt and doesn't hold a
+                      card that works on Stripe. Without this the local
+                      rail is invisible and the sale just doesn't happen. */}
+                  <Link
+                    href={`/offline/egp?product=${courseProduct.id}`}
+                    className="mt-2 block text-center text-[11px] text-gray-500 hover:text-brand-700"
+                  >
+                    من مصر؟ ادفع بـ InstaPay أو Vodafone Cash ({courseProduct.priceEgp} ج.م)
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <h3 className="font-display text-xl font-bold mb-2">
+                    اشترك واحصل على كل الكورسات
+                  </h3>
+                  <p className="text-sm text-gray-600 mb-4">
+                    اشتراك سنوي دلوقتي بـ{' '}
                     <strong>${pricing.yearlyAmount}/سنة</strong> (بدل ${pricing.yearlyAnchor} —
-                    خصم {pricing.savingsPct}% لفترة محدودة) بيفتحلك كل المحتوى + المساعد الذكي + الشهادة.
-                  </>
-                )}
-              </p>
-              <ul className="space-y-2 mb-5 text-sm">
-                {[
-                  'وصول كامل لكل الكورسات',
-                  'فيديوهات بجودة عالية',
-                  'مسابقات وشهادات إتمام',
-                  'إلغاء في أي وقت',
-                ].map((f) => (
-                  <li key={f} className="flex items-start gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-brand-500 mt-0.5 flex-shrink-0" />
-                    <span className="text-gray-700">{f}</span>
-                  </li>
-                ))}
-              </ul>
-              <Button asChild className="w-full" size="lg">
-                <Link
-                  href={access.requiresYearly ? '/checkout?plan=yearly' : '/personal-plan'}
-                >
-                  {access.requiresYearly ? 'رقّي للباقة السنوية' : 'احصل على خطتك الشخصية'}
-                  <ArrowLeft className="w-4 h-4" />
-                </Link>
-              </Button>
+                    خصم {pricing.savingsPct}% لفترة محدودة) بيفتحلك كل كورسات المنصة + المساعد
+                    الذكي + الشهادة.
+                  </p>
+                  <ul className="space-y-2 mb-5 text-sm">
+                    {[
+                      'وصول لكل كورسات الاشتراك',
+                      'فيديوهات بجودة عالية',
+                      'مسابقات وشهادات إتمام',
+                      'إلغاء في أي وقت',
+                    ].map((f) => (
+                      <li key={f} className="flex items-start gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-brand-500 mt-0.5 flex-shrink-0" />
+                        <span className="text-gray-700">{f}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Button asChild className="w-full" size="lg">
+                    <Link href="/personal-plan">
+                      احصل على خطتك الشخصية
+                      <ArrowLeft className="w-4 h-4" />
+                    </Link>
+                  </Button>
+                </>
+              )}
             </div>
           )}
 

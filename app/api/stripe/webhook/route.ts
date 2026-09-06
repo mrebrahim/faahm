@@ -7,6 +7,7 @@ import {
   resolveUserIdFromCustomer,
   upsertSubscriptionFromStripe,
 } from '@/lib/billing';
+import { fulfilCoursePurchaseSession } from '@/lib/purchases';
 
 // Stripe requires the raw body for signature verification.
 export const runtime = 'nodejs';
@@ -140,6 +141,19 @@ export async function POST(request: NextRequest) {
               session.id
             );
           }
+          break;
+        }
+
+        // One-off course / bundle purchase. Opened by
+        // /api/checkout/course, stamped with metadata.service='course'
+        // and the product id. Fulfilment is idempotent, which matters
+        // because /purchase/success fulfils too — whichever arrives
+        // first wins and the second call is a no-op.
+        if (
+          session.mode === 'payment' &&
+          (session.metadata?.service as string | undefined) === 'course'
+        ) {
+          await fulfilCoursePurchaseSession(session);
           break;
         }
 

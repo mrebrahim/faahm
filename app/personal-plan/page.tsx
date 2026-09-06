@@ -5,6 +5,7 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { unstable_cache } from 'next/cache';
 import { APP_NAME, ROUTES } from '@/lib/constants';
 import { pricingFor } from '@/lib/region';
+import { COURSE_PRICE_USD } from '@/lib/catalog';
 import { SARMoney } from '@/components/sar-money';
 import { CourseCarousel, type CarouselCourse } from '@/components/course-carousel';
 // Plain client-component imports. Earlier these were behind next/dynamic
@@ -1001,18 +1002,20 @@ function YearlyCard({ p }: { p: ReturnType<typeof pricingFor> }) {
         </p>
         <p className="text-xs sm:text-sm text-center text-gray-700 bg-brand-500/5 border border-brand-500/20 rounded-lg py-2 px-3 mb-5 leading-relaxed">
           * تدفع <span className="font-bold"><SARMoney value={p.yearlyAmount} /></span>{' '}
-          للسنة كاملة — اشتراك واحد يفتح كل الكورسات. وفّر{' '}
+          للسنة كاملة — اشتراك واحد يفتح كل كورسات المنصة. وفّر{' '}
           <span className="font-bold text-brand-700">
             <SARMoney value={p.savings} />
           </span>{' '}
           ({p.savingsPct}%)
         </p>
         <ul className="space-y-2.5 mb-6">
-          <Feat ok text="وصول كامل لكل الكورسات" />
-          <Feat ok text="كورسات n8n و AI Video و Vibe Coding" />
+          <Feat ok text="وصول لكل كورسات الاشتراك" />
           <Feat ok text="المساعد الذكي فاهم" />
           <li><CertificateBullet /></li>
           <Feat ok text="أولوية الدعم الفني" />
+          {/* n8n / AI Video / Vibe Coding are bought outright — saying
+              so on the card is cheaper than a refund conversation. */}
+          <Feat text={`n8n و AI Video و Vibe Coding بتتشترى لوحدها ($${COURSE_PRICE_USD})`} />
         </ul>
         <Button asChild size="lg" className="w-full font-bold min-h-[52px]">
           <Link href="/checkout?plan=yearly">
@@ -1045,8 +1048,8 @@ function MonthlyCard({ p }: { p: ReturnType<typeof pricingFor> }) {
         </div>
         <div className="h-[60px] mb-5" />
         <ul className="space-y-2.5 mb-6">
-          <Feat ok muted text="وصول لمعظم الكورسات" />
-          <Feat text="بدون n8n و AI Video و Vibe Coding" />
+          <Feat ok muted text="وصول لكورسات الاشتراك" />
+          <Feat text={`n8n و AI Video و Vibe Coding بتتشترى لوحدها ($${COURSE_PRICE_USD})`} />
           <Feat text="بدون المساعد الذكي فاهم" />
           <Feat text="بدون شهادة إتمام" />
           <Feat text="بدون أولوية الدعم الفني" />

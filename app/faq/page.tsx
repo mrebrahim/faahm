@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { APP_NAME, ROUTES } from '@/lib/constants';
 import { pricingFor } from '@/lib/region';
+import { COURSE_PRICE_USD, AI_BUNDLE, BUNDLE_ANCHOR_USD } from '@/lib/catalog';
 import { HelpCircle, ArrowLeft } from 'lucide-react';
 
 export const metadata = {
@@ -14,7 +15,7 @@ export const dynamic = 'force-dynamic';
 function buildFaqs(p: ReturnType<typeof pricingFor>) {
   // Yearly-vs-monthly copy is rebuilt per request so the FAQ never
   // advertises the wrong price for whichever tier is live right now.
-  const yearlyVsMonthlyAnswer = `آه فيه فرق كبير. الشهري بـ $${p.monthlyAmount}/شهر وبيفتحلك معظم الكورسات بس — من غير كورسات n8n و AI Video و Vibe Coding، ومن غير المساعد الذكي والشهادة. السنوي دلوقتي بـ $${p.yearlyAmount}/سنة بدل $${p.yearlyAnchor} — وفّر ${p.savingsPct}% لفترة محدودة — وفيه كل حاجة: كل الكورسات (شامل التلاتة دول) + المساعد الذكي فاهم + شهادة الإتمام + أولوية الدعم الفني.`;
+  const yearlyVsMonthlyAnswer = `آه فيه فرق. الشهري بـ $${p.monthlyAmount}/شهر وبيفتحلك كورسات الاشتراك بس — من غير المساعد الذكي والشهادة. السنوي دلوقتي بـ $${p.yearlyAmount}/سنة بدل $${p.yearlyAnchor} — وفّر ${p.savingsPct}% — وفيه كل كورسات الاشتراك + المساعد الذكي فاهم + شهادة الإتمام + أولوية الدعم الفني. كورسات n8n و AI Video و Vibe Coding مش داخلة في أي اشتراك — بتتشترى لوحدها بـ $${COURSE_PRICE_USD} للكورس، أو $${AI_BUNDLE.priceUsd} للتلاتة مع بعض.`;
 
   const FAQS: Array<{ section: string; items: Array<{ q: string; a: React.ReactNode }> }> = [
   {
@@ -42,7 +43,7 @@ function buildFaqs(p: ReturnType<typeof pricingFor>) {
       },
       {
         q: 'الاشتراك بيدّيني وصول لكل الكورسات؟',
-        a: 'الاشتراك السنوي أيوه — بيفتحلك كل الكورسات على المنصة من غير استثناء. الاشتراك الشهري بيفتحلك معظم الكورسات، ما عدا تلات كورسات متاحين في الباقة السنوية بس: n8n و AI Video و Vibe Coding. في الحالتين مفيش كورس بيتباع لوحده.',
+        a: `الاشتراك (شهري أو سنوي) بيفتحلك كل كورسات المنصة ما عدا تلاتة: n8n و AI Video و Vibe Coding. التلاتة دول بيتباعوا لوحدهم — $${COURSE_PRICE_USD} للكورس الواحد، أو $${AI_BUNDLE.priceUsd} للتلاتة مع بعض (بدل $${BUNDLE_ANCHOR_USD})، والوصول فيهم دايم من غير تجديد.`,
       },
       {
         q: 'هل في فرق بين الاشتراك الشهري والسنوي؟',
@@ -93,7 +94,7 @@ function buildFaqs(p: ReturnType<typeof pricingFor>) {
     items: [
       {
         q: 'الكورسات بتتجدّد إزاي؟',
-        a: 'بنضيف كورسات جديدة باستمرار وبنحدّث القديمة لما الأدوات تتطوّر (n8n, ChatGPT, AI Video tools). كل اشتراك بيشمل المحتوى الجديد بدون أي رسوم إضافية.',
+        a: 'بنضيف كورسات جديدة باستمرار وبنحدّث القديمة لما الأدوات تتطوّر (n8n, ChatGPT, AI Video tools). الاشتراك بيشمل كل الكورسات الجديدة اللي بتنزل تحته، وأي كورس اشتريته لوحده بتوصلك تحديثاته مجاناً.',
       },
       {
         q: 'أقدر أنزّل الفيديوهات وأشوفها أوفلاين؟',

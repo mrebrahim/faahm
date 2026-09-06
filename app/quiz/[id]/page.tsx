@@ -502,7 +502,7 @@ function PaywallCard({ course }: { course: { slug: string } }) {
       <Lock className="w-10 h-10 mx-auto mb-3 opacity-80" />
       <h2 className="font-display text-xl font-bold mb-2">الكويز ده للمشتركين فقط</h2>
       <p className="text-sm text-gray-300 mb-4">
-        اشترك وافتحلك كل الكورسات والكويزات.
+        اشترك وافتحلك كورسات الاشتراك والكويزات.
       </p>
       <div className="flex items-center justify-center gap-2">
         <Button asChild className="bg-white text-gray-900 hover:bg-gray-100 shadow-none">

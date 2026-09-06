@@ -1,5 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/server';
 import { canAccessCourse } from '@/lib/access';
+import { productForCourseSlug } from '@/lib/catalog';
 import { getMobileUser, jsonError } from '@/lib/mobile-auth';
 import { resolveVideoEmbed } from '@/lib/video';
 
@@ -35,6 +36,11 @@ export async function GET(
   if (!course || !course.is_published) {
     return jsonError('الكورس ده مش موجود.', 404, 'not_found');
   }
+
+  // Non-null for the courses sold on their own, so the app can print
+  // the real price on the lock screen instead of an upsell that
+  // wouldn't unlock it.
+  const courseProduct = productForCourseSlug(course.slug);
 
   const [access, chaptersRes, progressRes] = await Promise.all([
     canAccessCourse(user?.id ?? null, course.id),
@@ -118,7 +124,8 @@ export async function GET(
       rating_avg: Number(course.rating_avg) || 0,
       rating_count: course.rating_count,
       is_free: course.is_free,
-      yearly_only: course.yearly_only,
+      sold_separately: course.yearly_only === true,
+      price_usd: courseProduct?.priceUsd ?? null,
       trailer: trailer ? { kind: trailer.kind, url: trailer.src } : null,
       instructor: instructor
         ? {
@@ -131,11 +138,11 @@ export async function GET(
     access: {
       unlocked,
       free: access.free,
-      requires_yearly: access.requiresYearly,
+      requires_purchase: access.requiresPurchase,
       lock_reason: unlocked
         ? null
-        : access.requiresYearly
-          ? 'needs_yearly'
+        : access.requiresPurchase
+          ? 'needs_purchase'
           : 'needs_subscription',
     },
     progress: {
