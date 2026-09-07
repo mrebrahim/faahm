@@ -114,11 +114,15 @@ export async function grantCoursePurchase(args: {
 /**
  * Write the access grant.
  *
- * `source` is written as 'purchase' where the column allows it. Older
- * deploys constrain that column to the values the admin tools use, and
- * a rejected insert here would mean a paying customer gets nothing — so
- * a constraint violation retries as 'manual' with the real story kept
- * in `notes`. Access is what matters; the label is bookkeeping.
+ * `source` is written as 'purchase'. Production's
+ * enrollments_source_check accepts that value as of the
+ * allow_purchase_as_enrollment_source migration (2026-09-07) — before
+ * it did not, and every purchase silently landed as an admin grant.
+ *
+ * The retry is kept for environments whose constraint predates that
+ * migration: a rejected insert here would mean a paying customer gets
+ * nothing, so it falls back to 'manual' with the real story in `notes`.
+ * Access is what matters; the label is bookkeeping.
  */
 async function upsertPermanentEnrollment(
   service: ReturnType<typeof createServiceClient>,
