@@ -86,19 +86,22 @@ export type ThreadComment = {
 };
 
 /**
- * The community is a YEARLY-plan benefit.
+ * Who gets into the community.
  *
- * Not "any subscription" — a monthly subscriber gets the locked state
- * with a clear reason, which is a far better experience than an empty
- * room, and it gives the yearly plan something concrete that the
- * monthly one doesn't have.
+ * It used to be a yearly-plan perk. Plans are no longer sold, so that
+ * rule would have sealed the room shut — nobody new could ever qualify.
+ * Access now follows COURSE OWNERSHIP: buy a course and you're in, and
+ * the people still holding a legacy subscription keep their place.
  *
- * The same check gates reading and posting: there's no half-access
- * tier here, and `community_groups_for` enforces the identical rule in
- * SQL so the app (which queries Supabase directly) can't bypass it.
+ * The same check gates reading and posting — there's no half-access
+ * tier — and the SQL side (`has_yearly_subscription`, kept under its old
+ * name because RLS policies call it) enforces the identical rule, so
+ * the mobile app, which queries Supabase directly, can't bypass it.
  */
 export async function canAccessCommunity(userId: string | null | undefined): Promise<boolean> {
   if (!userId) return false;
+  // Legacy name, current rule: "owns a course, or holds a live
+  // subscription from before plans were retired".
   const { data } = await createServiceClient().rpc('has_yearly_subscription', {
     p_user: userId,
   });

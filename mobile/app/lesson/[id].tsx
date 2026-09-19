@@ -168,7 +168,7 @@ export default function LessonScreen() {
           </T>
           {CAN_SHOW_PURCHASE_CTA ? (
             <Button
-              label="شوف الباقات"
+              label="شوف الكورسات"
               style={{ marginTop: spacing.lg }}
               onPress={() => router.push('/subscribe')}
             />

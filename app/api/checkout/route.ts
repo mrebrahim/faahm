@@ -1,67 +1,20 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { ROUTES, PLANS, STRIPE_PAYMENT_LINKS, type PlanId } from '@/lib/constants';
+import { NextResponse } from 'next/server';
 import { resolveAppUrl } from '@/lib/app-url';
-import { getPromoState } from '@/lib/promo';
-
-const GUEST_EMAIL_COOKIE = 'guest_checkout_email';
 
 /**
- * Subscription checkout entry point. Instead of calling the Stripe API
- * to mint a Checkout Session, we redirect straight to the pre-built
- * Stripe Payment Link for the chosen plan. Each Payment Link MUST be
- * a subscription Payment Link (mode=subscription) wired to a recurring
- * USD price in Stripe Dashboard — $10/month with interval=month for
- * the monthly plan, and TWO yearly links ($80 mid + $40 deep) that swap
- * based on the promo tier live at request time.
- * Stripe then charges the card automatically at the interval; renewals
- * arrive here via 'customer.subscription.updated' + 'invoice.payment_
- * succeeded' webhooks handled by /api/stripe/webhook.
+ * Retired subscription checkout endpoint.
  *
- *   GET /api/checkout?plan=monthly|yearly[&email=user@example.com]
+ * Plans are no longer sold. One-off course and bundle purchases go
+ * through /api/checkout/course, which opens a Stripe Checkout Session
+ * priced from lib/catalog.ts.
  *
- * `email` (or the guest_checkout_email cookie) is forwarded to Stripe
- * as `prefilled_email` so the visitor doesn't re-enter what they
- * already typed on /checkout.
+ * Kept as a redirect rather than deleted: old Payment Link buttons and
+ * bookmarks still hit this path, and a 404 there just loses the sale.
  */
-export async function GET(request: NextRequest) {
-  const url = new URL(request.url);
-  const planParam = url.searchParams.get('plan');
-  const origin = resolveAppUrl();
-
-  if (planParam !== 'monthly' && planParam !== 'yearly') {
-    return NextResponse.redirect(`${origin}${ROUTES.pricing}`);
-  }
-  const plan = planParam as PlanId;
-
-  // Pull the visitor's email so Stripe's Payment Link arrives with
-  // it pre-filled. Order: query param → cookie. Empty/missing is fine
-  // — Payment Links collect the email themselves if we don't.
-  const guestEmailParam =
-    url.searchParams.get('email')?.trim().toLowerCase() || null;
-  const guestEmailCookie =
-    cookies().get(GUEST_EMAIL_COOKIE)?.value?.trim().toLowerCase() || null;
-  const email = guestEmailParam || guestEmailCookie || null;
-
-  // Yearly is a permanent $40 offer — always the deep-tier Stripe
-  // Payment Link. The mid-tier link is kept in constants.ts as a
-  // dead-letter fallback in case we re-enable the tier switch later.
-  // Monthly is not affected by any promo.
-  const linkKey: keyof typeof STRIPE_PAYMENT_LINKS =
-    plan === 'yearly' ? 'yearly_deep' : 'monthly';
-  // Reference so tsc doesn't strip the import when we're not calling it.
-  void getPromoState;
-  const target = new URL(STRIPE_PAYMENT_LINKS[linkKey]);
-  if (email) {
-    // Stripe Payment Links accept ?prefilled_email=... to seed the
-    // customer's email field on the hosted page.
-    target.searchParams.set('prefilled_email', email);
-  }
-
-  return NextResponse.redirect(target.toString(), { status: 303 });
+export async function GET() {
+  return NextResponse.redirect(`${resolveAppUrl()}/pricing`, { status: 303 });
 }
 
-// Hint to consumers what plans we expect (helps debugging).
 export async function HEAD() {
-  return NextResponse.json({ plans: Object.keys(PLANS) });
+  return NextResponse.json({ retired: true, use: '/api/checkout/course' });
 }

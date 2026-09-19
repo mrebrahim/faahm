@@ -1,8 +1,7 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
-import { APP_NAME, ROUTES } from '@/lib/constants';
-import { pricingFor, type Region } from '@/lib/region';
+import { APP_NAME, ROUTES, OFFLINE_PAYMENTS } from '@/lib/constants';
 import {
   PAID_COURSES,
   PAID_COURSE_SLUGS,
@@ -11,64 +10,46 @@ import {
   BUNDLE_SAVINGS_USD,
   BUNDLE_SAVINGS_PCT,
   COURSE_PRICE_USD,
+  COURSE_PRICE_EGP,
   checkoutHrefFor,
 } from '@/lib/catalog';
-import { SARMoney } from '@/components/sar-money';
 import { SocialProofToast } from '@/components/social-proof-toast';
-import { CheckCircle2, XCircle, ArrowLeft, Sparkles, Star, Zap } from 'lucide-react';
+import { CheckCircle2, ArrowLeft, Sparkles, Star } from 'lucide-react';
 
 export const metadata = {
-  title: 'الأسعار — فاهم!',
-  description:
-    'اشتراك واحد بيفتحلك كورسات فاهم، وكورسات n8n و AI Video و Vibe Coding بتتشترى لوحدها. شوف الأسعار كلها.',
+  title: `الأسعار — ${APP_NAME}`,
+  description: `كل كورس بـ $${COURSE_PRICE_USD} مرة واحدة والوصول دايم، أو خد التلات كورسات مع بعض بـ $${AI_BUNDLE.priceUsd} بدل $${BUNDLE_ANCHOR_USD}.`,
 };
 
 export const dynamic = 'force-dynamic';
 
 /**
- * Pricing page styled after the "split + anchor" psychology spec:
- *  - Yearly card lands first visually (RTL: right side) so the eye
- *    catches the "best deal" before scanning the monthly comparison.
- *  - Yearly headline price is shown as a per-month figure (40÷12 ≈ 3.33)
- *    to remove the sticker shock of the annual total — the small print
- *    underneath spells out the real yearly charge (tier-dependent).
- *  - Yearly card carries an anchored $120/year strikethrough that
- *    establishes the list price BEFORE the current-tier figure is shown.
- *  - Monthly card is intentionally neutral (gray/dark CTA) so it works
- *    as a comparison anchor rather than a competing call-to-action.
- *  Real price switches by tier via pricingFor('us') → getPromoState():
- *  MID ($80) on days 6-20, DEEP ($40) on days 21-5. Stripe Payment Links
- *  and PayPal plan IDs both flip at the same boundary.
+ * The whole price list on one page.
+ *
+ * There is no subscription any more: every course is bought once and
+ * kept forever, and the bundle is the same three courses at a discount.
+ * That makes this page simple on purpose — three identical cards and
+ * the bundle that beats them, with the arithmetic shown rather than
+ * asserted so the saving survives a sceptical reader.
  */
 export default async function PricingPage({
   searchParams,
 }: {
-  searchParams: { err?: string };
+  searchParams: { error?: string };
 }) {
   const supabase = createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Single-currency funnel: every visitor sees USD on /pricing. There's
-  // no toggle / no auto-detect here — the page just runs the USD pricing
-  // table. (The Region type and pricingFor() helper stay around so the
-  // downstream Stripe price ID lookup keeps working.)
-  const region: Region = 'us';
-  const pricing = pricingFor(region);
-
-  // Soft-fail banner: /api/checkout redirects here with ?err=stripe_*
-  // when the Stripe price ID / session create blew up. Beats a Chrome
-  // HTTP 500 page for the visitor.
-  const errorCode = searchParams.err ?? null;
+  // /api/checkout/course redirects here with ?error=checkout_failed when
+  // the Stripe session couldn't be opened. Beats a raw 500 for the buyer.
+  const failed = searchParams.error === 'checkout_failed';
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Live social proof — PRD §14. Capped at 5/session, paused while
-          inputs are focused, never blocks the CTAs. */}
       <SocialProofToast />
 
-      {/* Header */}
       <header className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur-xl">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Link href={ROUTES.home} className="flex items-center gap-2">
@@ -96,125 +77,77 @@ export default async function PricingPage({
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-12 sm:py-16 max-w-5xl">
-        {/* Page header. PRD §2.1: the 'اشتراك واحد' pill registered the
-            highest dead-click rate on /pricing — visitors expected it
-            to do something. Turning it into a real anchor link down to
-            the plans block both kills the dead click and gives eager
-            visitors a one-tap path to the cards. */}
+      <main className="container mx-auto px-4 py-12 sm:py-16 max-w-4xl">
         <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-12">
-          <Link
-            href="#plans"
-            className="inline-flex items-center gap-2 px-4 py-1.5 mb-6 rounded-full border border-brand-500/30 bg-brand-500/10 hover:bg-brand-500/15 transition-colors"
-          >
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 mb-6 rounded-full border border-brand-500/30 bg-brand-500/10">
             <Sparkles className="w-4 h-4 text-brand-500" />
             <span className="text-sm font-medium text-brand-700">
-              اشتراك واحد لكل كورسات المنصة
+              تدفع مرة واحدة — من غير اشتراك ولا تجديد
             </span>
-          </Link>
+          </div>
           <h1 className="font-display text-3xl sm:text-4xl md:text-6xl font-extrabold mb-4">
-            اختار <span className="text-gradient-brand">الباقة</span> اللي تناسبك
+            اختار <span className="text-gradient-brand">كورسك</span>
           </h1>
-          <p className="text-gray-600 text-base sm:text-lg">
-            ابدأ النهارده، والغي في أي وقت من غير أسئلة.
+          <p className="text-gray-600 text-base sm:text-lg leading-relaxed">
+            كل كورس بتشتريه يفضل معاك للأبد، بكل تحديثاته الجاية.
           </p>
         </div>
 
-        {errorCode && (
-          <div className="max-w-3xl mx-auto mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-start">
+        {failed && (
+          <div className="max-w-2xl mx-auto mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-start">
             <div className="text-sm font-bold text-amber-800 mb-1">
               في مشكلة بسيطة في بوابة الدفع
             </div>
             <p className="text-xs text-amber-700 leading-relaxed">
-              ما قدرناش نوصّلك لصفحة Stripe دلوقتي. ممكن تجرّب تاني بعد
-              دقيقة، أو تستخدم PayPal أو InstaPay أو Vodafone Cash من
-              صفحة الدفع. لو لسه مش شغّال كلّمنا على واتساب.
+              ما قدرناش نوصّلك لصفحة Stripe دلوقتي. جرّب تاني بعد دقيقة، أو ادفع
+              بـ InstaPay أو Vodafone Cash، أو كلّمنا على واتساب.
             </p>
           </div>
         )}
 
-        {/* Plans — yearly first in DOM ⇒ lands on the RIGHT in RTL */}
-        <div id="plans" className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6 max-w-3xl mx-auto scroll-mt-20">
-          <YearlyCard
-            user={user}
-            region={region}
-            anchorYear={pricing.yearlyAnchor}
-            perMonth={pricing.yearlyAmount}
-            yearTotal={pricing.yearlyAmount}
-            savings={pricing.savings}
-            savingsPct={pricing.savingsPct}
-          />
-          <MonthlyCard
-            user={user}
-            region={region}
-            price={pricing.monthlyAmount}
-          />
-        </div>
-
-        {/* ── Sold separately ──────────────────────────────────────────
-            The three premium courses sit OUTSIDE both plans. Putting
-            them on the pricing page next to the subscription is the
-            only place a visitor can see the whole price list at once —
-            leaving them off is what makes someone buy the $40 plan and
-            then ask why n8n is locked. */}
-        <section id="courses" className="mt-14 sm:mt-20 max-w-3xl mx-auto scroll-mt-20">
-          <div className="text-center mb-6 sm:mb-8">
-            <div className="inline-flex items-center gap-2 px-3 py-1 mb-3 rounded-full bg-amber-500/10 border border-amber-500/30">
-              <Star className="w-3.5 h-3.5 text-amber-600" />
-              <span className="text-xs font-bold text-amber-700">كورسات بريميوم</span>
+        {/* ── The bundle first: it is the offer, the single courses are
+            the comparison that makes it look right. ────────────────── */}
+        <div className="rounded-3xl border-2 border-brand-500/40 bg-gradient-to-br from-brand-500/5 to-white p-6 sm:p-8 mb-8">
+          <div className="text-center">
+            <div className="inline-flex items-center gap-2 px-3 py-1 mb-4 rounded-full bg-brand-500 text-white text-xs font-bold">
+              <Star className="w-3.5 h-3.5 fill-white" />
+              الأوفر
             </div>
-            <h2 className="font-display text-2xl sm:text-3xl font-extrabold mb-2">
-              كورسات بتتشترى لوحدها
+            <h2 className="font-display text-2xl sm:text-3xl font-extrabold mb-1">
+              AI Bundle — التلات كورسات
             </h2>
-            <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
-              التلات كورسات دي مش داخلة في الاشتراك الشهري ولا السنوي — بتدفع مرة
-              واحدة والوصول <strong>دايم</strong>.
+            <p className="text-sm text-gray-600 mb-4">
+              أتمتة n8n + AI Video Master + Vibe Coding
             </p>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-5">
-            {PAID_COURSE_SLUGS.map((slug) => {
-              const product = PAID_COURSES[slug];
-              return (
-                <div
-                  key={slug}
-                  className="rounded-2xl border border-gray-200 bg-white p-4 sm:p-5 text-center flex flex-col"
-                >
-                  <div className="font-bold text-sm sm:text-base mb-2 min-w-0">
-                    {product.titleAr}
-                  </div>
-                  <div
-                    className="font-display text-2xl sm:text-3xl font-extrabold text-brand-700 mb-3"
-                    dir="ltr"
-                  >
-                    ${product.priceUsd}
-                  </div>
-                  <Button asChild variant="outline" size="sm" className="w-full mt-auto">
-                    <Link href={checkoutHrefFor(product)}>اشتري الكورس</Link>
-                  </Button>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* The bundle is the point of this section — it's why someone
-              weighing one course buys three. */}
-          <div className="rounded-2xl border-2 border-brand-500/40 bg-gradient-to-br from-brand-500/5 to-white p-5 sm:p-6 text-center">
-            <div className="text-sm text-gray-600 mb-1">التلاتة مع بعض</div>
             <div className="mb-2">
-              <span className="text-lg text-gray-400 line-through font-medium me-2" dir="ltr">
+              <span
+                className="text-xl text-gray-400 line-through font-medium me-2"
+                dir="ltr"
+              >
                 ${BUNDLE_ANCHOR_USD}
               </span>
               <span
-                className="font-display text-4xl sm:text-5xl font-extrabold text-brand-700"
+                className="font-display text-5xl sm:text-6xl font-extrabold text-brand-700"
                 dir="ltr"
               >
                 ${AI_BUNDLE.priceUsd}
               </span>
             </div>
-            <div className="text-xs sm:text-sm text-emerald-700 font-bold mb-4">
-              وفّر ${BUNDLE_SAVINGS_USD} ({BUNDLE_SAVINGS_PCT}%) + بونصات مجانية
-            </div>
+            <p className="text-sm font-bold text-emerald-700 mb-6">
+              وفّر ${BUNDLE_SAVINGS_USD} ({BUNDLE_SAVINGS_PCT}%) — و{BUNDLE_ANCHOR_USD}$ هو
+              سعر التلاتة لو اشتريتهم واحد واحد
+            </p>
+
+            <ul className="max-w-sm mx-auto space-y-2.5 mb-6 text-start">
+              <Feature text="التلات كورسات كاملة" />
+              <Feature text="وصول دائم — من غير تجديد" />
+              <Feature text="كل التحديثات المستقبلية مجاناً" />
+              <Feature text="سيرفر n8n مجاني + ١٥,٠٠٠ قالب" />
+              <Feature text="شهادة إتمام لكل كورس" />
+              <Feature text="ضمان استرداد ٧ أيام" />
+            </ul>
+
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <Button asChild size="lg" className="w-full sm:w-auto font-bold">
                 <Link href={checkoutHrefFor(AI_BUNDLE)}>
@@ -227,13 +160,78 @@ export default async function PricingPage({
               </Button>
             </div>
           </div>
-        </section>
+        </div>
 
-        {/* Trust strip. F.1: refund-policy badge now actually links —
-            matches the /checkout behaviour. The other two stay static
-            text because they don't have a destination. */}
-        <div className="mt-10 sm:mt-12 grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 max-w-3xl mx-auto text-sm">
-          <TrustItem text="إلغاء في أي وقت" />
+        {/* ── Single courses ───────────────────────────────────────── */}
+        <div className="text-center mb-5">
+          <h2 className="font-display text-xl sm:text-2xl font-extrabold mb-1">
+            أو كورس لوحده
+          </h2>
+          <p className="text-sm text-gray-600">
+            كل كورس بـ ${COURSE_PRICE_USD}، والوصول دايم برضه.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">
+          {PAID_COURSE_SLUGS.map((slug) => {
+            const product = PAID_COURSES[slug];
+            return (
+              <div
+                key={slug}
+                className="rounded-2xl border border-gray-200 bg-white p-5 text-center flex flex-col"
+              >
+                <div className="font-bold text-sm sm:text-base mb-2 min-w-0">
+                  {product.titleAr}
+                </div>
+                <div
+                  className="font-display text-3xl font-extrabold text-brand-700 mb-4"
+                  dir="ltr"
+                >
+                  ${product.priceUsd}
+                </div>
+                <div className="mt-auto flex flex-col gap-2">
+                  <Button asChild size="sm" className="w-full">
+                    <Link href={checkoutHrefFor(product)}>اشتري</Link>
+                  </Button>
+                  {/* Nobody spends $60 on a syllabus they haven't read. */}
+                  <Link
+                    href={ROUTES.course(slug)}
+                    className="text-xs text-gray-600 hover:text-brand-700"
+                  >
+                    شوف المحتوى
+                  </Link>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Egypt is the largest slice of the audience and most of it
+            can't pay on Stripe — the local rail has to be visible here,
+            not buried in an FAQ. */}
+        <div className="rounded-2xl border border-gray-200 bg-white p-5 text-center mb-10">
+          <div className="text-sm font-bold mb-1">من مصر؟</div>
+          <p className="text-xs text-gray-600 leading-relaxed mb-3">
+            ادفع بـ InstaPay أو Vodafone Cash — الكورس بـ {COURSE_PRICE_EGP.toLocaleString('en')} ج.م
+            والـ Bundle بـ {AI_BUNDLE.priceEgp.toLocaleString('en')} ج.م.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2 justify-center">
+            <Button asChild size="sm" variant="outline">
+              <Link href={`/offline/egp?product=${AI_BUNDLE.id}`}>ادفع محلياً</Link>
+            </Button>
+            <a
+              href={`https://wa.me/${OFFLINE_PAYMENTS.confirmationWhatsApp}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl border border-emerald-200 text-emerald-800 text-sm font-medium hover:bg-emerald-50 transition-colors"
+            >
+              كلّمنا على واتساب
+            </a>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 max-w-3xl mx-auto text-sm">
+          <TrustItem text="وصول فوري بعد الدفع" />
           <Link
             href="/refund-policy"
             className="flex items-center justify-center gap-2 rounded-xl bg-white border border-emerald-200 px-4 py-3 text-emerald-800 font-medium text-xs sm:text-sm hover:border-emerald-300 hover:bg-emerald-50/60 transition-colors"
@@ -241,14 +239,11 @@ export default async function PricingPage({
             <span aria-hidden>🛡️</span>
             ضمان استرداد 7 أيام
           </Link>
-          <TrustItem text="دفع آمن عبر Stripe و PayPal" />
+          <TrustItem text="دفع آمن عبر Stripe" />
         </div>
 
-        {/* FAQ Hint */}
         <div className="mt-12 sm:mt-16 text-center">
-          <h3 className="font-display text-xl sm:text-2xl font-bold mb-2">
-            عندك سؤال؟
-          </h3>
+          <h3 className="font-display text-xl sm:text-2xl font-bold mb-2">عندك سؤال؟</h3>
           <p className="text-gray-500 mb-4 text-sm sm:text-base">
             تواصل معانا على واتساب أو شوف الأسئلة الشائعة
           </p>
@@ -266,214 +261,20 @@ export default async function PricingPage({
   );
 }
 
-function YearlyCard({
-  user,
-  region,
-  anchorYear,
-  perMonth,
-  yearTotal,
-  savings,
-  savingsPct,
-}: {
-  user: any;
-  region: Region;
-  anchorYear: number | string;
-  perMonth: number | string;
-  yearTotal: number | string;
-  savings: number;
-  savingsPct: number;
-}) {
-  // Guest checkout: send everyone straight to /checkout. The page itself
-  // collects an email if there's no session, and the account is
-  // provisioned on the success page after the payment lands. The region
-  // travels with the request so the Stripe price ID picked downstream
-  // matches the currency we showed the visitor here.
-  void user;
-  // Clean URL — no &region=sa. resolveRegion() defaults to 'sa' on
-  // every downstream surface so the param is redundant noise that
-  // also looks ugly in Meta Ads URL columns and breaks shareable
-  // payment-link previews.
-  void region;
-  const href = `/checkout?plan=yearly`;
-
+function Feature({ text }: { text: string }) {
   return (
-    <div className="relative rounded-2xl overflow-hidden border-2 border-brand-500 bg-white shadow-2xl shadow-brand-500/20 md:scale-[1.03] md:order-1">
-      {/* Corner savings badge — always visible since we're always
-          below the $120 anchor. */}
-      <div className="absolute top-3 start-3 z-10 px-2 py-0.5 rounded-full bg-emerald-500 text-white text-[10px] font-extrabold shadow">
-        وفّر {savingsPct}%
-      </div>
-
-      {/* Green header band */}
-      <div className="bg-brand-500 text-white text-center py-4 px-4">
-        <div className="font-display text-xl sm:text-2xl font-extrabold">سنوي</div>
-        <div className="inline-flex items-center gap-1 mt-1 text-xs font-bold opacity-95">
-          <Star className="w-3 h-3 fill-white" />
-          الأكثر مبيعاً
-        </div>
-      </div>
-
-      <div className="p-6 sm:p-8">
-        {/* Anchor (strikethrough) is always the $120 list price — the
-            headline below is always the current-tier ($80 or $40). */}
-        <div className="text-sm text-gray-400 line-through font-medium text-center mb-1">
-          <SARMoney value={anchorYear} />/سنة
-        </div>
-
-        {/* Hero price — split per month. Big enough that the SAR symbol
-            sits right next to the digit at headline size, with a
-            slight nudge down so the riyal glyph doesn't dwarf the
-            number. */}
-        <div className="text-center mb-3">
-          <div className="flex items-baseline justify-center">
-            <span className="text-5xl sm:text-6xl font-extrabold font-display text-foreground">
-              <SARMoney
-                value={perMonth}
-                symbolClassName="w-[0.55em] h-[0.55em] mx-1"
-              />
-            </span>
-          </div>
-          <div className="text-sm text-gray-500 mt-1">/ سنة</div>
-        </div>
-
-        <p className="text-xs sm:text-sm text-center text-brand-700 font-medium mb-2">
-          ☕ أقل من سعر قهوة في اليوم
-        </p>
-
-        <p className="text-xs sm:text-sm text-center text-gray-700 bg-brand-500/5 border border-brand-500/20 rounded-lg py-2 px-3 mb-5 leading-relaxed">
-          * تدفع{' '}
-          <span className="font-bold">
-            <SARMoney value={yearTotal} />
-          </span>{' '}
-          بدلاً من{' '}
-          <span className="font-bold line-through text-gray-400">
-            <SARMoney value={anchorYear} />
-          </span>{' '}
-          سنوياً — وفّر{' '}
-          <span className="font-bold text-brand-700">
-            <SARMoney value={savings} />
-          </span>{' '}
-          ({savingsPct}%)
-        </p>
-
-        {/* Feature list */}
-        <ul className="space-y-2.5 mb-6">
-          <Feature text="وصول لكل كورسات الاشتراك" />
-          <Feature text="المساعد الذكي فاهم" />
-          <Feature text="شهادة إتمام لكل كورس" />
-          <Feature text="أولوية الدعم الفني" />
-          <Feature text="وصول مبكر للكورسات الجديدة" />
-          {/* Said out loud on the most expensive card, not buried in an
-              FAQ. A buyer who finds this out after paying asks for a
-              refund; one who reads it here buys the bundle too. */}
-          <MissingFeature text={`n8n و AI Video و Vibe Coding بتتشترى لوحدها ($${COURSE_PRICE_USD})`} />
-        </ul>
-
-        {/* CTA — solid green */}
-        <Button asChild size="lg" className="w-full font-bold">
-          <Link href={href}>
-            <Zap className="w-4 h-4" />
-            اشتراك الآن
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function MonthlyCard({
-  user,
-  region,
-  price,
-}: {
-  user: any;
-  region: Region;
-  price: number | string;
-}) {
-  void user;
-  void region;
-  const href = `/checkout?plan=monthly`;
-
-  return (
-    <div className="relative rounded-2xl overflow-hidden border border-gray-200 bg-white md:order-2">
-      {/* Neutral header band */}
-      <div className="bg-gray-100 text-gray-700 text-center py-4 px-4">
-        <div className="font-display text-xl sm:text-2xl font-bold">شهري</div>
-        <div className="mt-1 text-xs text-gray-500">مرونة بدون التزام طويل</div>
-      </div>
-
-      <div className="p-6 sm:p-8">
-        {/* Spacer to vertical-align with the yearly card's anchor row */}
-        <div className="h-5 mb-1" />
-
-        <div className="text-center mb-3">
-          <div className="flex items-baseline justify-center">
-            <span className="text-5xl sm:text-6xl font-extrabold font-display text-foreground">
-              <SARMoney
-                value={price}
-                symbolClassName="w-[0.55em] h-[0.55em] mx-1"
-              />
-            </span>
-          </div>
-          <div className="text-sm text-gray-500 mt-1">/ شهر</div>
-        </div>
-
-        {/* Spacer to vertical-align with the savings callout on the yearly card */}
-        <div className="h-[60px] mb-5" />
-
-        {/* Monthly is intentionally feature-gated to "courses only" so
-            the comparison vs. yearly isn't just price — the visitor sees
-            exactly what they lose if they don't take the yearly. */}
-        <ul className="space-y-2.5 mb-6">
-          <Feature text="وصول لكورسات الاشتراك" muted />
-          <MissingFeature text={`n8n و AI Video و Vibe Coding بتتشترى لوحدها ($${COURSE_PRICE_USD})`} />
-          <MissingFeature text="بدون المساعد الذكي فاهم" />
-          <MissingFeature text="بدون شهادة إتمام" />
-          <MissingFeature text="بدون أولوية الدعم الفني" />
-        </ul>
-
-        {/* CTA — dark/secondary so it doesn't compete with the yearly green */}
-        <Button asChild size="lg" variant="outline" className="w-full font-bold">
-          <Link href={href}>
-            اشتراك الآن
-            <ArrowLeft className="w-4 h-4" />
-          </Link>
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function Feature({ text, muted = false }: { text: string; muted?: boolean }) {
-  return (
-    <li className="flex items-start gap-2.5 text-sm leading-relaxed">
-      <CheckCircle2
-        className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
-          muted ? 'text-gray-400' : 'text-brand-500'
-        }`}
-      />
-      <span className={muted ? 'text-gray-600' : 'text-gray-800'}>{text}</span>
-    </li>
-  );
-}
-
-function MissingFeature({ text }: { text: string }) {
-  return (
-    <li className="flex items-start gap-2.5 text-sm leading-relaxed">
-      <XCircle className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-300" />
-      <span className="text-gray-400 line-through decoration-gray-300">
-        {text}
-      </span>
+    <li className="flex items-start gap-3 text-sm">
+      <CheckCircle2 className="w-5 h-5 text-brand-500 flex-shrink-0 mt-0.5" />
+      <span className="text-gray-700">{text}</span>
     </li>
   );
 }
 
 function TrustItem({ text }: { text: string }) {
   return (
-    <div className="flex items-center justify-center gap-2 rounded-xl bg-white border border-gray-200 px-4 py-3 text-gray-700">
+    <div className="flex items-center justify-center gap-2 rounded-xl bg-white border border-gray-200 px-4 py-3 text-gray-700 font-medium text-xs sm:text-sm">
       <CheckCircle2 className="w-4 h-4 text-brand-500 flex-shrink-0" />
-      <span className="font-medium text-xs sm:text-sm">{text}</span>
+      {text}
     </div>
   );
 }

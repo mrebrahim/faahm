@@ -1,22 +1,15 @@
 /**
- * One-off purchases — the à-la-carte half of the price list.
+ * The price list.
  *
- * فاهم sells two different shapes of thing and they must not be
- * confused:
+ * فاهم sells three courses and the bundle that packages them. Every
+ * purchase is ONE-OFF: $60 a course, $99 for all three, and the access
+ * it grants never expires. There is no subscription — the monthly and
+ * yearly plans were retired, and nothing here should ever grow a
+ * recurring price again without a deliberate decision to sell one.
  *
- *   SUBSCRIPTION ($10/month, $40/year)  → the general catalogue.
- *   PURCHASE     ($60 a course, $99 the bundle) → n8n, AI Video and
- *                Vibe Coding, which no subscription covers.
- *
- * The three premium courses are deliberately OUTSIDE the subscription.
- * A $40/year plan that also unlocked them would make the $60 and $99
- * products unsellable — nobody pays $60 for something a $40 plan opens.
- * So a subscription buys the catalogue; these three are bought once and
- * kept forever.
- *
- * In the database they carry the legacy `courses.yearly_only` flag.
- * The column name is a leftover from when they were a yearly-plan perk;
- * it now means "sold separately". Renaming the column would need a
+ * In the database the three carry the legacy `courses.yearly_only`
+ * flag. The column name is a leftover from when they were a yearly-plan
+ * perk; it now means "sold separately". Renaming it would need a
  * migration and a coordinated deploy for zero behavioural gain, so the
  * flag stays and every TypeScript surface calls it `soldSeparately`.
  */
@@ -34,7 +27,7 @@ export type PurchasableProduct = {
    * Deliberately a fixed table rather than a live FX conversion — it
    * has to match what the admin reconciles a WhatsApp screenshot
    * against, and a rate that moves daily makes that impossible.
-   * Anchored to the existing table (yearly $40 = 2,000 ج.م).
+   * Anchored to the rate the EGP table has always used (~50 ج.م/$).
    */
   priceEgp: number;
   /** Strikethrough figure. Null when there is nothing honest to anchor to. */

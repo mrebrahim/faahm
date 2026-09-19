@@ -122,9 +122,9 @@ function SuccessView({ plan }: { plan: 'monthly' | 'yearly' }) {
             مبروك!
           </h1>
           <p className="text-base opacity-95 leading-relaxed">
-            تم تفعيل اشتراكك بنجاح لمدة{' '}
+            تم تفعيل وصولك بنجاح لمدة{' '}
             <span className="font-bold">{durationLabel}</span> —{' '}
-            كورسات الاشتراك دلوقتي مفتوحة لك مجاناً.
+            الكورسات دلوقتي مفتوحة لك مجاناً.
           </p>
         </div>
 
@@ -136,7 +136,7 @@ function SuccessView({ plan }: { plan: 'monthly' | 'yearly' }) {
             <li className="flex items-start gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0 mt-0.5" />
               <span>
-                وصول لكل كورسات الاشتراك على فاهم
+                وصول للكورسات على فاهم
               </span>
             </li>
             <li className="flex items-start gap-2">

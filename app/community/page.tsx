@@ -181,7 +181,7 @@ export default async function CommunityPage({
             ) : groups.length === 0 ? null : (
               <div className="rounded-2xl border border-brand-500/30 bg-brand-500/5 p-4 sm:p-5">
                 <p className="text-sm leading-relaxed mb-3">
-                  الكتابة في الكوميونيتي لطلبة فاهم. ابدأ بكورس مجاني أو اشترك
+                  الكتابة في الكوميونيتي لطلبة فاهم. اشتري أي كورس وتقدر تشارك
                   وهتقدر تسأل وتشارك على طول.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
@@ -189,7 +189,7 @@ export default async function CommunityPage({
                     <Link href="/courses?free=1">الكورسات المجانية</Link>
                   </Button>
                   <Button asChild variant="outline" className="w-full sm:w-auto">
-                    <Link href="/pricing">شوف الباقات</Link>
+                    <Link href="/pricing">شوف الكورسات</Link>
                   </Button>
                 </div>
               </div>
@@ -292,18 +292,18 @@ function CommunityLocked() {
             👑
           </div>
           <h1 className="font-display text-2xl sm:text-3xl font-extrabold mb-3">
-            الكوميونيتي للباقة السنوية
+            الكوميونيتي لأصحاب الكورسات
           </h1>
           <p className="text-gray-600 leading-relaxed mb-6">
-            كوميونيتي فاهم متاح لمشتركي الباقة السنوية. تقدر تسأل، تشارك
-            نقاش، تحط مصدر مفيد، وتدخل جروبات الكورسات اللي معاك.
+            كوميونيتي فاهم متاح لأي حد اشترى كورس. تقدر تسأل، تشارك نقاش،
+            تحط مصدر مفيد، وتدخل جروبات الكورسات اللي معاك.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button asChild className="w-full sm:w-auto">
-              <Link href="/checkout?plan=yearly">اشترك سنوي</Link>
+              <Link href="/pricing">شوف الكورسات</Link>
             </Button>
             <Button asChild variant="outline" className="w-full sm:w-auto">
-              <Link href="/pricing">شوف الباقات</Link>
+              <Link href="/ai-bundle">AI Bundle</Link>
             </Button>
           </div>
         </div>

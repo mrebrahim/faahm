@@ -1,32 +1,28 @@
 # Pricing — the whole price list in one place
 
-Last changed: 2026-09-06 (premium courses moved out of the subscription).
+Last changed: 2026-09-19 (subscriptions retired; the site is a one-off course shop).
 
 ## What is sold
 
-| Product | Price | EGP rail | What it opens | Duration |
-|---|---|---|---|---|
-| Monthly subscription | $10 | 500 ج.م | The general catalogue | Renews monthly |
-| Yearly subscription | $40 | 2,000 ج.م | The general catalogue + AI assistant + certificates | Renews yearly |
-| n8n | $60 | 3,000 ج.م | That course | **Permanent** |
-| AI Video Master | $60 | 3,000 ج.م | That course | **Permanent** |
-| Vibe Coding | $60 | 3,000 ج.م | That course | **Permanent** |
-| AI Bundle | $99 | 5,000 ج.م | All three above | **Permanent** |
+| Product | Price | EGP rail | Access |
+|---|---|---|---|
+| n8n | $60 | 3,000 ج.م | **Permanent** |
+| AI Video Master | $60 | 3,000 ج.م | **Permanent** |
+| Vibe Coding | $60 | 3,000 ج.م | **Permanent** |
+| AI Bundle (all three) | $99 | 5,000 ج.م | **Permanent** |
 
-**No subscription covers n8n, AI Video or Vibe Coding.** This is the single
-rule the whole implementation exists to enforce. A $40/year plan that also
-unlocked them would make the $60 and $99 products unsellable, so they sit
-outside every plan.
+**There is no subscription.** The $10/month and $40/year plans were retired on
+2026-09-19. Nothing on the site sells a recurring price, and nothing should
+grow one back without a deliberate decision to start selling one.
 
 The bundle anchor ($180) is real arithmetic — 3 × $60 — not an invented list
 price, so "you save $81" survives a sceptical reading.
 
 ## Where the numbers live
 
-`lib/catalog.ts` is the single source of truth for the one-off prices.
-`lib/constants.ts` (`PLANS`) and `lib/promo.ts` hold the subscription
-figures. Every marketing surface imports from those — no page hard-codes a
-price, so a change is one edit and cannot drift from what Stripe charges.
+`lib/catalog.ts` is the single source of truth. Every marketing surface
+imports from it — no page hard-codes a price, so a change is one edit and
+cannot drift from what Stripe charges.
 
 The one exception is the EGP table, which is deliberately a fixed charm-priced
 list rather than a live FX conversion: an admin reconciles a WhatsApp payment
@@ -34,13 +30,16 @@ screenshot against it, and a rate that moves daily makes that impossible.
 `app/offline/egp/page.tsx` and `app/api/mobile/pricing/route.ts` must always
 agree — a mismatch between web and app is a support ticket every time.
 
+`lib/promo.ts` no longer carries a price. It is just the rolling monthly
+countdown deadline the landing page shows.
+
 ## How access is decided
 
 `lib/access.ts → canAccessCourse()` in three rules, in order:
 
 1. `courses.is_free` → open to anyone signed in.
 2. `courses.yearly_only` → open **only** on an `enrollments` row.
-3. Otherwise → open on any live subscription.
+3. Otherwise → open on any live subscription (legacy holders only).
 
 ### The `yearly_only` column name is a lie
 
@@ -48,16 +47,15 @@ It used to mean "included with the yearly plan". It now means **"sold
 separately"**. Renaming the column would need a migration plus a coordinated
 deploy for zero behavioural gain, so the column stayed and every TypeScript
 surface calls it `soldSeparately`. If you are reading the DB directly, that is
-what the flag means.
+what the flag means. All three published courses carry it.
 
 ### Everything grants through `enrollments`
 
 A purchase, a coupon redemption, an admin hand-grant and the grandfather
-backfill all write the same row. There is exactly one way into a premium
-course, which is why there is no second code path to keep in sync.
+backfill all write the same row. There is exactly one way into a course, which
+is why there is no second code path to keep in sync.
 
-`expires_at = null` means permanent — that is what a purchase writes. A
-non-null value is a time-boxed grant.
+`expires_at = null` means permanent — that is what a purchase writes.
 
 ## Purchase flow
 
@@ -72,9 +70,7 @@ non-null value is a time-boxed grant.
 
 Nothing is configured in the Stripe dashboard. The session is built with
 inline `price_data` from `lib/catalog.ts`, so there are no products, prices or
-payment links to keep in sync — the same approach the dubbing service uses.
-(The *subscription* funnel still uses pre-built Payment Links; that is
-unchanged.)
+payment links to keep in sync.
 
 Fulfilment runs from **both** the webhook and the success page on purpose. The
 webhook is the reliable path; the success page is the fast one, and it means a
@@ -90,21 +86,50 @@ Enrollments**, which writes the same permanent `enrollments` row. Note this
 path does *not* write a `payments` row, so manual sales don't appear in
 /admin/revenue — record those separately if the number matters.
 
-## Existing subscribers (the 2026-09-06 migration)
+## Legacy subscribers
 
-Yearly subscribers who had these three courses when the change shipped keep
-them **until their current subscription period ends**, then lose them at
-renewal. That is encoded as an `enrollments` row whose `expires_at` is their
-`current_period_end` — no special-case code, and the lock happens by itself on
-the right date.
+~61 people bought a yearly plan before it was retired. They keep working:
 
-Run `supabase/2026-09-06-grandfather-premium-courses.sql` once, at deploy time.
-It has a dry run, the insert, verification queries and a rollback. It is
-idempotent and `ON CONFLICT DO NOTHING`, so it can never downgrade someone who
-actually bought a course.
+* `canAccessCourse` still honours a live subscription (rule 3).
+* They hold `enrollments` rows for the three courses, expiring at their
+  `current_period_end` — written by
+  `supabase/2026-09-06-grandfather-premium-courses.sql`.
+* `/settings` and `/api/billing/portal` still let them cancel.
+* The Stripe webhook still processes their renewals and cancellations, which
+  is why `planFromPriceId` and the `STRIPE_PRICE_ID_*` env vars stay.
 
-Monthly subscribers are excluded — `yearly_only` already blocked them, so they
-lose nothing.
+Nothing sells them a renewal. When their period ends, they lose the three
+courses unless someone decides to make those grants permanent.
+
+## Retired routes
+
+Kept as redirects so old ads, emails and WhatsApp links don't 404:
+
+| Route | Goes to |
+|---|---|
+| `/checkout`, `/api/checkout` | `/pricing` |
+| `/personal-plan` | `/` |
+
+Deleted outright: `/checkout/paypal`, `/offline/barq`, `lib/paypal.ts`,
+`lib/region.ts`, `components/promo-banner.tsx`, `components/personal-plan-quiz.tsx`.
+
+## The front door
+
+`/` and `/ai-bundle` render the same component
+(`components/ai-bundle-landing.tsx`). The bundle funnel is the home page; the
+old URL keeps working for every ad already pointing at it, and its metadata
+sets `/` as canonical so the two don't compete in search.
+
+Course cards on that page link to the course pages, so a visitor can read the
+whole syllabus and play the free previews before spending $60.
+
+## The community
+
+Gated on **course ownership**, not a plan — it used to be a yearly-plan perk,
+which after the retirement would have sealed it shut for everyone new. The SQL
+function is still named `has_yearly_subscription` because RLS policies call it
+by name; the rule inside is "owns a live enrollment, or holds a legacy
+subscription".
 
 ## The mobile app
 
@@ -114,13 +139,3 @@ so the iOS build shows that a course is locked and says nothing about price or
 where to buy. Android may show the price and a WhatsApp buy button.
 
 Every purchase CTA in the app must stay behind `CAN_SHOW_PURCHASE_CTA`.
-
-## Copy rule
-
-Every surface that prices a plan must also say, on the same card, that n8n /
-AI Video / Vibe Coding are bought separately. Not in an FAQ — on the card.
-A buyer who discovers it after paying asks for a refund; one who reads it at
-the point of decision buys the bundle too.
-
-Surfaces currently carrying that line: `/` , `/pricing`, `/personal-plan`,
-`/faq`, `/help`, the app's subscribe screen.

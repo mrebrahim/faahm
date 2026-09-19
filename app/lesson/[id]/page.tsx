@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
 import { ROUTES, APP_NAME } from '@/lib/constants';
-import { pricingFor } from '@/lib/region';
 import { formatDuration } from '@/lib/utils';
 import { resolveVideoEmbed } from '@/lib/video';
 import { canAccessCourse } from '@/lib/access';
@@ -621,33 +620,26 @@ function PaywallBlock({
   /** Used to work out whether this course is bought or subscribed to. */
   courseSlug?: string | null;
 }) {
-  const pricing = pricingFor('us');
   // n8n / AI Video / Vibe Coding are bought outright — pitching a
   // subscription on one of their lessons would sell something that
   // doesn't unlock the page the visitor is looking at.
   const product = productForCourseSlug(courseSlug);
 
   // Logged-in but unsubscribed users see a subscribe CTA. Anonymous
-  // visitors get the guest-checkout funnel (/personal-plan) — they
+  // visitors are sent to the price list — they
   // can pay before signing up, and the post-payment claim form
   // provisions the account from their email.
   const cta = product
     ? { href: checkoutHrefFor(product), label: `اشتري بـ $${product.priceUsd}` }
-    : loggedIn
-      ? { href: ROUTES.pricing, label: 'اشترك دلوقتي' }
-      : { href: '/personal-plan', label: 'احصل على خطتك الشخصية' };
+    : { href: ROUTES.pricing, label: 'شوف الأسعار' };
 
   const heading = product
     ? 'الكورس ده بيتباع لوحده'
-    : loggedIn
-      ? 'الدرس ده للمشتركين فقط'
-      : 'الدرس ده مش معاينة مجانية';
+    : 'الدرس ده مش معاينة مجانية';
 
   const body = product
-    ? `الكورس ده مش داخل في الاشتراك. بتدفع $${product.priceUsd} مرة واحدة والوصول دايم — أو خد التلات كورسات مع بعض بـ $${AI_BUNDLE.priceUsd}.`
-    : loggedIn
-      ? `اشترك دلوقتي بـ $${pricing.yearlyAmount}/سنة (بدل $${pricing.yearlyAnchor} — خصم ${pricing.savingsPct}% لفترة محدودة) واحصل على كل دروس الكورس + كل كورسات الاشتراك!`
-      : 'سجّل حساب مجاني عشان تشوف الدروس المجانية، أو اشترك للوصول الكامل.';
+    ? `بتدفع $${product.priceUsd} مرة واحدة والوصول دايم — أو خد التلات كورسات مع بعض بـ $${AI_BUNDLE.priceUsd}.`
+    : 'الدرس ده متاح بعد شراء الكورس. الدروس المجانية مفتوحة لأي حد.';
 
   return (
     <div className="aspect-video w-full rounded-2xl border border-gray-200 bg-gradient-to-br from-gray-900 to-gray-700 text-white flex items-center justify-center p-6 sm:p-8">

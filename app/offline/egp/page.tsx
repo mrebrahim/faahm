@@ -2,13 +2,7 @@ import Link from 'next/link';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import {
-  APP_NAME,
-  PLANS,
-  ROUTES,
-  OFFLINE_PAYMENTS,
-  type PlanId,
-} from '@/lib/constants';
+import { APP_NAME, ROUTES, OFFLINE_PAYMENTS } from '@/lib/constants';
 import {
   ArrowRight,
   ExternalLink,
@@ -27,46 +21,32 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-const isPlan = (v: unknown): v is PlanId => v === 'monthly' || v === 'yearly';
 
 /**
- * Egyptian offline-payment combo. Visitors in Egypt can pay with EITHER
- * InstaPay (preferred) or Vodafone Cash on the same page — both quoted
- * in EGP because they're transferring locally and the SAR figure on
- * /pricing doesn't help them in a Vodafone Cash app.
+ * Egyptian offline payment — InstaPay or Vodafone Cash.
  *
- * EGP pricing is intentionally a separate, charm-priced table (500 /
- * 2000) rather than an FX conversion of the USD funnel. Admins
- * reconcile the WhatsApp screenshot against this EGP figure.
- * Yearly = 2000 ج.م ≈ the current $40 USD offer.
+ * Quoted in EGP because the visitor is transferring locally and a dollar
+ * figure doesn't help inside a Vodafone Cash app. The figures come from
+ * lib/catalog.ts and are a fixed charm-priced table rather than a live
+ * FX conversion: an admin reconciles the WhatsApp screenshot against
+ * them, and a rate that moves daily makes that impossible.
  */
-const EGP_AMOUNT: Record<PlanId, number> = {
-  monthly: 500,
-  yearly: 2000,
-};
 
 export default async function EgyptOfflinePage({
   searchParams,
 }: {
-  searchParams: { plan?: string; product?: string };
+  searchParams: { product?: string };
 }) {
-  // Two things can be paid for on this rail: a subscription (?plan=)
-  // and a one-off course or bundle (?product=). Both end the same way —
-  // the visitor transfers locally and sends a screenshot on WhatsApp,
-  // and an admin grants access — so they share one page rather than
-  // duplicating the InstaPay / Vodafone Cash instructions.
+  // One thing is paid for on this rail: a course or the bundle. The
+  // visitor transfers locally, sends a screenshot on WhatsApp, and an
+  // admin grants access from /admin/students/[id].
   const product = productById(searchParams.product);
-  const planParam = searchParams.plan;
+  if (!product) redirect(ROUTES.pricing);
 
-  if (!product && !isPlan(planParam)) redirect(ROUTES.pricing);
-
-  const itemName = product ? product.titleAr : PLANS[planParam as PlanId].name;
-  const itemId = product ? product.id : (planParam as PlanId);
-  const backHref = product
-    ? product.slugs.length > 1
-      ? '/ai-bundle'
-      : `/course/${product.slugs[0]}`
-    : `/checkout?plan=${planParam}`;
+  const itemName = product.titleAr;
+  const itemId = product.id;
+  const backHref =
+    product.slugs.length > 1 ? '/ai-bundle' : `/course/${product.slugs[0]}`;
 
   // Guest checkout: accept visitors with just an email in the cookie.
   // Admins confirm manually after the WhatsApp screenshot lands.
@@ -76,13 +56,12 @@ export default async function EgyptOfflinePage({
   } = await supabase.auth.getUser();
   const guestEmail = user ? null : cookies().get(GUEST_EMAIL_COOKIE)?.value || null;
   if (!user && !guestEmail) {
-    // A one-off buyer has no /checkout step to fall back to, so send
-    // them to sign in — the grant needs an account to land on.
-    redirect(product ? `${ROUTES.login}?next=/offline/egp?product=${product.id}` : `/checkout?plan=${planParam}`);
+    // The grant needs an account to land on, so sign-in comes first.
+    redirect(`${ROUTES.login}?next=/offline/egp?product=${product.id}`);
   }
   const ownerEmail = user?.email ?? guestEmail ?? '';
 
-  const egpAmount = product ? product.priceEgp : EGP_AMOUNT[planParam as PlanId];
+  const egpAmount = product.priceEgp;
   const instapayLink = OFFLINE_PAYMENTS.instapay.link;
   const vodafoneNumber = OFFLINE_PAYMENTS.vodafoneCash.phone;
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=8&data=${encodeURIComponent(instapayLink)}`;
@@ -103,7 +82,7 @@ export default async function EgyptOfflinePage({
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-foreground mb-4"
         >
           <ArrowRight className="w-4 h-4" />
-          {product ? 'رجوع' : 'العودة لطرق الدفع'}
+رجوع
         </Link>
 
         <div className="rounded-2xl bg-white border border-gray-200 overflow-hidden">
@@ -222,13 +201,11 @@ export default async function EgyptOfflinePage({
             <p className="text-xs text-gray-600 leading-relaxed mb-3 flex items-start gap-1.5">
               <Copy className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-gray-400" />
               بعد الدفع (بأي من الطريقتين)، خد سكرين شوت من إشعار النجاح
-              وابعتها على واتساب عشان نفعّل{' '}
-              {product ? 'الكورس' : 'اشتراكك'} خلال ساعات قليلة.
+              وابعتها على واتساب عشان نفعّل الكورس خلال ساعات قليلة.
             </p>
             <WhatsAppConfirmButton
               email={ownerEmail}
-              plan={product ? undefined : (planParam as PlanId)}
-              itemLabel={product ? product.titleAr : undefined}
+              itemLabel={product.titleAr}
               amount={egpAmount}
               currencyLabel="ج.م"
               channel="InstaPay / Vodafone Cash"

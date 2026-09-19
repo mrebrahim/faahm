@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { COURSE_PRICE_USD, AI_BUNDLE } from '@/lib/catalog';
 import { APP_NAME, APP_TAGLINE, ROUTES } from '@/lib/constants';
-import { pricingFor } from '@/lib/region';
 import {
   Sparkles,
   Target,
@@ -19,7 +19,6 @@ export const metadata = {
 export const dynamic = 'force-dynamic';
 
 export default function AboutPage() {
-  const pricing = pricingFor('us');
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
@@ -107,7 +106,7 @@ export default function AboutPage() {
             <Bullet
               n="03"
               title="اشتراك واحد، وصول لكل حاجة"
-              body={`اشترك بـ $${pricing.yearlyAmount}/سنة (بدل $${pricing.yearlyAnchor} — خصم ${pricing.savingsPct}%) وافتح كل كورسات الاشتراك، وتقدر تلغي في أي وقت. وكورسات n8n و AI Video و Vibe Coding بتتشترى لوحدها ويفضلوا معاك للأبد.`}
+              body={`كل كورس بتشتريه مرة واحدة ويفضل معاك للأبد — $${COURSE_PRICE_USD} للكورس، أو $${AI_BUNDLE.priceUsd} للتلات كورسات مع بعض. مفيش اشتراك ولا تجديد ولا حاجة بتقفل في وشك.`}
             />
             <Bullet
               n="04"
@@ -129,12 +128,12 @@ export default function AboutPage() {
           جاهز تبدأ رحلتك؟
         </h2>
         <p className="text-gray-600 mb-8 leading-relaxed">
-          ابدأ بتصفّح الكورسات أو اشترك دلوقتي وافتح كورسات الاشتراك كلها.
+          ابدأ بتصفّح الكورسات، أو خد الـ Bundle وافتح التلاتة مع بعض.
         </p>
         <div className="flex flex-wrap items-center justify-center gap-3">
           <Button asChild size="lg">
             <Link href={ROUTES.pricing}>
-              اشترك دلوقتي
+              شوف الأسعار
               <ArrowLeft className="w-4 h-4" />
             </Link>
           </Button>

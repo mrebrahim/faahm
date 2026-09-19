@@ -4,8 +4,8 @@ import { redirect } from 'next/navigation';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { applyPendingInvitesForCurrentUser } from '@/lib/invites';
 import { Button } from '@/components/ui/button';
+import { AI_BUNDLE, BUNDLE_ANCHOR_USD, BUNDLE_SAVINGS_USD } from '@/lib/catalog';
 import { ROUTES, APP_NAME } from '@/lib/constants';
-import { pricingFor } from '@/lib/region';
 import { listClaimableCourseIds } from '@/lib/cert-eligibility';
 import { getUserXp, levelProgress } from '@/lib/xp';
 import {
@@ -139,7 +139,6 @@ export default async function DashboardPage() {
   const hasSubscription = !!subscription;
   const hasAnyAccess = hasSubscription || myCourses.length > 0;
   const isAdmin = profile?.role === 'admin';
-  const pricing = pricingFor('us');
   const certs = issuedCerts || [];
   const claimable = claimableCourses || [];
 
@@ -320,14 +319,15 @@ export default async function DashboardPage() {
           <div className="mb-8 p-6 rounded-2xl bg-gradient-to-r from-brand-500/10 to-brand-500/5 border border-brand-500/30">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div>
-                <h3 className="font-bold text-lg mb-1">ابدأ رحلة التعلّم الكاملة</h3>
+                <h3 className="font-bold text-lg mb-1">ابدأ رحلة التعلّم</h3>
                 <p className="text-sm text-gray-600">
-                  اشترك دلوقتي واحصل على وصول كامل لكل الكورسات بـ ${pricing.yearlyAmount}/سنة (بدل ${pricing.yearlyAnchor} — خصم {pricing.savingsPct}% لفترة محدودة)
+                  خد التلات كورسات مع بعض بـ ${AI_BUNDLE.priceUsd} بدل ${BUNDLE_ANCHOR_USD} — وصول
+                  دايم من غير اشتراك ولا تجديد.
                 </p>
               </div>
               <Button asChild>
                 <Link href={ROUTES.pricing}>
-                  اشترك دلوقتي
+                  شوف الأسعار
                   <ArrowLeft className="w-4 h-4" />
                 </Link>
               </Button>
@@ -341,14 +341,14 @@ export default async function DashboardPage() {
           <div className="mb-8 p-5 rounded-2xl bg-gradient-to-r from-amber-50 to-white border border-amber-200">
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div>
-                <h3 className="font-bold mb-1">افتح كل الكورسات — مش بس اللي معاك</h3>
+                <h3 className="font-bold mb-1">افتح باقي الكورسات</h3>
                 <p className="text-xs text-gray-600 leading-relaxed">
-                  بـ ${pricing.yearlyAmount}/سنة تفتحلك المنصة كلها + المساعد الذكي فاهم في كل درس.
+                  الـ Bundle بـ ${AI_BUNDLE.priceUsd} بيفتحلك التلاتة مع بعض — وفّر ${BUNDLE_SAVINGS_USD}.
                 </p>
               </div>
               <Button asChild variant="outline" size="sm">
                 <Link href={ROUTES.pricing}>
-                  شوف الباقات
+                  شوف الأسعار
                   <ArrowLeft className="w-4 h-4" />
                 </Link>
               </Button>

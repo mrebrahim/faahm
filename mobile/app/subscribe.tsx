@@ -3,35 +3,45 @@ import { Linking, ScrollView, StyleSheet, View } from 'react-native';
 import { Redirect, Stack } from 'expo-router';
 import { API_BASE_URL } from '../src/lib/supabase';
 import { Badge, Button, Card, ErrorState, Loading, T } from '../src/components/ui';
-import { READER_MODE, salesWhatsappUrl, SALES_WHATSAPP_DISPLAY } from '../src/lib/store-policy';
+import {
+  READER_MODE,
+  salesWhatsappUrl,
+  purchaseWhatsappUrl,
+  SALES_WHATSAPP_DISPLAY,
+} from '../src/lib/store-policy';
 import { colors, radius, spacing } from '../src/lib/theme';
 
 /**
- * Subscribe screen.
+ * Purchase screen.
  *
- * There is no checkout here. Subscribing happens over WhatsApp with a
- * human — no card handling in the app, no store commission, and it's how
- * faahm already closes most of its sales.
+ * There is no checkout here. Buying happens over WhatsApp with a human —
+ * no card handling in the app, no store commission, and it's how faahm
+ * already closes most of its sales.
  *
  * The whole screen is unreachable on iOS: Apple 3.1.3(a) forbids a
  * reader app from carrying any call to action toward an outside
- * purchase, and a WhatsApp button asking to subscribe is exactly that.
+ * purchase, and a WhatsApp button asking to buy is exactly that.
  * See src/lib/store-policy.ts.
  */
+type CourseOffer = {
+  id: string;
+  title: string;
+  price_usd: number;
+  price_egp: number;
+};
+
 type Pricing = {
   currency: string;
-  monthly: { amount: number | string; per: string; features: string[]; missing: string[] };
-  yearly: {
-    amount: number | string;
-    anchor: number | string;
-    savings_pct: number;
-    per: string;
-    features: string[];
-    /** What the plan does NOT open — the sold-separately courses. */
-    missing?: string[];
-    badge?: string;
+  courses: CourseOffer[];
+  bundle: {
+    title: string;
+    price_usd: number;
+    price_egp: number;
+    anchor_usd: number;
+    savings_usd: number;
   };
-  local: { currency: string; monthly: number; yearly: number; methods: string[] };
+  features: string[];
+  local: { currency: string; course: number; bundle: number; methods: string[] };
 };
 
 export default function SubscribeScreen() {
@@ -39,39 +49,32 @@ export default function SubscribeScreen() {
   const [error, setError] = useState<string | null>(null);
 
   /**
-   * Baked-in defaults. The API is the source of truth because the yearly
-   * price moves on a promo cycle, but a pricing screen that shows NOTHING
-   * because of a network hiccup — or a route that hasn't finished
-   * deploying — is worse than one showing last-known numbers. The
-   * WhatsApp conversation settles the final price anyway.
+   * Baked-in defaults. The API is the source of truth, but a price
+   * screen showing NOTHING because of a network hiccup — or a route
+   * that hasn't finished deploying — is worse than one showing
+   * last-known numbers. The WhatsApp conversation settles it anyway.
    */
   const FALLBACK: Pricing = {
     currency: 'USD',
-    monthly: {
-      amount: 10,
-      per: 'شهر',
-      features: ['وصول لكورسات الاشتراك', 'فيديوهات بجودة عالية', 'ملفات وموارد قابلة للتحميل'],
-      missing: [
-        'n8n و AI Video و Vibe Coding بتتشترى لوحدها',
-        'بدون المساعد الذكي',
-        'بدون شهادة إتمام',
-      ],
+    courses: [
+      { id: 'n8n', title: 'أتمتة n8n', price_usd: 60, price_egp: 3000 },
+      { id: 'ai-video', title: 'AI Video Master', price_usd: 60, price_egp: 3000 },
+      { id: 'vibe-coding', title: 'Vibe Coding', price_usd: 60, price_egp: 3000 },
+    ],
+    bundle: {
+      title: 'AI Bundle — التلات كورسات',
+      price_usd: 99,
+      price_egp: 5000,
+      anchor_usd: 180,
+      savings_usd: 81,
     },
-    yearly: {
-      amount: 40,
-      anchor: 120,
-      savings_pct: 67,
-      per: 'سنة',
-      features: [
-        'وصول لكل كورسات الاشتراك',
-        'المساعد الذكي فاهم',
-        'شهادة إتمام لكل كورس',
-        'أولوية الدعم الفني',
-      ],
-      missing: ['n8n و AI Video و Vibe Coding بتتشترى لوحدها'],
-      badge: 'وفّر 67%',
-    },
-    local: { currency: 'ج.م', monthly: 500, yearly: 2000, methods: ['InstaPay', 'Vodafone Cash'] },
+    features: [
+      'وصول دائم — من غير اشتراك ولا تجديد',
+      'كل التحديثات المستقبلية مجاناً',
+      'شهادة إتمام لكل كورس',
+      'ضمان استرداد ٧ أيام',
+    ],
+    local: { currency: 'ج.م', course: 3000, bundle: 5000, methods: ['InstaPay', 'Vodafone Cash'] },
   };
 
   const load = useCallback(async () => {
@@ -85,7 +88,10 @@ export default function SubscribeScreen() {
       if (!res.ok || !type.includes('application/json')) {
         throw new Error('pricing endpoint unavailable');
       }
-      setData(await res.json());
+      const body = await res.json();
+      // An older server that still answers with plan shapes has no
+      // `bundle`; fall back rather than render an empty screen.
+      setData(body?.bundle ? body : FALLBACK);
     } catch {
       setData(FALLBACK);
     }
@@ -99,130 +105,94 @@ export default function SubscribeScreen() {
   // but a deep link could still land on this route.
   if (READER_MODE) return <Redirect href="/(tabs)" />;
 
-  const contact = (context: string) => Linking.openURL(salesWhatsappUrl(context));
-
   if (error && !data) return <ErrorState message={error} onRetry={load} />;
   if (!data) return <Loading />;
 
   return (
     <>
-      <Stack.Screen options={{ title: 'الاشتراك' }} />
+      <Stack.Screen options={{ title: 'الكورسات' }} />
       <ScrollView contentContainerStyle={styles.scroll}>
         <T size="xxl" weight="extrabold" align="center">
-          افتح كل كورسات فاهم
+          اشتري مرة واحدة — والكورس معاك للأبد
         </T>
         <T color={colors.textMuted} align="center" style={{ marginTop: spacing.sm }}>
-          اشتراك واحد بيفتحلك المكتبة كاملة — من غير ما تدفع لكل كورس لوحده.
+          مفيش اشتراك ولا تجديد. بتدفع مرة وخلاص.
         </T>
 
-        {/* Yearly first: it's the plan we actually want people on, and
-            burying it under the monthly card costs conversions. */}
+        {/* The bundle leads: it's the offer, and the single courses are
+            the comparison that makes it look right. */}
         <Card style={[styles.card, styles.featured]}>
           <View style={styles.badges}>
-            <Badge label="👑 الأكثر توفيراً" tone="gold" />
-            {data.yearly.badge ? <Badge label={data.yearly.badge} tone="brand" /> : null}
+            <Badge label="👑 الأوفر" tone="gold" />
+            <Badge label={`وفّر $${data.bundle.savings_usd}`} tone="brand" />
           </View>
 
-          <T size="lg" weight="bold" style={{ marginTop: spacing.md }}>
-            الاشتراك السنوي
+          <T weight="bold" size="lg" style={{ marginTop: spacing.sm }}>
+            {data.bundle.title}
           </T>
+
           <View style={styles.priceRow}>
             <T size="display" weight="extrabold" color={colors.brand}>
-              ${data.yearly.amount}
+              ${data.bundle.price_usd}
             </T>
             <T size="md" color={colors.textFaint} style={styles.struck}>
-              ${data.yearly.anchor}
+              ${data.bundle.anchor_usd}
             </T>
             <T size="sm" color={colors.textMuted}>
-              / {data.yearly.per}
+              مرة واحدة
             </T>
           </View>
-          <T size="sm" color={colors.brandDark} weight="bold">
-            وفّر {data.yearly.savings_pct}%
-          </T>
 
           <View style={{ marginTop: spacing.lg, gap: spacing.sm }}>
-            {data.yearly.features.map((f) => (
+            {data.features.map((f) => (
               <T key={f} size="sm">
                 ✅ {f}
-              </T>
-            ))}
-            {/* Stating what the plan does NOT open is the difference
-                between a sale and a refund request a week later. */}
-            {(data.yearly.missing ?? []).map((f) => (
-              <T key={f} size="sm" color={colors.textMuted}>
-                ❌ {f}
               </T>
             ))}
           </View>
 
           <Button
-            label="اشترك سنوي عبر واتساب"
+            label="اطلب الـ Bundle عبر واتساب"
             style={{ marginTop: spacing.lg }}
-            onPress={() => contact('الباقة السنوية')}
+            onPress={() => Linking.openURL(purchaseWhatsappUrl(data.bundle.title))}
           />
         </Card>
 
-        <Card style={styles.card}>
-          <T size="lg" weight="bold">
-            الاشتراك الشهري
-          </T>
-          <View style={styles.priceRow}>
-            <T size="xxl" weight="extrabold">
-              ${data.monthly.amount}
-            </T>
-            <T size="sm" color={colors.textMuted}>
-              / {data.monthly.per}
-            </T>
-          </View>
+        <T weight="bold" style={{ marginTop: spacing.xl }}>
+          أو كورس لوحده — ${data.courses[0]?.price_usd ?? 60}
+        </T>
 
-          <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
-            {data.monthly.features.map((f) => (
-              <T key={f} size="sm">
-                ✅ {f}
+        {data.courses.map((c) => (
+          <Card key={c.id} style={styles.card}>
+            <View style={styles.priceRow}>
+              <T weight="bold" style={{ flex: 1 }}>
+                {c.title}
               </T>
-            ))}
-            {data.monthly.missing.map((f) => (
-              <T key={f} size="sm" color={colors.textFaint}>
-                ❌ {f}
+              <T size="lg" weight="extrabold" color={colors.brand}>
+                ${c.price_usd}
               </T>
-            ))}
-          </View>
+            </View>
+            <Button
+              label="اطلب الكورس"
+              variant="outline"
+              style={{ marginTop: spacing.md }}
+              onPress={() => Linking.openURL(purchaseWhatsappUrl(c.title))}
+            />
+          </Card>
+        ))}
 
-          <Button
-            label="اشترك شهري عبر واتساب"
-            variant="outline"
-            style={{ marginTop: spacing.lg }}
-            onPress={() => contact('الباقة الشهرية')}
-          />
-        </Card>
-
-        <Card style={styles.card}>
-          <T weight="bold">🇪🇬 بتدفع من مصر؟</T>
-          <T size="sm" color={colors.textMuted} style={{ marginTop: spacing.xs }}>
-            فيه دفع محلي بالجنيه عبر {data.local.methods.join(' أو ')} —{' '}
-            {data.local.monthly} {data.local.currency} شهري أو {data.local.yearly}{' '}
-            {data.local.currency} سنوي. كلّمنا وهنظبطهالك.
-          </T>
-        </Card>
-
-        {/* The main CTA, repeated at the bottom because that's where a
-            reader lands after comparing the two plans. */}
         <Card style={[styles.card, styles.contact]}>
-          <T size="lg" weight="extrabold" align="center">
-            تحب تتكلم مع حد الأول؟
-          </T>
-          <T size="sm" color={colors.textMuted} align="center" style={{ marginTop: spacing.xs }}>
-            كلّم فريق فاهم على واتساب وهيرشحلك الباقة المناسبة ليك.
+          <T weight="bold">من مصر؟</T>
+          <T size="sm" color={colors.textMuted} style={{ marginTop: spacing.xs }}>
+            {data.local.course} {data.local.currency} للكورس أو {data.local.bundle}{' '}
+            {data.local.currency} للـ Bundle عبر {data.local.methods.join(' أو ')}.
           </T>
           <Button
-            label="تواصل مع الفريق للحجز"
-            style={{ marginTop: spacing.lg }}
-            onPress={() => contact('عايز أعرف الباقة المناسبة')}
+            label={`كلّمنا على ${SALES_WHATSAPP_DISPLAY}`}
+            variant="outline"
+            style={{ marginTop: spacing.md }}
+            onPress={() => Linking.openURL(salesWhatsappUrl('الدفع من مصر'))}
           />
-          <T size="xs" color={colors.textFaint} align="center" style={{ marginTop: spacing.sm }}>
-            {SALES_WHATSAPP_DISPLAY}
-          </T>
         </Card>
       </ScrollView>
     </>

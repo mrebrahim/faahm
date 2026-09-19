@@ -225,13 +225,13 @@ export default function CourseScreen() {
             <T size="xs" color="rgba(255,255,255,0.85)">
               {needsPurchase
                 ? course.price_usd
-                  ? `مش داخل في الاشتراك — $${course.price_usd} مرة واحدة`
-                  : 'مش داخل في الاشتراك — بيتشترى مرة واحدة'
-                : 'اشترك دلوقتي وافتحه مع باقي المكتبة'}
+                  ? `$${course.price_usd} مرة واحدة — الوصول دايم`
+                  : 'بيتشترى مرة واحدة — الوصول دايم'
+                : 'اشتري الكورس وافتحه — الوصول دايم'}
             </T>
           </View>
           <Button
-            label={needsPurchase ? 'اشتري الكورس' : 'اشترك دلوقتي'}
+            label="اشتري الكورس"
             variant="outline"
             style={styles.bannerBtn}
             onPress={() =>

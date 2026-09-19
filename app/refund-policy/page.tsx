@@ -41,7 +41,7 @@ export default function RefundPolicyPage() {
             <ShieldCheck className="w-7 h-7 text-emerald-600 mb-2" />
             <h2 className="font-bold text-lg mb-1">ضمان استرداد 7 أيام</h2>
             <p className="text-sm text-emerald-900/80 leading-relaxed">
-              لو غيّرت رأيك خلال أول 7 أيام من الاشتراك، نرجّع لك مبلغك
+              لو غيّرت رأيك خلال أول 7 أيام من الشراء، نرجّع لك مبلغك
               بالكامل بدون أسئلة محرجة.
             </p>
           </div>
@@ -58,7 +58,7 @@ export default function RefundPolicyPage() {
         <Section title="١. مدة الضمان وكيفية طلب الاسترجاع">
           <ul className="space-y-2.5">
             <Bullet>
-              مدة الضمان: <strong>7 أيام تقويمية</strong> من تاريخ خصم الاشتراك.
+              مدة الضمان: <strong>7 أيام تقويمية</strong> من تاريخ الشراء.
             </Bullet>
             <Bullet>
               طريقة الطلب: ابعت إيميل لـ{' '}
@@ -69,7 +69,7 @@ export default function RefundPolicyPage() {
               >
                 support@faahm.com
               </a>{' '}
-              من نفس إيميل اشتراكك، وقل لنا "أرغب في استرداد قيمة الاشتراك".
+              من نفس إيميل حسابك، وقل لنا "أرغب في استرداد قيمة الكورس".
             </Bullet>
             <Bullet>
               مدة المعالجة: نراجع طلبك خلال 48 ساعة عمل، ونبدأ الاسترداد
@@ -84,28 +84,29 @@ export default function RefundPolicyPage() {
           </ul>
         </Section>
 
-        <Section title="٢. إيقاف التجديد التلقائي (الإلغاء)">
+        <Section title="٢. مفيش تجديد تلقائي">
           <ul className="space-y-2.5">
             <Bullet>
-              ادخل على <Link href={ROUTES.dashboard} className="text-brand-600 underline hover:no-underline">لوحتي</Link>{' '}
-              → اضغط <strong>إدارة الاشتراك</strong> → اختار{' '}
-              <strong>إيقاف التجديد التلقائي</strong>.
+              بتدفع مرة واحدة وخلاص. مفيش اشتراك، مفيش تجديد، ومفيش أي مبلغ
+              بيتخصم منك بعد كده.
             </Bullet>
             <Bullet>
-              بعد الإيقاف، يفضل اشتراكك شغّال لحد آخر يوم في المدة المدفوعة،
-              ومش هتتخصم منك أي فلوس بعد كده.
+              الكورس اللي اشتريته بيفضل معاك للأبد بكل تحديثاته الجاية.
             </Bullet>
             <Bullet>
-              <strong>إيقاف التجديد ≠ استرجاع.</strong> الإلغاء بيوقف الفوترة
-              القادمة، أما الاسترجاع بيرجّعلك الفلوس اللي اتخصمت بالفعل
-              (متاح خلال أول 7 أيام بس).
+              لو عندك <strong>اشتراك قديم</strong> من قبل ما نغيّر النظام، تقدر
+              توقف تجديده من{' '}
+              <Link href={ROUTES.settings} className="text-brand-600 underline hover:no-underline">
+                الإعدادات
+              </Link>
+              ، وهيفضل شغّال لحد آخر يوم في المدة المدفوعة.
             </Bullet>
           </ul>
         </Section>
 
         <Section title="٣. حالات الاستثناء">
           <p className="text-sm text-gray-700 leading-relaxed mb-3">
-            ضمان الاسترداد بنطبّقه على كل اشتراك جديد بدون أسئلة. الحالات
+            ضمان الاسترداد بنطبّقه على كل عملية شراء بدون أسئلة. الحالات
             الوحيدة اللي ممكن نرفض فيها الاسترجاع:
           </p>
           <ul className="space-y-2.5">

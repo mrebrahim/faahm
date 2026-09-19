@@ -8,7 +8,7 @@ import { GraduationCap, ArrowLeft } from 'lucide-react';
 /**
  * Site-wide trust strip — surfaces the real student count (+1,000)
  * above every marketing page so the social proof isn't trapped on
- * /personal-plan alone. Mounted in the root layout, sits above the
+ * /pricing alone. Mounted in the root layout, sits above the
  * MainNav (and any page-specific header) so it's the first thing
  * a visitor reads.
  *
@@ -65,7 +65,7 @@ export function LearnerCountBar() {
           </span>
         </span>
         <Link
-          href="/personal-plan"
+          href="/pricing"
           className="hidden sm:inline-flex items-center gap-1 font-bold text-brand-700 hover:text-brand-800 transition-colors flex-shrink-0"
         >
           ابدأ خطتي الشخصية

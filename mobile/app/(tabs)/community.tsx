@@ -93,7 +93,7 @@ export default function CommunityScreen() {
         body="تقدر تسأل، تشارك نقاش، تحط مصدر مفيد، وتدخل جروبات الكورسات اللي معاك."
         action={
           CAN_SHOW_PURCHASE_CTA ? (
-            <Button label="شوف الباقات" onPress={() => router.push('/subscribe')} />
+            <Button label="شوف الكورسات" onPress={() => router.push('/subscribe')} />
           ) : undefined
         }
       />

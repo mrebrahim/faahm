@@ -176,9 +176,9 @@ export default async function SettingsPage({
             </div>
           ) : !subscription ? (
             <div className="text-sm text-gray-500">
-              مفيش اشتراك أو كورسات مفتوحة حالياً.{' '}
+              مفيش كورسات مفتوحة على حسابك حالياً.{' '}
               <Link href={ROUTES.pricing} className="text-brand-600 hover:underline">
-                اشترك دلوقتي
+                شوف الكورسات
               </Link>
             </div>
           ) : null}

@@ -5,7 +5,6 @@ import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
 import { MainNav } from '@/components/main-nav';
 import { ROUTES } from '@/lib/constants';
-import { pricingFor } from '@/lib/region';
 import { formatDuration } from '@/lib/utils';
 import { resolveVideoEmbed } from '@/lib/video';
 import { canAccessCourse } from '@/lib/access';
@@ -67,7 +66,6 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
   const supabase = createClient();
   const service = createServiceClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const pricing = pricingFor('us');
 
   // Cheap admin-role lookup so the shared MainNav can show the
   // 'لوحة الإدارة' shortcut to admins. Non-admins / guests get the
@@ -195,22 +193,17 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
       )
     : null;
 
-  // Primary CTA destination. For the general catalogue we point both
-  // guest visitors AND signed-in-but-unsubscribed visitors at
-  // /personal-plan + the same 'احصل على خطتك الشخصية' wording — the
-  // marketing funnel converts better than the bare /pricing surface,
-  // and one label across auth states keeps the page consistent.
-  //
-  // A sold-separately course is the exception: no subscription opens
-  // it, so the CTA is the price and goes straight to checkout.
+  // Primary CTA destination. Every published course is bought outright,
+  // so the CTA is the price and goes straight to checkout. The fallback
+  // only fires for a course with no standalone price configured.
   let ctaHref: string;
   let ctaLabel: string;
   if (!subscribed && courseProduct) {
     ctaHref = checkoutHrefFor(courseProduct);
     ctaLabel = `اشتري الكورس بـ $${courseProduct.priceUsd}`;
   } else if (!subscribed) {
-    ctaHref = '/personal-plan';
-    ctaLabel = 'احصل على خطتك الشخصية';
+    ctaHref = ROUTES.pricing;
+    ctaLabel = 'شوف الأسعار';
   } else if (resumeLessonId) {
     ctaHref = ROUTES.lesson(resumeLessonId);
     ctaLabel = 'كمّل من اللي قبل';
@@ -618,30 +611,15 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
               ) : (
                 <>
                   <h3 className="font-display text-xl font-bold mb-2">
-                    اشترك واحصل على كل الكورسات
+                    الكورس ده لسه مش متاح للشراء
                   </h3>
                   <p className="text-sm text-gray-600 mb-4">
-                    اشتراك سنوي دلوقتي بـ{' '}
-                    <strong>${pricing.yearlyAmount}/سنة</strong> (بدل ${pricing.yearlyAnchor} —
-                    خصم {pricing.savingsPct}% لفترة محدودة) بيفتحلك كل كورسات المنصة + المساعد
-                    الذكي + الشهادة.
+                    شوف باقي الكورسات المتاحة دلوقتي — كل كورس بتشتريه مرة واحدة
+                    ويفضل معاك للأبد.
                   </p>
-                  <ul className="space-y-2 mb-5 text-sm">
-                    {[
-                      'وصول لكل كورسات الاشتراك',
-                      'فيديوهات بجودة عالية',
-                      'مسابقات وشهادات إتمام',
-                      'إلغاء في أي وقت',
-                    ].map((f) => (
-                      <li key={f} className="flex items-start gap-2">
-                        <CheckCircle2 className="w-4 h-4 text-brand-500 mt-0.5 flex-shrink-0" />
-                        <span className="text-gray-700">{f}</span>
-                      </li>
-                    ))}
-                  </ul>
                   <Button asChild className="w-full" size="lg">
-                    <Link href="/personal-plan">
-                      احصل على خطتك الشخصية
+                    <Link href={ROUTES.pricing}>
+                      شوف الأسعار
                       <ArrowLeft className="w-4 h-4" />
                     </Link>
                   </Button>

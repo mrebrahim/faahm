@@ -1,8 +1,12 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { APP_NAME, ROUTES } from '@/lib/constants';
-import { pricingFor } from '@/lib/region';
-import { COURSE_PRICE_USD, AI_BUNDLE, BUNDLE_ANCHOR_USD } from '@/lib/catalog';
+import {
+  COURSE_PRICE_USD,
+  COURSE_PRICE_EGP,
+  AI_BUNDLE,
+  BUNDLE_ANCHOR_USD,
+} from '@/lib/catalog';
 import { HelpCircle, ArrowLeft } from 'lucide-react';
 
 export const metadata = {
@@ -12,42 +16,39 @@ export const metadata = {
 
 export const dynamic = 'force-dynamic';
 
-function buildFaqs(p: ReturnType<typeof pricingFor>) {
-  // Yearly-vs-monthly copy is rebuilt per request so the FAQ never
-  // advertises the wrong price for whichever tier is live right now.
-  const yearlyVsMonthlyAnswer = `آه فيه فرق. الشهري بـ $${p.monthlyAmount}/شهر وبيفتحلك كورسات الاشتراك بس — من غير المساعد الذكي والشهادة. السنوي دلوقتي بـ $${p.yearlyAmount}/سنة بدل $${p.yearlyAnchor} — وفّر ${p.savingsPct}% — وفيه كل كورسات الاشتراك + المساعد الذكي فاهم + شهادة الإتمام + أولوية الدعم الفني. كورسات n8n و AI Video و Vibe Coding مش داخلة في أي اشتراك — بتتشترى لوحدها بـ $${COURSE_PRICE_USD} للكورس، أو $${AI_BUNDLE.priceUsd} للتلاتة مع بعض.`;
-
+function buildFaqs() {
   const FAQS: Array<{ section: string; items: Array<{ q: string; a: React.ReactNode }> }> = [
   {
-    section: 'الاشتراك والوصول',
+    section: 'الشراء والوصول',
     items: [
       {
         q: 'ازاي أبدأ مع فاهم؟',
         a: (
           <>
-            ابدأ من{' '}
-            <Link href="/personal-plan" className="text-brand-600 underline hover:no-underline">
-              صفحة "احصل على خطتك الشخصية"
-            </Link>
-            ، اختار الباقة، ادفع — وحسابك بيتعمل تلقائياً بعد الدفع. كمان تقدر تشوف{' '}
+            اختار كورس من{' '}
             <Link href={ROUTES.pricing} className="text-brand-600 underline hover:no-underline">
               صفحة الأسعار
             </Link>
-            ، وابدأ في تصفّح الكورسات فوراً.
+            ، ادفع — وحسابك بيتعمل تلقائياً بعد الدفع والكورس بيتفتح على طول.
+            تقدر كمان تتصفّح محتوى أي كورس بالكامل قبل ما تشتري.
           </>
         ),
       },
       {
-        q: 'هل أقدر أشاهد محتوى مجاناً قبل الاشتراك؟',
-        a: 'أيوه. كل كورس فيه دروس مجانية كـ free preview تقدر تشاهدها بدون اشتراك عشان تتأكد إن الكورس ليك.',
+        q: 'هل أقدر أشاهد محتوى مجاناً قبل ما أشتري؟',
+        a: 'أيوه. تقدر تفتح أي كورس وتشوف كل الفصول والدروس اللي جواه، وفيه دروس مجانية كـ free preview تتفرج عليها من غير ما تدفع حاجة.',
       },
       {
-        q: 'الاشتراك بيدّيني وصول لكل الكورسات؟',
-        a: `الاشتراك (شهري أو سنوي) بيفتحلك كل كورسات المنصة ما عدا تلاتة: n8n و AI Video و Vibe Coding. التلاتة دول بيتباعوا لوحدهم — $${COURSE_PRICE_USD} للكورس الواحد، أو $${AI_BUNDLE.priceUsd} للتلاتة مع بعض (بدل $${BUNDLE_ANCHOR_USD})، والوصول فيهم دايم من غير تجديد.`,
+        q: 'فيه اشتراك شهري أو سنوي؟',
+        a: 'لأ. مفيش اشتراك خالص. بتشتري الكورس مرة واحدة ويفضل معاك للأبد — من غير تجديد ولا رسوم شهرية ولا حاجة بتقفل في وشك.',
       },
       {
-        q: 'هل في فرق بين الاشتراك الشهري والسنوي؟',
-        a: yearlyVsMonthlyAnswer,
+        q: 'الكورسات بكام؟',
+        a: `كل كورس بـ $${COURSE_PRICE_USD} لوحده، أو التلات كورسات مع بعض بـ $${AI_BUNDLE.priceUsd} بدل $${BUNDLE_ANCHOR_USD} — يعني بتوفّر $${BUNDLE_ANCHOR_USD - AI_BUNDLE.priceUsd}. الوصول دايم في الحالتين.`,
+      },
+      {
+        q: 'لو اشتريت كورس، التحديثات الجديدة بتوصلني؟',
+        a: 'أيوه، مجاناً. أي درس جديد أو تحديث بينزل على الكورس اللي اشتريته بيبقى متاح لك على طول من غير أي فرق سعر.',
       },
     ],
   },
@@ -56,17 +57,17 @@ function buildFaqs(p: ReturnType<typeof pricingFor>) {
     items: [
       {
         q: 'إيه طرق الدفع المتاحة؟',
-        a: 'بنقبل كل البطاقات الائتمانية (Visa, Mastercard, AmEx) عبر Stripe. الدفع مشفّر وآمن 100%.',
+        a: 'بنقبل كل البطاقات الائتمانية (Visa, Mastercard, AmEx) عبر Stripe. الدفع مشفّر وآمن 100%. ولو انت في مصر، تقدر تدفع بـ InstaPay أو Vodafone Cash.',
       },
       {
         q: 'الأسعار بأي عملة؟',
-        a: `الأسعار بالدولار الأمريكي ($${p.monthlyAmount} شهرياً / $${p.yearlyAmount} سنوياً — بدل $${p.yearlyAnchor}، خصم ${p.savingsPct}% لفترة محدودة). للعملاء في مصر، فيه طرق دفع محلية بالجنيه (500 ج.م شهري / 2000 ج.م سنوي) عبر InstaPay أو Vodafone Cash.`,
+        a: `الأسعار بالدولار الأمريكي — $${COURSE_PRICE_USD} للكورس و$${AI_BUNDLE.priceUsd} للـ Bundle. للعملاء في مصر فيه دفع محلي بالجنيه (${COURSE_PRICE_EGP.toLocaleString('en')} ج.م للكورس / ${AI_BUNDLE.priceEgp.toLocaleString('en')} ج.م للـ Bundle) عبر InstaPay أو Vodafone Cash.`,
       },
       {
         q: 'ينفع أرجّع فلوسي لو الكورسات مش لاقية معايا؟',
         a: (
           <>
-            عندنا ضمان استرداد كامل خلال أول 7 أيام من الاشتراك. التفاصيل في{' '}
+            عندنا ضمان استرداد كامل خلال أول 7 أيام من الشراء. التفاصيل في{' '}
             <Link href="/refund" className="text-brand-600 underline hover:no-underline">
               سياسة الاسترداد
             </Link>
@@ -75,15 +76,15 @@ function buildFaqs(p: ReturnType<typeof pricingFor>) {
         ),
       },
       {
-        q: 'هل أقدر ألغي الاشتراك في أي وقت؟',
+        q: 'فيه أي تجديد تلقائي أو رسوم بتتخصم بعدين؟',
         a: (
           <>
-            أكيد. من{' '}
+            لأ. بتدفع مرة واحدة وخلاص — مفيش تجديد ولا خصم شهري. لو عندك اشتراك
+            قديم من قبل ما نغيّر النظام، تقدر تديره من{' '}
             <Link href={ROUTES.settings} className="text-brand-600 underline hover:no-underline">
               الإعدادات
-            </Link>{' '}
-            تقدر تلغي التجديد التلقائي بضغطة زر. هتفضل تقدر تشاهد لحد آخر
-            الفترة المدفوعة.
+            </Link>
+            .
           </>
         ),
       },
@@ -199,7 +200,7 @@ function buildFaqs(p: ReturnType<typeof pricingFor>) {
 }
 
 export default function FaqPage() {
-  const FAQS = buildFaqs(pricingFor('us'));
+  const FAQS = buildFaqs();
   return (
     <div className="min-h-screen bg-white">
       <header className="border-b border-gray-200 bg-white/80 backdrop-blur-xl sticky top-0 z-40">

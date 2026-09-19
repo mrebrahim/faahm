@@ -45,7 +45,7 @@ export default function ProfileScreen() {
         'هيتشال حسابك وبياناتك الشخصية نهائياً.',
         'هيتشال تقدّمك في الكورسات وشهاداتك ونقاطك.',
         'هيتشال كل بوستاتك وتعليقاتك في الكوميونيتي.',
-        'لو عندك اشتراك شغّال، مش هيترد فلوسه.',
+        'الكورسات اللي اشتريتها مش هيترد فلوسها.',
         '',
         'مفيش رجوع بعد التأكيد.',
       ].join('\n'),
@@ -103,7 +103,7 @@ export default function ProfileScreen() {
       </Card>
 
       <Card style={{ marginTop: spacing.lg }}>
-        <T weight="bold">اشتراكك</T>
+        <T weight="bold">حسابك</T>
         {me.subscription ? (
           <>
             <View style={{ marginTop: spacing.sm, flexDirection: 'row', gap: spacing.sm }}>
@@ -116,23 +116,21 @@ export default function ProfileScreen() {
             <T size="sm" color={colors.textMuted} style={{ marginTop: spacing.sm }}>
               ساري لحد {new Date(me.subscription.current_period_end).toLocaleDateString('ar-EG')}
             </T>
-            {me.subscription.plan === 'monthly' ? (
-              <T size="xs" color={colors.textFaint} style={{ marginTop: spacing.xs }}>
-                الباقة الشهرية مش شاملة كورسات n8n و AI Video و Vibe Coding.
-              </T>
-            ) : null}
+            <T size="xs" color={colors.textFaint} style={{ marginTop: spacing.xs }}>
+              اشتراك قديم — مبقيناش بنبيع اشتراكات، والكورسات دلوقتي بتتشترى
+              مرة واحدة وتفضل معاك للأبد.
+            </T>
           </>
         ) : (
           <T size="sm" color={colors.textMuted} style={{ marginTop: spacing.xs }}>
-            مفيش اشتراك فعّال على الحساب ده. الكورسات المجانية مفتوحة ليك في
-            أي وقت من تبويب الكورسات.
+            الكورسات اللي اشتريتها بتظهر في تبويب الكورسات، والوصول فيها دايم.
           </T>
         )}
 
         {/* Off in reader mode. See store-policy.ts before re-enabling. */}
         {CAN_SHOW_PURCHASE_CTA ? (
           <Button
-            label={me.subscription ? 'إدارة الاشتراك' : 'شوف الباقات'}
+            label={me.subscription ? 'إدارة الاشتراك' : 'شوف الكورسات'}
             variant="outline"
             style={{ marginTop: spacing.md }}
             onPress={() => openWeb(me.subscription ? '/settings' : '/pricing')}

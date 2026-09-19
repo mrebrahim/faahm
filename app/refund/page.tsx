@@ -5,7 +5,7 @@ import { ShieldCheck, Clock, CheckCircle2, XCircle, ArrowLeft } from 'lucide-rea
 
 export const metadata = {
   title: `سياسة الاسترداد — ${APP_NAME}`,
-  description: `سياسة الاسترداد في ${APP_NAME}: استرداد كامل خلال 7 أيام من تاريخ الاشتراك، من غير أسئلة.`,
+  description: `سياسة الاسترداد في ${APP_NAME}: استرداد كامل خلال 7 أيام من تاريخ الشراء، من غير أسئلة.`,
 };
 
 export default function RefundPage() {
@@ -35,7 +35,7 @@ export default function RefundPage() {
           </h1>
           <p className="text-gray-600 leading-relaxed">
             بنثق في المحتوى اللي بنقدّمه. لو الكورسات مش لاقية معاك لأي سبب،
-            تقدر تطلب استرداد كامل خلال أول 7 أيام من تاريخ الاشتراك بدون
+            تقدر تطلب استرداد كامل خلال أول 7 أيام من تاريخ الشراء بدون
             ما نسألك أسئلة.
           </p>
         </div>
@@ -45,7 +45,7 @@ export default function RefundPage() {
             <Clock className="w-6 h-6 text-brand-600 flex-shrink-0 mt-1" />
             <div>
               <h2 className="font-display text-xl font-bold mb-2">
-                المدة: 7 أيام من تاريخ الاشتراك
+                المدة: 7 أيام من تاريخ الشراء
               </h2>
               <p className="text-sm text-gray-700 leading-relaxed">
                 المهلة بتبدأ من اللحظة اللي تم فيها خصم أول دفعة. لو طلبت
@@ -59,15 +59,14 @@ export default function RefundPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
           <Card icon={CheckCircle2} tone="brand" title="بيشمل الاسترداد">
             <ul className="space-y-1.5 text-sm text-gray-600 list-disc ps-5">
-              <li>الاشتراك الشهري الجديد</li>
-              <li>الاشتراك السنوي الجديد</li>
+              <li>شراء أي كورس</li>
+              <li>شراء الـ AI Bundle</li>
               <li>أي طلب خلال أول 7 أيام</li>
             </ul>
           </Card>
           <Card icon={XCircle} tone="danger" title="ما ينطبقش الاسترداد على">
             <ul className="space-y-1.5 text-sm text-gray-600 list-disc ps-5">
-              <li>الطلبات بعد 7 أيام من الاشتراك</li>
-              <li>تجديد اشتراك سابق (تقدر تلغيه قبل التجديد)</li>
+              <li>الطلبات بعد 7 أيام من الشراء</li>
               <li>حسابات اتسجّلت بسوء استخدام أو خرق للشروط</li>
             </ul>
           </Card>
@@ -96,7 +95,7 @@ export default function RefundPage() {
               </a>
             </Step>
             <Step n="2">
-              اكتب الإيميل المسجّل به حسابك + تاريخ الاشتراك (لو متذكره).
+              اكتب الإيميل المسجّل به حسابك + تاريخ الشراء (لو متذكره).
             </Step>
             <Step n="3">
               هنرد عليك خلال 24 ساعة عمل ونؤكد بدء الاسترداد. المبلغ بيرجع

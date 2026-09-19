@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { ROUTES, APP_NAME, PLANS, OFFLINE_PAYMENTS } from '@/lib/constants';
 import { ensureUserForEmail, reconcileCheckoutSession } from '@/lib/billing';
 import { trackServerEvent } from '@/lib/tracking';
-import { pricingFor } from '@/lib/region';
 import { PurchaseTracker } from '@/components/purchase-tracker';
 import { OtpClaim } from './otp-claim';
 import {
@@ -162,13 +161,10 @@ export default async function BillingSuccessPage({
   if (ready && subscription && txnId) {
     const plan = subscription.plan as 'monthly' | 'yearly';
     const planInfo = PLANS[plan];
-    // Tracking value must match what the visitor actually paid — every
-    // subscription on this site is priced in USD (monthly $10, yearly
-    // $80 mid / $40 deep) via the pricingFor('us') helper.
-    const saPricing = pricingFor('us');
-    const trackingValue = Number(
-      plan === 'yearly' ? saPricing.yearlyAmount : saPricing.monthlyAmount
-    );
+    // Subscriptions are no longer sold; this page only ever renders for
+    // a legacy subscriber returning to it. There is no live price to
+    // report, so the conversion value is whatever the ledger recorded.
+    const trackingValue = 0;
     const trackingCurrency = 'USD';
     const eventId =
       subscription.gateway === 'paypal'

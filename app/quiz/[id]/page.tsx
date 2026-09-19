@@ -500,13 +500,13 @@ function PaywallCard({ course }: { course: { slug: string } }) {
   return (
     <div className="p-6 rounded-2xl bg-gradient-to-br from-gray-900 to-gray-700 text-white text-center">
       <Lock className="w-10 h-10 mx-auto mb-3 opacity-80" />
-      <h2 className="font-display text-xl font-bold mb-2">الكويز ده للمشتركين فقط</h2>
+      <h2 className="font-display text-xl font-bold mb-2">الكويز ده لأصحاب الكورس</h2>
       <p className="text-sm text-gray-300 mb-4">
-        اشترك وافتحلك كورسات الاشتراك والكويزات.
+        اشتري الكورس وافتحلك كل دروسه وكويزاته — الوصول دايم.
       </p>
       <div className="flex items-center justify-center gap-2">
         <Button asChild className="bg-white text-gray-900 hover:bg-gray-100 shadow-none">
-          <Link href={ROUTES.pricing}>اشترك دلوقتي</Link>
+          <Link href={ROUTES.pricing}>شوف الأسعار</Link>
         </Button>
         <Button asChild variant="ghost" className="text-white hover:bg-white/10">
           <Link href={ROUTES.course(course.slug)}>ارجع للكورس</Link>
