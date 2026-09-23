@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireAdmin } from '@/lib/admin-guard';
+import { requireAdmin, isSuperAdmin } from '@/lib/admin-guard';
 import { auditLog } from '@/lib/admin-audit';
 import { Button } from '@/components/ui/button';
 import { RefundButton } from './refund-button';
 import { EditSubscriptionButton } from './edit-subscription';
+import { ViewAsButton } from '../view-as-button';
 import {
   banStudent,
   unbanStudent,
@@ -62,6 +63,8 @@ export default async function StudentDetailPage({
   searchParams: { tab?: string; success?: string; error?: string };
 }) {
   const ctx = await requireAdmin();
+  // Impersonation is a super-admin power — see lib/impersonation.ts.
+  const canImpersonate = isSuperAdmin(ctx.userEmail);
   const tab = (TABS.find((t) => t.id === searchParams.tab)?.id || 'overview') as TabId;
 
   const service = createServiceClient();
@@ -133,6 +136,9 @@ export default async function StudentDetailPage({
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-xs">
                   <Ban className="w-3 h-3" /> محظور
                 </span>
+              )}
+              {canImpersonate && student.role === 'student' && (
+                <ViewAsButton id={student.id} email={student.email || ''} />
               )}
             </h1>
             <div className="text-sm text-gray-500 flex flex-wrap items-center gap-x-4 gap-y-1">

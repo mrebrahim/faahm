@@ -4,6 +4,7 @@ import './globals.css';
 import { APP_NAME, APP_TAGLINE, APP_URL } from '@/lib/constants';
 import { Analytics } from '@/components/analytics';
 import { WhatsAppButton } from '@/components/whatsapp-button';
+import { ImpersonationBanner } from '@/components/impersonation-banner';
 import { LearnerCountBar } from '@/components/learner-count-bar';
 
 const cairo = Cairo({
@@ -83,6 +84,8 @@ export default function RootLayout({
         {/* The sitewide promo banner is gone with the subscription it
             advertised. Prices now live on the pages that sell the
             product, not in a strip on top of every page. */}
+        {/* Only renders while an admin is viewing a student's account. */}
+        <ImpersonationBanner />
         {/* Site-wide '+1,000 طالب' trust strip — first thing every
             visitor reads. Hides itself on checkout / billing / offline
             so it doesn't compete with the payment moment. */}

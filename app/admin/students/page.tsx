@@ -1,9 +1,10 @@
 import Link from 'next/link';
 import { createServiceClient } from '@/lib/supabase/server';
-import { requireAdmin } from '@/lib/admin-guard';
+import { requireAdmin, isSuperAdmin } from '@/lib/admin-guard';
 import { auditLog } from '@/lib/admin-audit';
 import { Button } from '@/components/ui/button';
 import { DeleteStudentButton } from './delete-button';
+import { ViewAsButton } from './view-as-button';
 import {
   Users,
   Search,
@@ -49,6 +50,8 @@ export default async function StudentsListPage({
   searchParams: SearchParams;
 }) {
   const ctx = await requireAdmin();
+  // Impersonation is a super-admin power — see lib/impersonation.ts.
+  const canImpersonate = isSuperAdmin(ctx.userEmail);
   void auditLog(ctx, { action: 'student.list_viewed', metadata: { filters: searchParams } });
 
   const service = createServiceClient();
@@ -337,6 +340,11 @@ export default async function StudentsListPage({
                       {s.last_sign_in_at ? formatRelative(s.last_sign_in_at) : '—'}
                     </td>
                     <td className="px-4 py-3 text-end whitespace-nowrap">
+                      {/* Super-admin only. Hidden entirely for everyone
+                          else so the button isn't even discoverable. */}
+                      {canImpersonate && s.role === 'student' && (
+                        <ViewAsButton id={s.id} email={s.email || ''} />
+                      )}
                       <Link
                         href={`/admin/students/${s.id}?tab=enrollments`}
                         className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-brand-700 bg-brand-500/10 hover:bg-brand-500/20 transition-colors me-2"
