@@ -23,7 +23,9 @@ import { GraduationCap, ArrowLeft } from 'lucide-react';
  * would steal vertical real estate from a 360px phone for no extra
  * lift.
  */
-const HIDDEN_PREFIXES = ['/checkout', '/billing', '/offline'];
+// '/ai-lab' is a landing page with exactly one conversion action; a
+// site-wide strip linking to /pricing is an exit from it.
+const HIDDEN_PREFIXES = ['/checkout', '/billing', '/offline', '/ai-lab'];
 const LEARNERS = 1000;
 
 export function LearnerCountBar() {
