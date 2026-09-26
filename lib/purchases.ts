@@ -2,7 +2,8 @@ import type Stripe from 'stripe';
 import { createServiceClient } from '@/lib/supabase/server';
 import { CANONICAL_URL } from '@/lib/constants';
 import { emailLayout, escapeHtml, sendEmail } from '@/lib/email';
-import { productById, type PurchasableProduct } from '@/lib/catalog';
+import { productById, isMembership, type PurchasableProduct } from '@/lib/catalog';
+import { grantAiLabMembership, tierForProduct } from '@/lib/ai-lab';
 
 /**
  * Fulfilment for one-off course purchases.
@@ -46,6 +47,39 @@ export async function grantCoursePurchase(args: {
 }): Promise<GrantResult> {
   const service = createServiceClient();
 
+  // A membership grants time in the programme, not access to courses.
+  // Handled here rather than at the call sites so the webhook and the
+  // success page both pick it up without either knowing the difference.
+  if (isMembership(args.product)) {
+    const tier = tierForProduct(args.product.id);
+    if (!tier) {
+      console.error('[purchase] unmapped membership product', args.product.id);
+      return { granted: [], missing: [args.product.id], firstTime: false };
+    }
+
+    const granted = await grantAiLabMembership({
+      userId: args.userId,
+      tier,
+      months: args.product.accessMonths ?? undefined,
+      notes: args.notes ?? `شراء ${args.product.titleAr}`,
+    });
+
+    if ('error' in granted) {
+      console.error('[purchase] membership grant FAILED', {
+        userId: args.userId,
+        product: args.product.id,
+        error: granted.error,
+      });
+    }
+
+    const firstTime = await recordPayment(service, args);
+    return {
+      granted: 'error' in granted ? [] : [args.product.id],
+      missing: [],
+      firstTime,
+    };
+  }
+
   const { data: courses } = await service
     .from('courses')
     .select('id, slug, title_ar')
@@ -71,8 +105,36 @@ export async function grantCoursePurchase(args: {
     });
   }
 
-  // Ledger. Guarded so a webhook replay doesn't inflate revenue.
-  let firstTime = true;
+  const firstTime = await recordPayment(service, args);
+
+  return {
+    granted: found.map((c) => c.slug),
+    missing,
+    firstTime,
+  };
+}
+
+/**
+ * Write the payments row, once.
+ *
+ * Guarded on the gateway order id because Stripe retries a webhook
+ * until it gets a 2xx — running twice must not inflate revenue.
+ * Returns false when the payment was already recorded, which callers
+ * use to avoid re-sending the receipt on a replay.
+ */
+async function recordPayment(
+  service: ReturnType<typeof createServiceClient>,
+  args: {
+    userId: string;
+    product: PurchasableProduct;
+    gateway: 'stripe' | 'paypal' | 'manual';
+    gatewayOrderId: string | null;
+    gatewayPaymentId?: string | null;
+    amountCents: number;
+    currency?: string;
+    notes?: string | null;
+  }
+): Promise<boolean> {
   if (args.gatewayOrderId) {
     const { data: dupe } = await service
       .from('payments')
@@ -80,35 +142,28 @@ export async function grantCoursePurchase(args: {
       .eq('gateway', args.gateway)
       .eq('gateway_order_id', args.gatewayOrderId)
       .maybeSingle();
-    firstTime = !dupe;
+    if (dupe) return false;
   }
 
-  if (firstTime) {
-    const { error } = await service.from('payments').insert({
-      user_id: args.userId,
-      amount_cents: args.amountCents,
-      currency: (args.currency ?? 'USD').toUpperCase(),
-      gateway: args.gateway,
-      gateway_order_id: args.gatewayOrderId,
-      gateway_payment_id: args.gatewayPaymentId ?? null,
-      status: 'paid',
-      metadata: {
-        kind: 'course_purchase',
-        product: args.product.id,
-        slugs: args.product.slugs,
-        notes: args.notes ?? null,
-      } as any,
-    });
-    if (error) {
-      console.error('[purchase] payments insert failed', error.message);
-    }
+  const { error } = await service.from('payments').insert({
+    user_id: args.userId,
+    amount_cents: args.amountCents,
+    currency: (args.currency ?? 'USD').toUpperCase(),
+    gateway: args.gateway,
+    gateway_order_id: args.gatewayOrderId,
+    gateway_payment_id: args.gatewayPaymentId ?? null,
+    status: 'paid',
+    metadata: {
+      kind: isMembership(args.product) ? 'ai_lab_membership' : 'course_purchase',
+      product: args.product.id,
+      slugs: args.product.slugs,
+      notes: args.notes ?? null,
+    } as any,
+  });
+  if (error) {
+    console.error('[purchase] payments insert failed', error.message);
   }
-
-  return {
-    granted: found.map((c) => c.slug),
-    missing,
-    firstTime,
-  };
+  return true;
 }
 
 /**
@@ -267,6 +322,7 @@ export async function sendPurchaseReceipt(args: {
   amountCents: number;
   currency?: string;
 }) {
+  const membership = isMembership(args.product);
   const isBundle = args.product.slugs.length > 1;
   const amount = (args.amountCents / 100).toFixed(0);
   const currency = (args.currency ?? 'USD').toUpperCase() === 'USD' ? '$' : '';
@@ -279,13 +335,30 @@ export async function sendPurchaseReceipt(args: {
       body: `
         <p style="margin:0 0 12px;">تم تفعيل <strong>${escapeHtml(
           args.product.titleAr
-        )}</strong> على حسابك — الوصول دايم، من غير تجديد ولا اشتراك.</p>
+        )}</strong> على حسابك — ${
+          membership
+            ? 'عضويتك شغالة لمدة سنة كاملة من دلوقتي.'
+            : 'الوصول دايم، من غير تجديد ولا اشتراك.'
+        }</p>
         <p style="margin:0 0 16px;color:#6b7280;font-size:13px;">
           المبلغ المدفوع: <strong dir="ltr">${currency}${amount}</strong>
         </p>
         ${
-          isBundle
+          membership
             ? `<div style="padding:16px;background:#f0fdf4;border-radius:12px;border-right:4px solid #16a34a;">
+                 <p style="margin:0 0 8px;font-weight:bold;">اللي بيبدأ معاك دلوقتي:</p>
+                 <ul style="margin:0;padding-right:18px;color:#374151;">
+                   <li>مسار ١٢ أسبوع على التلات كورسات بجدول ثابت</li>
+                   <li>لايف أسبوعي مع أسئلة مباشرة</li>
+                   <li>مراجعة مشاريعك</li>
+                   <li>شهادة إتمام</li>
+                 </ul>
+                 <p style="margin:12px 0 0;font-size:13px;color:#6b7280;">
+                   هنبعتلك مواعيد اللايفات على واتساب قبل أول جلسة.
+                 </p>
+               </div>`
+            : isBundle
+              ? `<div style="padding:16px;background:#f0fdf4;border-radius:12px;border-right:4px solid #16a34a;">
                  <p style="margin:0 0 8px;font-weight:bold;">الكورسات اللي اتفتحت:</p>
                  <ul style="margin:0;padding-right:18px;color:#374151;">
                    <li>أتمتة n8n</li>
@@ -293,10 +366,10 @@ export async function sendPurchaseReceipt(args: {
                    <li>Vibe Coding</li>
                  </ul>
                </div>`
-            : ''
+              : ''
         }`,
-      ctaLabel: 'ابدأ التعلم دلوقتي',
-      ctaUrl: `${CANONICAL_URL}/dashboard`,
+      ctaLabel: membership ? 'ادخل على AI Lab' : 'ابدأ التعلم دلوقتي',
+      ctaUrl: `${CANONICAL_URL}${membership ? '/ai-lab' : '/dashboard'}`,
       footer: 'ضمان استرداد ٧ أيام — لو مش راضي كلّمنا وهنرجّعلك المبلغ.',
     }),
   });

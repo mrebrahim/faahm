@@ -14,11 +14,27 @@
  * flag stays and every TypeScript surface calls it `soldSeparately`.
  */
 
+/**
+ * Two shapes of thing are sold, and the difference is the duration.
+ *
+ *   'course'     — a course or the bundle. Paid once, kept forever.
+ *   'membership' — AI Lab: the cohort, the live sessions, the project
+ *                  review, the certificate. Paid once for a fixed
+ *                  stretch of time.
+ *
+ * A membership is NOT a subscription. One payment, a known end date,
+ * no recurring billing and nothing to cancel — which is exactly why it
+ * can sit beside the one-off courses without dragging the retired
+ * subscription machinery back in.
+ */
+export type ProductKind = 'course' | 'membership';
+
 /** What a purchase grants, and what it costs. */
 export type PurchasableProduct = {
   /** Stable id used in checkout URLs and Stripe metadata. */
   id: string;
-  /** Course slugs this purchase unlocks, permanently. */
+  kind: ProductKind;
+  /** Course slugs this purchase unlocks. Empty for a membership. */
   slugs: string[];
   titleAr: string;
   priceUsd: number;
@@ -32,6 +48,18 @@ export type PurchasableProduct = {
   priceEgp: number;
   /** Strikethrough figure. Null when there is nothing honest to anchor to. */
   anchorUsd: number | null;
+  /**
+   * How long the access lasts, in months. `null` means forever, which
+   * is what every course grants. A membership always has a number here.
+   */
+  accessMonths: number | null;
+  /**
+   * Hard cap on how many can ever be sold — the founding tier. `null`
+   * is unlimited. Enforced server-side at checkout, not just hidden in
+   * the UI, because the UI is not where someone determined to buy a
+   * 101st founding seat would be stopped.
+   */
+  seatLimit: number | null;
 };
 
 /** Every premium course costs the same — one number, one place. */
@@ -48,27 +76,36 @@ export const BUNDLE_PRICE_EGP = 5_000;
 export const PAID_COURSES: Record<string, PurchasableProduct> = {
   n8n: {
     id: 'n8n',
+    kind: 'course',
     slugs: ['n8n'],
     titleAr: 'أتمتة n8n',
     priceUsd: COURSE_PRICE_USD,
     priceEgp: COURSE_PRICE_EGP,
     anchorUsd: null,
+    accessMonths: null,
+    seatLimit: null,
   },
   'ai-video': {
     id: 'ai-video',
+    kind: 'course',
     slugs: ['ai-video'],
     titleAr: 'AI Video Master',
     priceUsd: COURSE_PRICE_USD,
     priceEgp: COURSE_PRICE_EGP,
     anchorUsd: null,
+    accessMonths: null,
+    seatLimit: null,
   },
   'vibe-coding': {
     id: 'vibe-coding',
+    kind: 'course',
     slugs: ['vibe-coding'],
     titleAr: 'Vibe Coding',
     priceUsd: COURSE_PRICE_USD,
     priceEgp: COURSE_PRICE_EGP,
     anchorUsd: null,
+    accessMonths: null,
+    seatLimit: null,
   },
 };
 
@@ -82,11 +119,53 @@ export const PAID_COURSE_SLUGS = Object.keys(PAID_COURSES);
  */
 export const AI_BUNDLE: PurchasableProduct = {
   id: 'ai-bundle',
+  kind: 'course',
   slugs: [...PAID_COURSE_SLUGS],
   titleAr: 'AI Bundle — التلات كورسات',
   priceUsd: BUNDLE_PRICE_USD,
   priceEgp: BUNDLE_PRICE_EGP,
   anchorUsd: COURSE_PRICE_USD * 3,
+  accessMonths: null,
+  seatLimit: null,
+};
+
+/* ── AI Lab ──────────────────────────────────────────────────────────
+ * The programme that wraps the three courses: a 12-week cohort with a
+ * weekly live workshop, project review and a certificate.
+ *
+ * What is being sold here is NOT the videos — a course buyer already
+ * has those. It's the schedule, the deadline and someone looking at
+ * your work. That distinction has to survive into the copy, or it reads
+ * as paying twice for the same thing.
+ */
+export const AI_LAB_MONTHS = 12;
+
+/** Standing price. */
+export const AI_LAB: PurchasableProduct = {
+  id: 'ai-lab',
+  kind: 'membership',
+  slugs: [],
+  titleAr: 'فاهم AI Lab — سنة كاملة',
+  priceUsd: 199,
+  priceEgp: 4_900,
+  anchorUsd: null,
+  accessMonths: AI_LAB_MONTHS,
+  seatLimit: null,
+};
+
+/** Launch tier. Capped, and the cap is the whole point of the offer. */
+export const AI_LAB_FOUNDING_SEATS = 100;
+
+export const AI_LAB_FOUNDING: PurchasableProduct = {
+  id: 'ai-lab-founding',
+  kind: 'membership',
+  slugs: [],
+  titleAr: 'فاهم AI Lab — عضوية التأسيس',
+  priceUsd: 99,
+  priceEgp: 2_900,
+  anchorUsd: AI_LAB.priceUsd,
+  accessMonths: AI_LAB_MONTHS,
+  seatLimit: AI_LAB_FOUNDING_SEATS,
 };
 
 export const BUNDLE_ANCHOR_USD = AI_BUNDLE.anchorUsd as number;
@@ -99,7 +178,14 @@ export const BUNDLE_SAVINGS_PCT = Math.round(
 export const PRODUCTS: Record<string, PurchasableProduct> = {
   ...PAID_COURSES,
   [AI_BUNDLE.id]: AI_BUNDLE,
+  [AI_LAB.id]: AI_LAB,
+  [AI_LAB_FOUNDING.id]: AI_LAB_FOUNDING,
 };
+
+/** True for AI Lab — grants a membership rather than course access. */
+export function isMembership(product: PurchasableProduct): boolean {
+  return product.kind === 'membership';
+}
 
 /** Resolve a checkout `?product=` value. Returns null for anything unknown. */
 export function productById(id: string | null | undefined): PurchasableProduct | null {

@@ -3,7 +3,13 @@ import { cookies } from 'next/headers';
 import { stripe } from '@/lib/stripe';
 import { createClient } from '@/lib/supabase/server';
 import { resolveAppUrl } from '@/lib/app-url';
-import { productById, AI_BUNDLE, BUNDLE_SAVINGS_USD } from '@/lib/catalog';
+import {
+  productById,
+  isMembership,
+  AI_BUNDLE,
+  BUNDLE_SAVINGS_USD,
+} from '@/lib/catalog';
+import { foundingSeats } from '@/lib/ai-lab';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -59,10 +65,25 @@ export async function GET(request: NextRequest) {
       null;
   }
 
+  const membership = isMembership(product);
+
+  // A capped tier has to be enforced where the money changes hands, not
+  // just hidden in the UI — otherwise a stale tab sells seat 101.
+  if (membership && product.seatLimit) {
+    const seats = await foundingSeats();
+    if (seats.soldOut) {
+      return NextResponse.redirect(`${origin}/ai-lab?error=sold_out`, {
+        status: 303,
+      });
+    }
+  }
+
   const isBundle = product.id === AI_BUNDLE.id;
-  const description = isBundle
-    ? `أتمتة n8n + AI Video Master + Vibe Coding — وصول دائم · وفّر $${BUNDLE_SAVINGS_USD}`
-    : 'وصول دائم للكورس — من غير اشتراك ولا تجديد';
+  const description = membership
+    ? 'مسار ١٢ أسبوع + لايف أسبوعي + مراجعة مشاريع + شهادة — عضوية سنة'
+    : isBundle
+      ? `أتمتة n8n + AI Video Master + Vibe Coding — وصول دائم · وفّر $${BUNDLE_SAVINGS_USD}`
+      : 'وصول دائم للكورس — من غير اشتراك ولا تجديد';
 
   try {
     const session = await stripe.checkout.sessions.create({
@@ -91,7 +112,9 @@ export async function GET(request: NextRequest) {
         ...(userId ? { supabase_user_id: userId } : {}),
       },
       success_url: `${origin}/purchase/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}${isBundle ? '/ai-bundle' : `/course/${product.slugs[0]}`}`,
+      cancel_url: `${origin}${
+        membership ? '/ai-lab' : isBundle ? '/ai-bundle' : `/course/${product.slugs[0]}`
+      }`,
       allow_promotion_codes: true,
     });
 

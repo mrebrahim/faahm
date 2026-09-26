@@ -11,6 +11,7 @@ import {
   BUNDLE_SAVINGS_PCT,
   COURSE_PRICE_USD,
   COURSE_PRICE_EGP,
+  AI_LAB_FOUNDING,
   checkoutHrefFor,
 } from '@/lib/catalog';
 import { SocialProofToast } from '@/components/social-proof-toast';
@@ -204,6 +205,42 @@ export default async function PricingPage({
               </div>
             );
           })}
+        </div>
+
+        {/* ── AI Lab ───────────────────────────────────────────────
+            Sold BESIDE the courses, not above them. The distinction is
+            load-bearing: someone who owns the courses must not think
+            this is the same content again, or the sale turns into a
+            refund. Hence "مش كورسات تانية" in the first line. */}
+        <div className="rounded-2xl border border-indigo-200 bg-indigo-50/40 p-5 sm:p-6 mb-10">
+          <div className="text-center mb-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 mb-3 rounded-full bg-indigo-600 text-white text-xs font-bold">
+              برنامج
+            </div>
+            <h2 className="font-display text-xl sm:text-2xl font-extrabold mb-1">
+              فاهم AI Lab
+            </h2>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              مش كورسات تانية — ده مسار ١٢ أسبوع بجدول ثابت، لايف أسبوعي، مراجعة
+              مشاريعك، وشهادة.
+            </p>
+          </div>
+          <div className="text-center mb-4">
+            <span className="font-display text-3xl font-extrabold text-indigo-700" dir="ltr">
+              ${AI_LAB_FOUNDING.priceUsd}
+            </span>
+            <span className="text-sm text-gray-500 ms-2">
+              عضوية سنة · دفعة واحدة
+            </span>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button asChild size="lg" className="w-full sm:w-auto font-bold">
+              <Link href="/ai-lab">
+                اعرف أكتر
+                <ArrowLeft className="w-4 h-4" />
+              </Link>
+            </Button>
+          </div>
         </div>
 
         {/* Egypt is the largest slice of the audience and most of it
