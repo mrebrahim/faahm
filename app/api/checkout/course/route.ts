@@ -6,6 +6,7 @@ import { resolveAppUrl } from '@/lib/app-url';
 import {
   productById,
   isMembership,
+  isRecurring,
   AI_BUNDLE,
   BUNDLE_SAVINGS_USD,
 } from '@/lib/catalog';
@@ -85,9 +86,14 @@ export async function GET(request: NextRequest) {
       ? `أتمتة n8n + AI Video Master + Vibe Coding — وصول دائم · وفّر $${BUNDLE_SAVINGS_USD}`
       : 'وصول دائم للكورس — من غير اشتراك ولا تجديد';
 
+  // AI Lab renews; everything else is bought once. The interval on the
+  // product decides the Stripe mode, so there is one place to look when
+  // asking whether something recurs.
+  const recurring = isRecurring(product);
+
   try {
     const session = await stripe.checkout.sessions.create({
-      mode: 'payment',
+      mode: recurring ? 'subscription' : 'payment',
       payment_method_types: ['card'],
       ...(email ? { customer_email: email } : {}),
       line_items: [
@@ -96,6 +102,9 @@ export async function GET(request: NextRequest) {
           price_data: {
             currency: 'usd',
             unit_amount: product.priceUsd * 100,
+            ...(recurring
+              ? { recurring: { interval: product.interval as 'month' | 'year' } }
+              : {}),
             product_data: {
               name: `${product.titleAr} — faahm.com`,
               description,
@@ -103,11 +112,26 @@ export async function GET(request: NextRequest) {
           },
         },
       ],
+      // Stamped on the SUBSCRIPTION as well as the session: renewal
+      // webhooks months from now carry the subscription, not the
+      // session, and that is when we need to know it was AI Lab.
+      ...(recurring
+        ? {
+            subscription_data: {
+              metadata: {
+                service: 'ai_lab',
+                product: product.id,
+                plan: product.interval === 'year' ? 'yearly' : 'monthly',
+                ...(userId ? { supabase_user_id: userId } : {}),
+              },
+            },
+          }
+        : {}),
       // The webhook and the success page both read this to work out what
       // to unlock. `supabase_user_id` is only present for a signed-in
       // buyer; a guest is matched by the email Stripe collects.
       metadata: {
-        service: 'course',
+        service: recurring ? 'ai_lab' : 'course',
         product: product.id,
         ...(userId ? { supabase_user_id: userId } : {}),
       },

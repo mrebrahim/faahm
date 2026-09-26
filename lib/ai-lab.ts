@@ -163,3 +163,50 @@ export function tierForProduct(
   if (productId === AI_LAB.id) return 'annual';
   return null;
 }
+
+
+/**
+ * Keep the membership in step with a Stripe subscription.
+ *
+ * The membership row is the single access check — `expires_at > now()`.
+ * Rather than teaching that check about subscriptions, the subscription
+ * simply pushes its period end into the row on every renewal webhook.
+ * So a lapsed card stops access by itself on the right date, with no
+ * cron and no second code path.
+ *
+ * Called for every AI Lab subscription event: created, updated, renewed
+ * and cancelled. A cancellation is not special — Stripe keeps the
+ * period end it already paid for, and access ends there.
+ */
+export async function syncMembershipFromSubscription(args: {
+  userId: string;
+  periodEnd: string;
+  interval: 'month' | 'year';
+  stripeSubscriptionId: string;
+}): Promise<void> {
+  const service = createServiceClient();
+
+  const { error } = await service.from('ai_lab_members').upsert(
+    {
+      user_id: args.userId,
+      tier: 'annual',
+      expires_at: args.periodEnd,
+      notes: `Stripe subscription ${args.stripeSubscriptionId} (${args.interval})`,
+    },
+    { onConflict: 'user_id' }
+  );
+
+  if (error) {
+    // Loud: the customer is paying and this is what opens the door.
+    console.error('[ai-lab] subscription sync FAILED', {
+      userId: args.userId,
+      subscription: args.stripeSubscriptionId,
+      error: error.message,
+    });
+    return;
+  }
+
+  console.log(
+    `[ai-lab] membership synced user=${args.userId} until=${args.periodEnd}`
+  );
+}

@@ -8,6 +8,7 @@ import {
   upsertSubscriptionFromStripe,
 } from '@/lib/billing';
 import { fulfilCoursePurchaseSession } from '@/lib/purchases';
+import { syncMembershipFromSubscription } from '@/lib/ai-lab';
 
 // Stripe requires the raw body for signature verification.
 export const runtime = 'nodejs';
@@ -72,6 +73,40 @@ async function recordPaymentFromInvoice(
       invoice_number: invoice.number,
       hosted_invoice_url: invoice.hosted_invoice_url,
     } as any,
+  });
+}
+
+/**
+ * Write the subscription row, then push its period end into the AI Lab
+ * membership when that is what the subscription is for.
+ *
+ * Every subscription event goes through here so the membership can
+ * never drift from what Stripe thinks the customer has paid for —
+ * renewal extends it, cancellation leaves the already-paid period
+ * intact, and a failed card lets it lapse on its own date.
+ */
+async function syncSubscription(
+  service: ReturnType<typeof createServiceClient>,
+  sub: Stripe.Subscription
+) {
+  const userId = await upsertSubscriptionFromStripe(service, sub);
+  if (!userId) return;
+
+  if ((sub.metadata?.service as string | undefined) !== 'ai_lab') return;
+
+  const item = sub.items.data[0];
+  const periodEnd =
+    (item as any)?.current_period_end ?? (sub as any).current_period_end ?? null;
+  if (!periodEnd) {
+    console.error('[stripe-webhook] ai_lab subscription with no period end', sub.id);
+    return;
+  }
+
+  await syncMembershipFromSubscription({
+    userId,
+    periodEnd: new Date(periodEnd * 1000).toISOString(),
+    interval: item?.price?.recurring?.interval === 'year' ? 'year' : 'month',
+    stripeSubscriptionId: sub.id,
   });
 }
 
@@ -201,7 +236,7 @@ export async function POST(request: NextRequest) {
               supabase_user_id: userIdFromSession,
             };
           }
-          await upsertSubscriptionFromStripe(service, sub);
+          await syncSubscription(service, sub);
         }
         break;
       }
@@ -210,7 +245,7 @@ export async function POST(request: NextRequest) {
       case 'customer.subscription.updated':
       case 'customer.subscription.deleted': {
         const sub = event.data.object as Stripe.Subscription;
-        await upsertSubscriptionFromStripe(service, sub);
+        await syncSubscription(service, sub);
         break;
       }
 
@@ -224,7 +259,9 @@ export async function POST(request: NextRequest) {
             : (invoice as any).subscription?.id ?? null;
         if (subId) {
           const sub = await stripe.subscriptions.retrieve(subId);
-          await upsertSubscriptionFromStripe(service, sub);
+          // The renewal itself — this is the call that pushes the new
+          // period end into the AI Lab membership.
+          await syncSubscription(service, sub);
         }
         break;
       }

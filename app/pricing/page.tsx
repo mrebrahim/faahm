@@ -11,7 +11,8 @@ import {
   BUNDLE_SAVINGS_PCT,
   COURSE_PRICE_USD,
   COURSE_PRICE_EGP,
-  AI_LAB_FOUNDING,
+  AI_LAB_MONTHLY,
+  AI_LAB_YEARLY,
   checkoutHrefFor,
 } from '@/lib/catalog';
 import { SocialProofToast } from '@/components/social-proof-toast';
@@ -227,12 +228,18 @@ export default async function PricingPage({
           </div>
           <div className="text-center mb-4">
             <span className="font-display text-3xl font-extrabold text-indigo-700" dir="ltr">
-              ${AI_LAB_FOUNDING.priceUsd}
+              ${AI_LAB_MONTHLY.priceUsd}
             </span>
-            <span className="text-sm text-gray-500 ms-2">
-              عضوية سنة · دفعة واحدة
+            <span className="text-sm text-gray-500 ms-1">/ شهر</span>
+            <span className="text-sm text-gray-400 mx-2">أو</span>
+            <span className="font-display text-3xl font-extrabold text-indigo-700" dir="ltr">
+              ${AI_LAB_YEARLY.priceUsd}
             </span>
+            <span className="text-sm text-gray-500 ms-1">/ سنة</span>
           </div>
+          <p className="text-center text-xs text-gray-500 mb-4">
+            عضوية بتتجدد — مش زي الكورسات اللي بتتشترى مرة واحدة وتفضل معاك.
+          </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button asChild size="lg" className="w-full sm:w-auto font-bold">
               <Link href="/ai-lab">

@@ -4,8 +4,14 @@ import { MainNav } from '@/components/main-nav';
 import { resolveNavAuth } from '@/lib/nav-auth';
 import { createClient } from '@/lib/supabase/server';
 import { APP_NAME, ROUTES, OFFLINE_PAYMENTS } from '@/lib/constants';
-import { AI_LAB, AI_LAB_FOUNDING, checkoutHrefFor } from '@/lib/catalog';
-import { currentAiLabOffer, getAiLabMembership } from '@/lib/ai-lab';
+import {
+  AI_LAB_MONTHLY,
+  AI_LAB_YEARLY,
+  AI_LAB_YEARLY_SAVINGS_USD,
+  checkoutHrefFor,
+  type PurchasableProduct,
+} from '@/lib/catalog';
+import { getAiLabMembership } from '@/lib/ai-lab';
 import {
   ArrowLeft,
   CheckCircle2,
@@ -20,7 +26,7 @@ import {
 
 export const metadata = {
   title: `فاهم AI Lab — مسار ١٢ أسبوع بلايف أسبوعي ومراجعة مشاريع | ${APP_NAME}`,
-  description: `مش كورسات تانية — ده جدول ومتابعة. ١٢ أسبوع على n8n و AI Video و Vibe Coding، لايف أسبوعي، مراجعة مشاريعك، وشهادة. ${AI_LAB_FOUNDING.priceUsd}$ لأول ${100} عضو.`,
+  description: `مش كورسات تانية — ده جدول ومتابعة. ١٢ أسبوع على n8n و AI Video و Vibe Coding، لايف أسبوعي، مراجعة مشاريعك، وشهادة. $${AI_LAB_MONTHLY.priceUsd}/شهر أو $${AI_LAB_YEARLY.priceUsd}/سنة.`,
   robots: { index: true, follow: true },
 };
 
@@ -41,18 +47,12 @@ export default async function AiLabPage({
 }: {
   searchParams: { error?: string };
 }) {
-  const [{ signedIn, isAdmin }, offer] = await Promise.all([
-    resolveNavAuth(),
-    currentAiLabOffer(),
-  ]);
+  const { signedIn, isAdmin } = await resolveNavAuth();
 
   const {
     data: { user },
   } = await createClient().auth.getUser();
   const membership = await getAiLabMembership(user?.id);
-
-  const product = offer.product;
-  const soldOut = searchParams.error === 'sold_out';
 
   return (
     <main className="min-h-screen bg-white">
@@ -95,7 +95,14 @@ export default async function AiLabPage({
               </Button>
             </div>
           ) : (
-            <OfferCard product={product} seatsLeft={offer.seatsLeft} soldOut={soldOut} />
+            <>
+              {searchParams.error === 'sold_out' && (
+                <p className="mx-auto max-w-md mb-4 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg py-2 px-3">
+                  عضويات التأسيس خلصت. الأسعار اللي تحت هي السارية دلوقتي.
+                </p>
+              )}
+              <Plans />
+            </>
           )}
         </div>
       </section>
@@ -118,7 +125,7 @@ export default async function AiLabPage({
               </div>
               <ul className="space-y-2 text-sm text-gray-600">
                 <li>• كورسات جديدة — نفس التلات كورسات</li>
-                <li>• اشتراك بيتجدد لوحده</li>
+                <li>• كورسات بتتقفل لو وقفت الاشتراك — اللي اشتريته يفضل معاك</li>
                 <li>• محتوى مقفول عنك لو مشتري الكورسات</li>
               </ul>
             </div>
@@ -222,7 +229,7 @@ export default async function AiLabPage({
 
       {/* ═══════════════  PRICE  ═══════════════ */}
       <section className="px-4 py-14 sm:py-20">
-        <div className="container mx-auto max-w-md text-center">
+        <div className="container mx-auto max-w-2xl text-center">
           <h2 className="font-display text-2xl sm:text-4xl font-extrabold mb-6">
             السعر
           </h2>
@@ -231,14 +238,18 @@ export default async function AiLabPage({
               عضويتك شغالة بالفعل — فاضل {membership.daysLeft} يوم.
             </p>
           ) : (
-            <OfferCard product={product} seatsLeft={offer.seatsLeft} soldOut={soldOut} />
+            <Plans />
           )}
 
+          {/* Same price as everywhere else, just payable locally —
+              InstaPay can't send dollars. Yearly only: a manual
+              monthly transfer would be reviewed twelve times a year. */}
           <Link
-            href={`/offline/egp?product=${product.id}`}
-            className="mt-4 block text-[11px] text-gray-500 hover:text-brand-700 underline underline-offset-4"
+            href={`/offline/egp?product=${AI_LAB_YEARLY.id}`}
+            className="mt-5 block text-[11px] text-gray-500 hover:text-brand-700 underline underline-offset-4"
           >
-            من مصر؟ ادفع بـ InstaPay أو Vodafone Cash ({product.priceEgp.toLocaleString('en')} ج.م)
+            من مصر؟ ادفع السنوي بـ InstaPay أو Vodafone Cash (
+            {AI_LAB_YEARLY.priceEgp.toLocaleString('en')} ج.م)
           </Link>
         </div>
       </section>
@@ -264,7 +275,7 @@ export default async function AiLabPage({
             />
             <Faq
               q="العضوية بتتجدد لوحدها؟"
-              a="لأ. بتدفع مرة واحدة، والعضوية شغالة سنة. مفيش تجديد تلقائي ومفيش حاجة تلغيها."
+              a="أيوه — دي عضوية في برنامج مستمر، فبتتجدد شهري أو سنوي حسب اللي اخترته. تقدر توقف التجديد في أي وقت من الإعدادات، وتفضل عضو لحد آخر يوم دفعت فيه. الكورسات اللي اشتريتها منفصلة تماماً وبتفضل معاك للأبد سواء كملت في AI Lab أو لأ."
             />
             <Faq
               q="امتى بتبدأ الدفعة؟"
@@ -290,59 +301,73 @@ export default async function AiLabPage({
 
 /* ═══════════════  BITS  ═══════════════ */
 
-function OfferCard({
+function Plans() {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mx-auto text-start">
+      <PlanCard product={AI_LAB_YEARLY} featured />
+      <PlanCard product={AI_LAB_MONTHLY} />
+    </div>
+  );
+}
+
+function PlanCard({
   product,
-  seatsLeft,
-  soldOut,
+  featured = false,
 }: {
-  product: typeof AI_LAB;
-  seatsLeft: number | null;
-  soldOut: boolean;
+  product: PurchasableProduct;
+  featured?: boolean;
 }) {
-  const isFounding = product.id === AI_LAB_FOUNDING.id;
+  const yearly = product.interval === 'year';
 
   return (
-    <div className="mx-auto max-w-md rounded-2xl border-2 border-brand-500/40 bg-white shadow-lg px-5 py-6">
-      {soldOut && (
-        <p className="mb-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg py-2 px-3">
-          عضويات التأسيس خلصت وانت بتكمّل. السعر اللي تحت هو الساري دلوقتي.
-        </p>
+    <div
+      className={`rounded-2xl bg-white p-5 sm:p-6 flex flex-col ${
+        featured ? 'border-2 border-brand-500/50 shadow-lg' : 'border border-gray-200'
+      }`}
+    >
+      {featured ? (
+        <div className="inline-flex self-start items-center gap-1.5 px-2.5 py-1 mb-3 rounded-full bg-brand-500 text-white text-[11px] font-bold">
+          <Flame className="w-3 h-3" />
+          وفّر ${AI_LAB_YEARLY_SAVINGS_USD}
+        </div>
+      ) : (
+        <div className="h-[29px] mb-3" />
       )}
 
-      {isFounding && seatsLeft !== null && (
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 mb-3 rounded-full bg-indigo-600 text-white text-xs font-bold">
-          <Flame className="w-3.5 h-3.5" />
-          فاضل {seatsLeft} عضوية تأسيس
-        </div>
-      )}
+      <div className="font-bold text-sm mb-1">{yearly ? 'سنوي' : 'شهري'}</div>
 
       <div className="mb-1">
         {product.anchorUsd && (
-          <span className="text-lg text-gray-400 line-through font-medium me-2" dir="ltr">
+          <span className="text-base text-gray-400 line-through font-medium me-2" dir="ltr">
             ${product.anchorUsd}
           </span>
         )}
         <span
-          className="font-display text-4xl sm:text-5xl font-extrabold text-brand-700"
+          className="font-display text-4xl font-extrabold text-brand-700"
           dir="ltr"
         >
           ${product.priceUsd}
         </span>
+        <span className="text-sm text-gray-500 ms-1">/ {yearly ? 'سنة' : 'شهر'}</span>
       </div>
-      <p className="text-xs text-gray-500 mb-5">
-        دفعة واحدة · عضوية سنة كاملة · من غير تجديد تلقائي
+
+      <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+        {yearly
+          ? `بدل $${AI_LAB_YEARLY.anchorUsd} لو دفعت شهري على مدار السنة`
+          : 'تقدر توقف التجديد في أي وقت'}
       </p>
 
-      <Button asChild size="lg" className="w-full font-bold min-h-[52px] text-base">
+      <Button
+        asChild
+        size="lg"
+        variant={featured ? 'default' : 'outline'}
+        className="w-full font-bold mt-auto"
+      >
         <Link href={checkoutHrefFor(product)}>
           احجز مكانك
           <ArrowLeft className="w-4 h-4" />
         </Link>
       </Button>
-
-      <p className="mt-3 text-[11px] text-gray-500 leading-relaxed">
-        🛡️ ضمان استرداد ٧ أيام · ⚡ وصول فوري للمجتمع
-      </p>
     </div>
   );
 }

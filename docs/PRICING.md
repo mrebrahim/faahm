@@ -11,9 +11,27 @@ Last changed: 2026-09-19 (subscriptions retired; the site is a one-off course sh
 | Vibe Coding | $60 | 3,000 ج.م | **Permanent** |
 | AI Bundle (all three) | $99 | 5,000 ج.م | **Permanent** |
 
-**There is no subscription.** The $10/month and $40/year plans were retired on
-2026-09-19. Nothing on the site sells a recurring price, and nothing should
-grow one back without a deliberate decision to start selling one.
+| AI Lab — monthly | $40/mo | 2,000 ج.م | Renews monthly |
+| AI Lab — yearly | $199/yr | 10,000 ج.م | Renews yearly |
+
+**Courses never recur. AI Lab does.** The old $10/$40 platform plans were
+retired on 2026-09-19 and are not coming back: a course is bought once and
+kept forever. AI Lab is the deliberate exception added on 2026-09-26 — a
+cohort programme with weekly live sessions is an ongoing service, and
+charging once while delivering forever doesn't work. Nothing else should
+grow an `interval`.
+
+Egypt pays the SAME price as everyone else. The EGP figures are a straight
+conversion at the table's standing 50 ج.م/$, not a discount — they exist only
+because you cannot send dollars over InstaPay. InstaPay is yearly-only; a
+manual monthly transfer would mean reviewing a screenshot twelve times a year.
+
+AI Lab access is one lookup — `ai_lab_members.expires_at > now()`. The Stripe
+subscription pushes its period end into that row on every renewal webhook, so
+a cancelled or lapsed card stops access on exactly the date it should, with no
+cron and no second code path. A capped `founding` tier ($99, one-off year)
+exists in the catalogue but is parked — put it back in `AI_LAB_PUBLIC_TIERS`
+to run a launch offer.
 
 The bundle anchor ($180) is real arithmetic — 3 × $60 — not an invented list
 price, so "you save $81" survives a sceptical reading.

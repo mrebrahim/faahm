@@ -39,11 +39,20 @@ export type PurchasableProduct = {
   titleAr: string;
   priceUsd: number;
   /**
-   * Charm-priced EGP figure for the InstaPay / Vodafone Cash rails.
+   * Recurring interval, for a membership that renews. `null` means a
+   * single payment. This is the ONLY thing on the site that recurs —
+   * every course is bought once and kept.
+   */
+  interval: 'month' | 'year' | null;
+  /**
+   * EGP figure for the InstaPay / Vodafone Cash rails.
    * Deliberately a fixed table rather than a live FX conversion — it
    * has to match what the admin reconciles a WhatsApp screenshot
    * against, and a rate that moves daily makes that impossible.
-   * Anchored to the rate the EGP table has always used (~50 ج.م/$).
+   *
+   * It is a straight conversion at the table's standing 50 ج.م/$, NOT a
+   * discount: Egypt pays the same as the Gulf. The only reason the
+   * number exists at all is that you cannot send dollars over InstaPay.
    */
   priceEgp: number;
   /** Strikethrough figure. Null when there is nothing honest to anchor to. */
@@ -82,6 +91,7 @@ export const PAID_COURSES: Record<string, PurchasableProduct> = {
     priceUsd: COURSE_PRICE_USD,
     priceEgp: COURSE_PRICE_EGP,
     anchorUsd: null,
+    interval: null,
     accessMonths: null,
     seatLimit: null,
   },
@@ -93,6 +103,7 @@ export const PAID_COURSES: Record<string, PurchasableProduct> = {
     priceUsd: COURSE_PRICE_USD,
     priceEgp: COURSE_PRICE_EGP,
     anchorUsd: null,
+    interval: null,
     accessMonths: null,
     seatLimit: null,
   },
@@ -104,6 +115,7 @@ export const PAID_COURSES: Record<string, PurchasableProduct> = {
     priceUsd: COURSE_PRICE_USD,
     priceEgp: COURSE_PRICE_EGP,
     anchorUsd: null,
+    interval: null,
     accessMonths: null,
     seatLimit: null,
   },
@@ -125,6 +137,7 @@ export const AI_BUNDLE: PurchasableProduct = {
   priceUsd: BUNDLE_PRICE_USD,
   priceEgp: BUNDLE_PRICE_EGP,
   anchorUsd: COURSE_PRICE_USD * 3,
+  interval: null,
   accessMonths: null,
   seatLimit: null,
 };
@@ -140,20 +153,57 @@ export const AI_BUNDLE: PurchasableProduct = {
  */
 export const AI_LAB_MONTHS = 12;
 
-/** Standing price. */
-export const AI_LAB: PurchasableProduct = {
-  id: 'ai-lab',
+/**
+ * AI Lab RENEWS. It is the one recurring thing on the site.
+ *
+ * That is a deliberate exception, not a drift back to the old plans:
+ * a cohort programme with weekly live sessions is an ongoing service,
+ * and charging for it once while delivering it forever doesn't work.
+ * Courses stay one-off — buy once, keep forever. Nothing else here
+ * should grow an `interval`.
+ */
+export const AI_LAB_MONTHLY: PurchasableProduct = {
+  id: 'ai-lab-monthly',
   kind: 'membership',
   slugs: [],
-  titleAr: 'فاهم AI Lab — سنة كاملة',
-  priceUsd: 199,
-  priceEgp: 4_900,
+  titleAr: 'فاهم AI Lab — شهري',
+  priceUsd: 40,
+  priceEgp: 2_000,
   anchorUsd: null,
+  interval: 'month',
+  accessMonths: 1,
+  seatLimit: null,
+};
+
+export const AI_LAB_YEARLY: PurchasableProduct = {
+  id: 'ai-lab-yearly',
+  kind: 'membership',
+  slugs: [],
+  titleAr: 'فاهم AI Lab — سنوي',
+  priceUsd: 199,
+  priceEgp: 10_000,
+  // 12 × $40 is what the monthly plan actually costs over a year, so
+  // the saving is arithmetic the buyer can check rather than a claim.
+  anchorUsd: 40 * 12,
+  interval: 'year',
   accessMonths: AI_LAB_MONTHS,
   seatLimit: null,
 };
 
-/** Launch tier. Capped, and the cap is the whole point of the offer. */
+export const AI_LAB_YEARLY_SAVINGS_USD =
+  (AI_LAB_YEARLY.anchorUsd as number) - AI_LAB_YEARLY.priceUsd;
+
+/** Back-compat alias — the yearly plan is the headline AI Lab product. */
+export const AI_LAB = AI_LAB_YEARLY;
+
+/**
+ * Capped launch tier: one payment, one year, no renewal.
+ *
+ * PARKED — not offered publicly right now. The id stays resolvable so
+ * an existing link still works and an admin can still grant the tier by
+ * hand, but nothing links to it. Put it back in AI_LAB_PUBLIC_TIERS to
+ * run the launch offer.
+ */
 export const AI_LAB_FOUNDING_SEATS = 100;
 
 export const AI_LAB_FOUNDING: PurchasableProduct = {
@@ -162,11 +212,23 @@ export const AI_LAB_FOUNDING: PurchasableProduct = {
   slugs: [],
   titleAr: 'فاهم AI Lab — عضوية التأسيس',
   priceUsd: 99,
-  priceEgp: 2_900,
-  anchorUsd: AI_LAB.priceUsd,
+  priceEgp: 5_000,
+  anchorUsd: AI_LAB_YEARLY.priceUsd,
+  interval: null,
   accessMonths: AI_LAB_MONTHS,
   seatLimit: AI_LAB_FOUNDING_SEATS,
 };
+
+/** What the pricing surfaces actually offer, in display order. */
+export const AI_LAB_PUBLIC_TIERS: PurchasableProduct[] = [
+  AI_LAB_YEARLY,
+  AI_LAB_MONTHLY,
+];
+
+/** True when buying this product opens a Stripe subscription. */
+export function isRecurring(product: PurchasableProduct): boolean {
+  return product.interval !== null;
+}
 
 export const BUNDLE_ANCHOR_USD = AI_BUNDLE.anchorUsd as number;
 export const BUNDLE_SAVINGS_USD = BUNDLE_ANCHOR_USD - BUNDLE_PRICE_USD;
@@ -178,7 +240,8 @@ export const BUNDLE_SAVINGS_PCT = Math.round(
 export const PRODUCTS: Record<string, PurchasableProduct> = {
   ...PAID_COURSES,
   [AI_BUNDLE.id]: AI_BUNDLE,
-  [AI_LAB.id]: AI_LAB,
+  [AI_LAB_MONTHLY.id]: AI_LAB_MONTHLY,
+  [AI_LAB_YEARLY.id]: AI_LAB_YEARLY,
   [AI_LAB_FOUNDING.id]: AI_LAB_FOUNDING,
 };
 
