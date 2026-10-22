@@ -3,6 +3,7 @@ import { getActiveSubscription } from '@/lib/access';
 import { getMobileUser } from '@/lib/mobile-auth';
 import { getUserXp, levelProgress } from '@/lib/xp';
 import { productForCourseSlug } from '@/lib/catalog';
+import { hasAiLabAccess } from '@/lib/ai-lab';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,8 +18,10 @@ export async function GET(request: Request) {
   const user = await getMobileUser(request);
   const service = createServiceClient();
 
-  const [sub, xp, coursesRes, postsRes, communityRes, continueRes] = await Promise.all([
+  const [sub, aiLabMember, xp, coursesRes, postsRes, communityRes, continueRes] =
+    await Promise.all([
     user ? getActiveSubscription(user.id) : Promise.resolve(null),
+    user ? hasAiLabAccess(user.id) : Promise.resolve(false),
     user ? getUserXp(user.id) : Promise.resolve(null),
     service
       .from('courses')
@@ -111,7 +114,10 @@ export async function GET(request: Request) {
       sold_separately: c.yearly_only === true,
       price_usd: productForCourseSlug(c.slug)?.priceUsd ?? null,
       rating_avg: Number(c.rating_avg) || 0,
-      unlocked: c.is_free || (!!sub && c.yearly_only !== true),
+      unlocked:
+        c.is_free ||
+        (!!sub && c.yearly_only !== true) ||
+        (c.yearly_only === true && aiLabMember),
       lock_reason: null,
     })),
     news: (postsRes.data ?? []).map((p: any) => ({

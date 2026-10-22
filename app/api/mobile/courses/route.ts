@@ -2,6 +2,7 @@ import { createServiceClient } from '@/lib/supabase/server';
 import { getActiveSubscription } from '@/lib/access';
 import { getMobileUser } from '@/lib/mobile-auth';
 import { productForCourseSlug } from '@/lib/catalog';
+import { hasAiLabAccess } from '@/lib/ai-lab';
 
 export const dynamic = 'force-dynamic';
 
@@ -32,13 +33,14 @@ export async function GET(request: Request) {
 
   if (freeOnly) query = query.eq('is_free', true);
 
-  const [{ data: courses }, sub, enrolledIds] = await Promise.all([
+  const [{ data: courses }, sub, enrolledIds, aiLabMember] = await Promise.all([
     query
       .order('is_free', { ascending: false })
       .order('sort_order')
       .order('created_at', { ascending: false }),
     user ? getActiveSubscription(user.id) : Promise.resolve(null),
     user ? enrolledCourseIds(user.id) : Promise.resolve(new Set<string>()),
+    user ? hasAiLabAccess(user.id) : Promise.resolve(false),
   ]);
 
   const rows = (courses ?? []).map((c: any) => {
@@ -47,7 +49,14 @@ export async function GET(request: Request) {
     // plan covers these, only a purchase (which lands as an enrollment).
     const soldSeparately = c.yearly_only === true;
     const planCovers = !!sub && !soldSeparately;
-    const unlocked = c.is_free || planCovers || enrolledIds.has(c.id);
+    // A live AI Lab membership rents these three for as long as it
+    // renews. Mirrors canAccessCourse — this route computes access
+    // itself for the whole catalogue in one pass.
+    const unlocked =
+      c.is_free ||
+      planCovers ||
+      enrolledIds.has(c.id) ||
+      (soldSeparately && aiLabMember);
     const product = productForCourseSlug(c.slug);
 
     return {

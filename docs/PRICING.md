@@ -56,7 +56,8 @@ countdown deadline the landing page shows.
 `lib/access.ts → canAccessCourse()` in three rules, in order:
 
 1. `courses.is_free` → open to anyone signed in.
-2. `courses.yearly_only` → open **only** on an `enrollments` row.
+2. `courses.yearly_only` → open on an `enrollments` row **or** a live
+   AI Lab membership.
 3. Otherwise → open on any live subscription (legacy holders only).
 
 ### The `yearly_only` column name is a lie
@@ -66,6 +67,23 @@ separately"**. Renaming the column would need a migration plus a coordinated
 deploy for zero behavioural gain, so the column stayed and every TypeScript
 surface calls it `soldSeparately`. If you are reading the DB directly, that is
 what the flag means. All three published courses carry it.
+
+### Bought vs rented
+
+Two different keys open n8n / AI Video / Vibe Coding, and the difference
+matters to the student:
+
+* **Bought** — an `enrollments` row. Permanent; it is theirs.
+* **AI Lab** — a live membership. It closes the day the membership lapses,
+  which is what makes the monthly and yearly plans worth paying for.
+
+`CourseAccess.viaMembership` is true only for the second, so the UI can say
+"مفتوح طول عضويتك" instead of implying ownership. Someone holding both keeps
+the course when the membership ends — ownership wins the label.
+
+The membership's expiry tracks the Stripe period end, pushed in by the renewal
+webhook, so a card that stops renewing closes these courses on exactly the
+right date with no cron and no sweep job.
 
 ### Everything grants through `enrollments`
 

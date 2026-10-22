@@ -1,4 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/server';
+import { hasAiLabAccess } from '@/lib/ai-lab';
 
 export type SubscriptionRow = {
   id: string;
@@ -66,8 +67,14 @@ export type CourseAccess = {
   /** The course is sold on its own and this user hasn't bought it. */
   requiresPurchase: boolean;
   free: boolean;
-  /** True for n8n / AI Video / Vibe Coding — no plan covers these. */
+  /** True for n8n / AI Video / Vibe Coding — bought, or opened by AI Lab. */
   soldSeparately: boolean;
+  /**
+   * Open only because the viewer is a paying AI Lab member — they have
+   * NOT bought the course. It closes when the membership lapses, so the
+   * UI should say "معاك طول عضويتك" rather than implying ownership.
+   */
+  viaMembership: boolean;
   /** Course slug, so a paywall can look up the standalone price. */
   slug: string | null;
 };
@@ -95,6 +102,7 @@ export async function canAccessCourse(
     requiresPurchase: false,
     free: false,
     soldSeparately: false,
+    viaMembership: false,
     slug: null,
   };
 
@@ -128,18 +136,32 @@ export async function canAccessCourse(
     };
   }
 
-  // Sold-separately courses ignore the subscription entirely. The only
-  // key is an enrollment row — written by a purchase, a coupon redeem,
-  // an admin grant, or the grandfather backfill for subscribers who
-  // already had access when this pricing shipped.
+  // Two different keys open a sold-separately course, and the
+  // difference between them matters to the student:
+  //
+  //   BOUGHT     — an `enrollments` row. Permanent; it is theirs.
+  //   AI LAB     — a live membership. Rented; it closes the day the
+  //                membership lapses, which is what makes the
+  //                programme's monthly and yearly plans worth paying.
+  //
+  // The membership's own expiry tracks the Stripe period end (pushed in
+  // by the renewal webhook), so a card that stops renewing closes these
+  // courses on exactly the right date with no cron and no sweep job.
   if (gate.soldSeparately) {
-    const enrolled = await hasCourseEnrollment(userId, courseId);
+    const [enrolled, member] = await Promise.all([
+      hasCourseEnrollment(userId, courseId),
+      hasAiLabAccess(userId),
+    ]);
+
     return {
       ...locked,
-      enrolled,
+      enrolled: enrolled || member,
       soldSeparately: true,
+      // Ownership wins the label: someone who bought the course AND
+      // holds a membership keeps it when the membership ends.
+      viaMembership: member && !enrolled,
       slug: gate.slug,
-      requiresPurchase: !enrolled,
+      requiresPurchase: !enrolled && !member,
     };
   }
 

@@ -632,12 +632,21 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
             <div className="p-5 sm:p-6 rounded-2xl bg-white border border-gray-200">
               <div className="flex items-center gap-2 mb-3 text-sm text-brand-600 font-medium">
                 <CheckCircle2 className="w-5 h-5" />
-                {enrolledOnly ? 'تم تسجيلك في هذا الكورس' : 'اشتراكك مفعّل'}
+                {access.viaMembership
+                  ? 'مفتوح بعضوية AI Lab'
+                  : enrolledOnly
+                    ? 'الكورس ده معاك'
+                    : 'اشتراكك مفعّل'}
               </div>
+              {/* A member is renting, not owning. Saying "معاك" to
+                  someone whose access ends with their membership sets
+                  up a support ticket the day it lapses. */}
               <p className="text-sm text-gray-600 mb-4">
-                {enrolledOnly
-                  ? 'الإدارة منحتك وصولًا لهذا الكورس. استمتع!'
-                  : 'لك وصول كامل لكل دروس الكورس ده.'}
+                {access.viaMembership
+                  ? 'الكورس ده مفتوح لك طول ما عضوية AI Lab شغالة. لو حبيته يفضل معاك للأبد، تقدر تشتريه لوحده في أي وقت.'
+                  : enrolledOnly
+                    ? 'الكورس ده معاك — وصول دائم.'
+                    : 'لك وصول كامل لكل دروس الكورس ده.'}
               </p>
               {firstLesson && (
                 <Button asChild className="w-full" size="lg">
