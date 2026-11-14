@@ -4,6 +4,7 @@ import { MainNav } from '@/components/main-nav';
 import { StickyMobileCTA } from '@/components/sticky-mobile-cta';
 import { LandingTracker } from '@/components/landing-tracker';
 import { LiteYouTube } from '@/components/lite-youtube';
+import { WhiteFridayCountdown } from '@/components/white-friday-countdown';
 import { resolveNavAuth } from '@/lib/nav-auth';
 import { WHITE_FRIDAY_BUNDLE, checkoutHrefFor } from '@/lib/catalog';
 
@@ -38,6 +39,7 @@ export default async function WhiteFridayPage() {
             <p className="mt-6 max-w-xl text-lg leading-8 text-slate-300">الـ AI بيتطور كل يوم، والمهارات اللي هتتعلمها النهارده ممكن تساعدك تواكب التغيير. ابدأ بـ n8n وAI Video وVibe Coding في باقة واحدة، بسعر كورس واحد.</p>
             <div className="mt-8 flex flex-wrap items-baseline gap-4"><span className="text-5xl font-black sm:text-6xl" dir="ltr">${product.priceUsd}</span><span className="text-xl text-slate-400 line-through" dir="ltr">${product.anchorUsd}</span><span className="rounded-full bg-red-600 px-3 py-1 text-sm font-bold">وفّر $120</span></div>
             <p className="mt-2 text-sm text-slate-400">بدل شراء كل كورس لوحده بـ $60 • دفعة واحدة • وصول دائم</p>
+            <WhiteFridayCountdown />
             <Link href={checkout} className="mt-8 inline-flex min-h-[56px] w-full items-center justify-center gap-3 rounded-xl bg-red-600 px-8 text-lg font-bold text-white shadow-lg shadow-red-900/30 transition hover:bg-red-500 sm:w-auto">اشترك في الـ AI Bundle الآن <ArrowLeft className="h-5 w-5" /></Link>
             <p className="mt-4 text-sm text-slate-400">دفع آمن بالبطاقة · <Link className="underline underline-offset-4 hover:text-white" href={`/offline/egp?product=${product.id}`}>الدفع من مصر بـ InstaPay أو Vodafone Cash</Link></p>
           </div>
