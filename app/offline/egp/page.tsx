@@ -133,6 +133,11 @@ export default async function EgyptOfflinePage({
                 {instapayLink}
               </code>
             </div>
+            {product.id === 'white-friday-bundle' && (
+              <p className="mb-3 text-sm text-gray-700">
+                رقم InstaPay: <span dir="ltr" className="font-mono font-bold">01050858819</span>
+              </p>
+            )}
             <a
               href={instapayLink}
               target="_blank"
