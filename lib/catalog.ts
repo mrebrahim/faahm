@@ -142,6 +142,15 @@ export const AI_BUNDLE: PurchasableProduct = {
   seatLimit: null,
 };
 
+/** Separate White Friday offer; keeps the regular bundle price unchanged. */
+export const WHITE_FRIDAY_BUNDLE: PurchasableProduct = {
+  ...AI_BUNDLE,
+  id: 'white-friday-bundle',
+  titleAr: 'AI Bundle — عرض الجمعة البيضاء',
+  priceUsd: COURSE_PRICE_USD,
+  priceEgp: COURSE_PRICE_EGP,
+};
+
 /* ── AI Lab ──────────────────────────────────────────────────────────
  * The programme that wraps the three courses: a 12-week cohort with a
  * weekly live workshop, project review and a certificate.
@@ -240,6 +249,7 @@ export const BUNDLE_SAVINGS_PCT = Math.round(
 export const PRODUCTS: Record<string, PurchasableProduct> = {
   ...PAID_COURSES,
   [AI_BUNDLE.id]: AI_BUNDLE,
+  [WHITE_FRIDAY_BUNDLE.id]: WHITE_FRIDAY_BUNDLE,
   [AI_LAB_MONTHLY.id]: AI_LAB_MONTHLY,
   [AI_LAB_YEARLY.id]: AI_LAB_YEARLY,
   [AI_LAB_FOUNDING.id]: AI_LAB_FOUNDING,
