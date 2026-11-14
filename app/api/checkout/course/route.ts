@@ -7,8 +7,7 @@ import {
   productById,
   isMembership,
   isRecurring,
-  AI_BUNDLE,
-  BUNDLE_SAVINGS_USD,
+  WHITE_FRIDAY_BUNDLE,
 } from '@/lib/catalog';
 import { foundingSeats } from '@/lib/ai-lab';
 
@@ -79,11 +78,11 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  const isBundle = product.id === AI_BUNDLE.id;
+  const isBundle = product.slugs.length > 1;
   const description = membership
     ? 'مسار ١٢ أسبوع + لايف أسبوعي + مراجعة مشاريع + شهادة — عضوية سنة'
     : isBundle
-      ? `أتمتة n8n + AI Video Master + Vibe Coding — وصول دائم · وفّر $${BUNDLE_SAVINGS_USD}`
+      ? `أتمتة n8n + AI Video Master + Vibe Coding — وصول دائم · وفّر $${(product.anchorUsd ?? product.priceUsd) - product.priceUsd}`
       : 'وصول دائم للكورس — من غير اشتراك ولا تجديد';
 
   // AI Lab renews; everything else is bought once. The interval on the
@@ -137,7 +136,7 @@ export async function GET(request: NextRequest) {
       },
       success_url: `${origin}/purchase/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}${
-        membership ? '/ai-lab' : isBundle ? '/ai-bundle' : `/course/${product.slugs[0]}`
+        membership ? '/ai-lab' : product.id === WHITE_FRIDAY_BUNDLE.id ? '/white-friday' : isBundle ? '/ai-bundle' : `/course/${product.slugs[0]}`
       }`,
       allow_promotion_codes: true,
     });
