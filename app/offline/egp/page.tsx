@@ -46,7 +46,7 @@ export default async function EgyptOfflinePage({
   const itemName = product.titleAr;
   const itemId = product.id;
   const backHref =
-    product.slugs.length > 1 ? '/ai-bundle' : `/course/${product.slugs[0]}`;
+    product.id === 'white-friday-bundle' ? '/white-friday' : product.slugs.length > 1 ? '/ai-bundle' : `/course/${product.slugs[0]}`;
 
   // Guest checkout: accept visitors with just an email in the cookie.
   // Admins confirm manually after the WhatsApp screenshot lands.
