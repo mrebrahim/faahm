@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { headers, cookies } from 'next/headers';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
-import { ROUTES, APP_NAME, PLANS, OFFLINE_PAYMENTS } from '@/lib/constants';
+import { ROUTES, APP_NAME, PLANS } from '@/lib/constants';
 import { ensureUserForEmail, reconcileCheckoutSession } from '@/lib/billing';
 import { trackServerEvent } from '@/lib/tracking';
 import { PurchaseTracker } from '@/components/purchase-tracker';
@@ -89,7 +89,7 @@ export default async function BillingSuccessPage({
             <a
               href={(() => {
                 const msg = 'لقد دفعت وهذه اسكرين شوت من اشتراكي';
-                return `https://wa.me/${OFFLINE_PAYMENTS.confirmationWhatsApp}?text=${encodeURIComponent(msg)}`;
+                return `https://wa.me/201027555789?text=${encodeURIComponent(msg)}`;
               })()}
               target="_blank"
               rel="noopener noreferrer"
@@ -249,7 +249,7 @@ export default async function BillingSuccessPage({
               ]
                 .filter(Boolean)
                 .join('\n');
-              return `https://wa.me/${OFFLINE_PAYMENTS.confirmationWhatsApp}?text=${encodeURIComponent(msg)}`;
+              return `https://wa.me/201027555789?text=${encodeURIComponent(msg)}`;
             })()}
             target="_blank"
             rel="noopener noreferrer"

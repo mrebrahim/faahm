@@ -46,7 +46,7 @@ export default async function EgyptOfflinePage({
   const itemName = product.titleAr;
   const itemId = product.id;
   const backHref =
-    product.slugs.length > 1 ? '/ai-bundle' : `/course/${product.slugs[0]}`;
+    product.id === 'white-friday-bundle' ? '/white-friday' : product.slugs.length > 1 ? '/ai-bundle' : `/course/${product.slugs[0]}`;
 
   // Guest checkout: accept visitors with just an email in the cookie.
   // Admins confirm manually after the WhatsApp screenshot lands.
@@ -133,6 +133,11 @@ export default async function EgyptOfflinePage({
                 {instapayLink}
               </code>
             </div>
+            {product.id === 'white-friday-bundle' && (
+              <p className="mb-3 text-sm text-gray-700">
+                رقم InstaPay: <span dir="ltr" className="font-mono font-bold">01050858819</span>
+              </p>
+            )}
             <a
               href={instapayLink}
               target="_blank"
