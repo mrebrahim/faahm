@@ -104,6 +104,21 @@ ls -1dt "$APP_DIR"/releases/*/ 2>/dev/null | tail -n +6 | xargs -r rm -rf
 # ── 5. run ──────────────────────────────────────────────────────────────────
 command -v pm2 >/dev/null || { say "Installing pm2"; npm install -g pm2; }
 
+# Fail fast on a taken port. Without this the new process crash-loops
+# under pm2 with EADDRINUSE while the health check below times out
+# against whatever already owns the port — a confusing way to find out
+# the old container is still listening.
+if command -v ss >/dev/null && ss -ltn "sport = :$PORT" 2>/dev/null | grep -q LISTEN; then
+  OWNER="$(ss -ltnp "sport = :$PORT" 2>/dev/null | awk 'NR==2{print $NF}')"
+  die "Port $PORT is already in use${OWNER:+ by $OWNER}.
+    The old container is probably still serving the site — which is fine,
+    leave it running. Deploy alongside it on a free port instead:
+
+        PORT=3001 bash $0 ${REF}
+
+    Then point the reverse proxy at 3001 once you have checked it."
+fi
+
 say "Restarting $APP_NAME on port $PORT"
 # HOSTNAME=0.0.0.0 matters: the standalone server binds localhost only by
 # default, and nginx on the same box would still reach it — but Docker or a
