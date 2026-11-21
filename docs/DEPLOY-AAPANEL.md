@@ -1,5 +1,16 @@
 # Deploying فاهم on aaPanel
 
+> **Already set up and running** (21 Nov 2026): PM2 process `faahm` on port
+> **3001**, nginx vhost at `/www/server/panel/vhost/nginx/faahm.com.conf`.
+> For routine updates you want **[UPDATE-SITE.md](./UPDATE-SITE.md)**, not
+> this page. This one is the first-time setup and the reference.
+>
+> Two things that actually bit us, both fixed in the script but worth
+> knowing: port 3000 was already held by the old container, so the app runs
+> on 3001 (`PORT=3001`); and nginx kept proxying to the OLD backend on 3300
+> long after the new one was live, which looks exactly like "the deploy
+> didn't work" — always check `proxy_pass` before debugging the app.
+
 The script does the build and the swap. aaPanel does the domain, the TLS
 certificate and the reverse proxy. This page is the half aaPanel owns.
 
