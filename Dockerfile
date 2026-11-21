@@ -47,6 +47,11 @@ ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL \
     NEXT_PUBLIC_TIKTOK_PIXEL_ID=$NEXT_PUBLIC_TIKTOK_PIXEL_ID
 RUN npm run build
 
+# The repo has no public/ directory, and `COPY /app/public` in the runner
+# stage fails outright when the path is missing. Creating it here keeps
+# that COPY valid whether or not a future commit adds real assets.
+RUN mkdir -p public
+
 # 3. runner — minimal production image. Standalone bundle includes only the
 #    node_modules the server actually imports, so this layer stays tiny.
 FROM node:${NODE_VERSION} AS runner

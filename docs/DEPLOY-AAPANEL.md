@@ -16,8 +16,18 @@ either way.
 
 ## One-time setup
 
-**1. Node 20.** aaPanel → App Store → Node.js version manager → install 20
+**0. Clone the repo.** The script lives inside it, so it has to be on the
+server before anything else:
+
+```bash
+mkdir -p /www/wwwroot/faahm
+git clone https://github.com/mrebrahim/faahm.git /www/wwwroot/faahm/src
+```
+
+
+**1. Node 18 or newer.** aaPanel → App Store → Node.js version manager → install 20
 and make it the command-line default. Next.js 14 refuses to build on 16.
+Anything from 18 up works; 24 builds fine.
 
 **2. Put the env file at `/www/wwwroot/faahm/faahm.env`.**
 

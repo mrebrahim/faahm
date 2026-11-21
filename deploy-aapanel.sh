@@ -73,12 +73,19 @@ say "Building"
 npm run build
 
 # `output: 'standalone'` emits a self-contained server, but Next does NOT
-# copy these two into it — without them you get a running server with no
-# CSS, no JS chunks and no images.
+# copy the static assets into it — without them you get a running server
+# with no CSS and no JS chunks.
 say "Assembling the standalone bundle"
-cp -r public .next/standalone/
 mkdir -p .next/standalone/.next
 cp -r .next/static .next/standalone/.next/
+
+# This repo has no public/ directory and never has. Copying it
+# unconditionally aborted the deploy right after a successful build,
+# which is a silly way to lose two minutes — so only copy it if some
+# future commit adds one.
+if [ -d public ]; then
+  cp -r public .next/standalone/
+fi
 
 [ -f .next/standalone/server.js ] || die "Build produced no standalone server. Check next.config.js still sets output: 'standalone'."
 
