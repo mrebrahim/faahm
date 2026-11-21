@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { COURSE_PRICE_USD, AI_BUNDLE } from '@/lib/catalog';
+import { MIN_COURSE_PRICE_USD, AI_BUNDLE } from '@/lib/catalog';
 import { APP_NAME, APP_TAGLINE, ROUTES } from '@/lib/constants';
 import {
   Sparkles,
@@ -106,7 +106,7 @@ export default function AboutPage() {
             <Bullet
               n="03"
               title="اشتراك واحد، وصول لكل حاجة"
-              body={`كل كورس بتشتريه مرة واحدة ويفضل معاك للأبد — $${COURSE_PRICE_USD} للكورس، أو $${AI_BUNDLE.priceUsd} للتلات كورسات مع بعض. مفيش اشتراك ولا تجديد ولا حاجة بتقفل في وشك.`}
+              body={`كل كورس بتشتريه مرة واحدة ويفضل معاك للأبد — من $${MIN_COURSE_PRICE_USD} للكورس، أو $${AI_BUNDLE.priceUsd} للتلات كورسات مع بعض. مفيش اشتراك ولا تجديد ولا حاجة بتقفل في وشك.`}
             />
             <Bullet
               n="04"

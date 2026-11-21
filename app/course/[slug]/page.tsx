@@ -14,6 +14,8 @@ import {
   AI_BUNDLE,
   BUNDLE_ANCHOR_USD,
   BUNDLE_SAVINGS_USD,
+  isDiscounted,
+  discountPct,
 } from '@/lib/catalog';
 import { pickRelated, type RelatedCandidate } from '@/lib/related-courses';
 import { CourseSocialProof } from '@/components/course-social-proof';
@@ -144,6 +146,9 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
   // Non-null only for n8n / AI Video / Vibe Coding — the courses no
   // subscription covers. Drives the paywall's whole shape below.
   const courseProduct = productForCourseSlug(course.slug);
+  // Drives the strikethrough, the badge and the hero ribbon. Goes away
+  // on its own when the catalogue price and anchor match again.
+  const onOffer = !!courseProduct && isDiscounted(courseProduct);
   // For the rest of this page we treat enrollment the same as subscription —
   // both grant full access to *this* course.
   const subscribed = access.subscribed || access.enrolled;
@@ -240,6 +245,19 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
               {firstPreviewLesson && (
                 <span className="px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 font-medium inline-flex items-center gap-1">
                   <Sparkles className="w-3 h-3" /> فيه عينة مجانية
+                </span>
+              )}
+              {/* The buybox carries the full offer, but it sits BELOW
+                  the content on a phone — most of this audience would
+                  never scroll to it. The badge puts the discount above
+                  the fold where the decision starts. */}
+              {onOffer && !subscribed && courseProduct && (
+                <span className="px-2.5 py-1 rounded-full bg-rose-600 text-white font-bold inline-flex items-center gap-1">
+                  🔥 خصم {discountPct(courseProduct)}%
+                  <span dir="ltr" className="opacity-75 line-through font-medium">
+                    ${courseProduct.anchorUsd}
+                  </span>
+                  <span dir="ltr">${courseProduct.priceUsd}</span>
                 </span>
               )}
             </div>
@@ -548,14 +566,32 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
                    pitching one here would be a lie the buyer discovers
                    after paying. Show the real price instead. */
                 <>
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 mb-3 rounded-full bg-amber-500 text-white text-[11px] font-bold">
+                  <div
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 mb-3 rounded-full text-white text-[11px] font-bold ${
+                      onOffer ? 'bg-rose-600' : 'bg-amber-500'
+                    }`}
+                  >
                     <Star className="w-3 h-3 fill-white" />
-                    كورس بريميوم — بيتباع لوحده
+                    {onOffer
+                      ? `🔥 خصم ${discountPct(courseProduct)}% — لفترة محدودة`
+                      : 'كورس بريميوم — بيتباع لوحده'}
                   </div>
                   <h3 className="font-display text-xl font-bold mb-2">
                     اشتري الكورس ده مرة واحدة
                   </h3>
                   <div className="mb-3">
+                    {/* The strikethrough is the price this course
+                        actually carried, from the catalogue — not a
+                        decorative number invented to make $20 look
+                        bigger. */}
+                    {onOffer && (
+                      <span
+                        className="text-xl text-gray-400 line-through font-medium me-2"
+                        dir="ltr"
+                      >
+                        ${courseProduct.anchorUsd}
+                      </span>
+                    )}
                     <span
                       className="font-display text-4xl font-extrabold text-brand-700"
                       dir="ltr"
@@ -564,6 +600,12 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
                     </span>
                     <span className="text-sm text-gray-500 ms-2">مرة واحدة</span>
                   </div>
+                  {onOffer && (
+                    <p className="text-sm font-bold text-emerald-700 mb-3">
+                      وفّر ${(courseProduct.anchorUsd as number) - courseProduct.priceUsd}{' '}
+                      — السعر العادي ${courseProduct.anchorUsd}
+                    </p>
+                  )}
                   <p className="text-sm text-gray-600 mb-4">
                     الكورس ده مش داخل في الاشتراك الشهري ولا السنوي. بتدفع مرة
                     واحدة والوصول <strong>دايم</strong>.

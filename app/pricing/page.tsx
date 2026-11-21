@@ -9,18 +9,20 @@ import {
   BUNDLE_ANCHOR_USD,
   BUNDLE_SAVINGS_USD,
   BUNDLE_SAVINGS_PCT,
-  COURSE_PRICE_USD,
-  COURSE_PRICE_EGP,
+  isDiscounted,
+  discountPct,
   AI_LAB_MONTHLY,
   AI_LAB_YEARLY,
   checkoutHrefFor,
+  MIN_COURSE_PRICE_USD,
+  MIN_COURSE_PRICE_EGP,
 } from '@/lib/catalog';
 import { SocialProofToast } from '@/components/social-proof-toast';
 import { CheckCircle2, ArrowLeft, Sparkles, Star } from 'lucide-react';
 
 export const metadata = {
   title: `الأسعار — ${APP_NAME}`,
-  description: `كل كورس بـ $${COURSE_PRICE_USD} مرة واحدة والوصول دايم، أو خد التلات كورسات مع بعض بـ $${AI_BUNDLE.priceUsd} بدل $${BUNDLE_ANCHOR_USD}.`,
+  description: `كورسات بتتشترى مرة واحدة والوصول دايم — من $${MIN_COURSE_PRICE_USD}، أو التلاتة مع بعض بـ $${AI_BUNDLE.priceUsd} بدل $${BUNDLE_ANCHOR_USD}.`,
 };
 
 export const dynamic = 'force-dynamic';
@@ -170,7 +172,7 @@ export default async function PricingPage({
             أو كورس لوحده
           </h2>
           <p className="text-sm text-gray-600">
-            كل كورس بـ ${COURSE_PRICE_USD}، والوصول دايم برضه.
+الوصول دايم في كل الحالات — وفيه كورس عليه خصم دلوقتي.
           </p>
         </div>
 
@@ -185,11 +187,26 @@ export default async function PricingPage({
                 <div className="font-bold text-sm sm:text-base mb-2 min-w-0">
                   {product.titleAr}
                 </div>
-                <div
-                  className="font-display text-3xl font-extrabold text-brand-700 mb-4"
-                  dir="ltr"
-                >
-                  ${product.priceUsd}
+                {isDiscounted(product) && (
+                  <div className="inline-flex self-center items-center gap-1 px-2 py-0.5 mb-1 rounded-full bg-rose-600 text-white text-[10px] font-bold">
+                    خصم {discountPct(product)}%
+                  </div>
+                )}
+                <div className="mb-4">
+                  {isDiscounted(product) && (
+                    <span
+                      className="text-base text-gray-400 line-through font-medium me-1.5"
+                      dir="ltr"
+                    >
+                      ${product.anchorUsd}
+                    </span>
+                  )}
+                  <span
+                    className="font-display text-3xl font-extrabold text-brand-700"
+                    dir="ltr"
+                  >
+                    ${product.priceUsd}
+                  </span>
                 </div>
                 <div className="mt-auto flex flex-col gap-2">
                   <Button asChild size="sm" className="w-full">
@@ -256,7 +273,8 @@ export default async function PricingPage({
         <div className="rounded-2xl border border-gray-200 bg-white p-5 text-center mb-10">
           <div className="text-sm font-bold mb-1">من مصر؟</div>
           <p className="text-xs text-gray-600 leading-relaxed mb-3">
-            ادفع بـ InstaPay أو Vodafone Cash — الكورس بـ {COURSE_PRICE_EGP.toLocaleString('en')} ج.م
+            ادفع بـ InstaPay أو Vodafone Cash — الكورس من{' '}
+            {MIN_COURSE_PRICE_EGP.toLocaleString('en')} ج.م
             والـ Bundle بـ {AI_BUNDLE.priceEgp.toLocaleString('en')} ج.م.
           </p>
           <div className="flex flex-col sm:flex-row gap-2 justify-center">

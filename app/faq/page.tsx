@@ -6,6 +6,8 @@ import {
   COURSE_PRICE_EGP,
   AI_BUNDLE,
   BUNDLE_ANCHOR_USD,
+  MIN_COURSE_PRICE_USD,
+  MIN_COURSE_PRICE_EGP,
 } from '@/lib/catalog';
 import { HelpCircle, ArrowLeft } from 'lucide-react';
 
@@ -44,7 +46,7 @@ function buildFaqs() {
       },
       {
         q: 'الكورسات بكام؟',
-        a: `كل كورس بـ $${COURSE_PRICE_USD} لوحده، أو التلات كورسات مع بعض بـ $${AI_BUNDLE.priceUsd} بدل $${BUNDLE_ANCHOR_USD} — يعني بتوفّر $${BUNDLE_ANCHOR_USD - AI_BUNDLE.priceUsd}. الوصول دايم في الحالتين.`,
+        a: `الكورس الواحد بين $${MIN_COURSE_PRICE_USD} و$${COURSE_PRICE_USD} حسب العرض الشغال، والتلاتة مع بعض بـ $${AI_BUNDLE.priceUsd} بدل $${BUNDLE_ANCHOR_USD} — يعني بتوفّر $${BUNDLE_ANCHOR_USD - AI_BUNDLE.priceUsd}. الوصول دايم في الحالتين.`,
       },
       {
         q: 'لو اشتريت كورس، التحديثات الجديدة بتوصلني؟',
@@ -61,7 +63,7 @@ function buildFaqs() {
       },
       {
         q: 'الأسعار بأي عملة؟',
-        a: `الأسعار بالدولار الأمريكي — $${COURSE_PRICE_USD} للكورس و$${AI_BUNDLE.priceUsd} للـ Bundle. للعملاء في مصر فيه دفع محلي بالجنيه (${COURSE_PRICE_EGP.toLocaleString('en')} ج.م للكورس / ${AI_BUNDLE.priceEgp.toLocaleString('en')} ج.م للـ Bundle) عبر InstaPay أو Vodafone Cash.`,
+        a: `الأسعار بالدولار الأمريكي — الكورس من $${MIN_COURSE_PRICE_USD} والـ Bundle بـ $${AI_BUNDLE.priceUsd}. للعملاء في مصر فيه دفع محلي بالجنيه (من ${MIN_COURSE_PRICE_EGP.toLocaleString('en')} ج.م للكورس / ${AI_BUNDLE.priceEgp.toLocaleString('en')} ج.م للـ Bundle) عبر InstaPay أو Vodafone Cash.`,
       },
       {
         q: 'ينفع أرجّع فلوسي لو الكورسات مش لاقية معايا؟',

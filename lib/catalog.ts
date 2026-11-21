@@ -71,9 +71,26 @@ export type PurchasableProduct = {
   seatLimit: number | null;
 };
 
-/** Every premium course costs the same — one number, one place. */
+/**
+ * The standing course price. Individual courses may be put on offer
+ * below it — see VIBE_CODING_PRICE_USD — so this is the list price a
+ * discount is measured against, not what every course charges.
+ */
 export const COURSE_PRICE_USD = 60;
 export const COURSE_PRICE_EGP = 3_000;
+
+/**
+ * Vibe Coding is on offer at $20.
+ *
+ * `anchorUsd` on the product carries the $60 list price, which is what
+ * makes the strikethrough on its course page honest: it is a price the
+ * course actually carried, not an invented one.
+ *
+ * Put it back to COURSE_PRICE_USD / COURSE_PRICE_EGP to end the offer —
+ * the discount badge disappears on its own once price and anchor match.
+ */
+export const VIBE_CODING_PRICE_USD = 20;
+export const VIBE_CODING_PRICE_EGP = 1_000;
 
 export const BUNDLE_PRICE_USD = 99;
 export const BUNDLE_PRICE_EGP = 5_000;
@@ -112,9 +129,9 @@ export const PAID_COURSES: Record<string, PurchasableProduct> = {
     kind: 'course',
     slugs: ['vibe-coding'],
     titleAr: 'Vibe Coding',
-    priceUsd: COURSE_PRICE_USD,
-    priceEgp: COURSE_PRICE_EGP,
-    anchorUsd: null,
+    priceUsd: VIBE_CODING_PRICE_USD,
+    priceEgp: VIBE_CODING_PRICE_EGP,
+    anchorUsd: COURSE_PRICE_USD,
     interval: null,
     accessMonths: null,
     seatLimit: null,
@@ -123,6 +140,31 @@ export const PAID_COURSES: Record<string, PurchasableProduct> = {
 
 /** Slugs of every course that a subscription does NOT cover. */
 export const PAID_COURSE_SLUGS = Object.keys(PAID_COURSES);
+
+/** What the three courses cost bought one by one, at today's prices. */
+function sumOfCoursePrices(): number {
+  return Object.values(PAID_COURSES).reduce((t, c) => t + c.priceUsd, 0);
+}
+
+/** Cheapest course on sale right now — what "من $X" should quote. */
+export const MIN_COURSE_PRICE_USD = Math.min(
+  ...Object.values(PAID_COURSES).map((c) => c.priceUsd)
+);
+export const MIN_COURSE_PRICE_EGP = Math.min(
+  ...Object.values(PAID_COURSES).map((c) => c.priceEgp)
+);
+
+/** True when a product is currently below its list price. */
+export function isDiscounted(product: PurchasableProduct): boolean {
+  return product.anchorUsd !== null && product.anchorUsd > product.priceUsd;
+}
+
+/** Percent off, rounded. 0 when the product is not on offer. */
+export function discountPct(product: PurchasableProduct): number {
+  if (!isDiscounted(product)) return 0;
+  const anchor = product.anchorUsd as number;
+  return Math.round(((anchor - product.priceUsd) / anchor) * 100);
+}
 
 /**
  * All three at once. The anchor is real arithmetic — 3 × $60 — not an
@@ -136,7 +178,11 @@ export const AI_BUNDLE: PurchasableProduct = {
   titleAr: 'AI Bundle — التلات كورسات',
   priceUsd: BUNDLE_PRICE_USD,
   priceEgp: BUNDLE_PRICE_EGP,
-  anchorUsd: COURSE_PRICE_USD * 3,
+  // Derived, never typed: the sum of what the three actually cost
+  // today. Hard-coding 3 × $60 here would have claimed a $180 anchor
+  // the moment one of them went on offer, and "you save $X" would
+  // have been arithmetic the buyer could disprove in ten seconds.
+  anchorUsd: sumOfCoursePrices(),
   interval: null,
   accessMonths: null,
   seatLimit: null,

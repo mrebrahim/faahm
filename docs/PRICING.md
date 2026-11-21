@@ -8,7 +8,7 @@ Last changed: 2026-09-19 (subscriptions retired; the site is a one-off course sh
 |---|---|---|---|
 | n8n | $60 | 3,000 ج.م | **Permanent** |
 | AI Video Master | $60 | 3,000 ج.م | **Permanent** |
-| Vibe Coding | $60 | 3,000 ج.م | **Permanent** |
+| Vibe Coding | **$20** (list $60) | 1,000 ج.م | **Permanent** |
 | AI Bundle (all three) | $99 | 5,000 ج.م | **Permanent** |
 
 | AI Lab — monthly | $40/mo | 2,000 ج.م | Renews monthly |
@@ -33,8 +33,17 @@ cron and no second code path. A capped `founding` tier ($99, one-off year)
 exists in the catalogue but is parked — put it back in `AI_LAB_PUBLIC_TIERS`
 to run a launch offer.
 
-The bundle anchor ($180) is real arithmetic — 3 × $60 — not an invented list
-price, so "you save $81" survives a sceptical reading.
+The bundle anchor is DERIVED from what the three courses cost today, never
+typed in. Vibe Coding is on offer at $20, so the anchor is $140 and the saving
+$41 — both arithmetic the buyer can check. Hard-coding 3 × $60 would have kept
+claiming $180 the moment a course went on offer, and "you save $81" is a lie a
+sceptical reader disproves in ten seconds.
+
+A course goes on offer by setting its `priceUsd` below `COURSE_PRICE_USD` and
+putting the old price in `anchorUsd` — a price the course really carried, not
+an invented one. `isDiscounted()` / `discountPct()` drive every badge and
+strikethrough, so the offer ends everywhere at once by making price and anchor
+match again.
 
 ## Where the numbers live
 

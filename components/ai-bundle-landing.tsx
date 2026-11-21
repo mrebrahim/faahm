@@ -12,7 +12,7 @@ import {
   BUNDLE_ANCHOR_USD,
   BUNDLE_SAVINGS_USD,
   BUNDLE_SAVINGS_PCT,
-  COURSE_PRICE_USD,
+  PAID_COURSES,
   checkoutHrefFor,
 } from '@/lib/catalog';
 import { getPromoState } from '@/lib/promo';
@@ -70,7 +70,7 @@ const VIBE_THUMB =
  * fastest way to lose a sceptical buyer.
  */
 const BONUS_VALUE = 244 + 50 + 30 + 30 + 40;
-const TOTAL_VALUE = COURSE_PRICE_USD * 3 + BONUS_VALUE;
+const TOTAL_VALUE = BUNDLE_ANCHOR_USD + BONUS_VALUE;
 
 /**
  * The AI Bundle landing page, as a component.
@@ -396,9 +396,9 @@ export async function AiBundleLanding({
           </div>
 
           <div className="rounded-2xl border-2 border-brand-500/40 bg-white p-5 sm:p-6 shadow-lg">
-            <ValueRow icon="🤖" text="كورس n8n Automation" value={COURSE_PRICE_USD} />
-            <ValueRow icon="🎬" text="كورس AI Video Master" value={COURSE_PRICE_USD} />
-            <ValueRow icon="💻" text="كورس Vibe Coding" value={COURSE_PRICE_USD} />
+            <ValueRow icon="🤖" text="كورس n8n Automation" value={PAID_COURSES['n8n'].priceUsd} />
+            <ValueRow icon="🎬" text="كورس AI Video Master" value={PAID_COURSES['ai-video'].priceUsd} />
+            <ValueRow icon="💻" text="كورس Vibe Coding" value={PAID_COURSES['vibe-coding'].priceUsd} />
             <div className="my-3 border-t border-dashed border-gray-200" />
             <ValueRow icon="🎁" text="+5,000 فيديو AI (PLR/MRR)" value={244} />
             <ValueRow icon="📦" text="15,000 سكربت أتمتة n8n" value={50} />
@@ -537,7 +537,7 @@ export async function AiBundleLanding({
             <FaqItem q="الدعم الفني بعد الشراء؟" a="مجتمع WhatsApp خاص فيه المدرّبين + الطلاب. ترد على أي سؤال خلال ساعات، مش يومين." />
             <FaqItem
               q="أقدر أشتري كورس واحد بس؟"
-              a={`أيوه — أي كورس منهم لوحده بـ $${COURSE_PRICE_USD}. بس التلاتة مع بعض بـ $${PRICE} بدل $${ANCHOR}، يعني بتوفّر $${BUNDLE_SAVINGS_USD} + البونصات كلها ($${BONUS_VALUE} قيمة إضافية) من غير أي فرق في السعر.`}
+              a={`أيوه — تقدر تشتري أي كورس لوحده. التلاتة واحد واحد بيطلعوا $${ANCHOR}، وبالـBundle بـ $${PRICE} يعني بتوفّر $${BUNDLE_SAVINGS_USD} + البونصات كلها ($${BONUS_VALUE} قيمة إضافية).`}
             />
           </div>
         </div>
