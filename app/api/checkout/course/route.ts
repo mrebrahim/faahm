@@ -11,6 +11,7 @@ import {
   BUNDLE_SAVINGS_USD,
 } from '@/lib/catalog';
 import { foundingSeats } from '@/lib/ai-lab';
+import { resolveCouponPricing } from '@/lib/course-coupons';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -67,6 +68,10 @@ export async function GET(request: NextRequest) {
   }
 
   const membership = isMembership(product);
+  // AI Lab renews; everything else is bought once. The interval on the
+  // product decides the Stripe mode, so there is one place to look when
+  // asking whether something recurs.
+  const recurring = isRecurring(product);
 
   // A capped tier has to be enforced where the money changes hands, not
   // just hidden in the UI — otherwise a stale tab sells seat 101.
@@ -79,17 +84,27 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // A coupon link lands here as ?code=. It is re-resolved against the
+  // database — the URL never sets a price, so an edited or expired code
+  // simply pays full price instead of buying a discount.
+  //
+  // Recurring products are excluded: a coupon would discount the first
+  // invoice and then silently charge full price on renewal, which is
+  // the kind of surprise that generates chargebacks.
+  const coupon = recurring
+    ? null
+    : await resolveCouponPricing(product, url.searchParams.get('code'), userId);
+
+  const unitAmountCents = (coupon?.priceUsd ?? product.priceUsd) * 100;
+
   const isBundle = product.id === AI_BUNDLE.id;
   const description = membership
     ? 'مسار ١٢ أسبوع + لايف أسبوعي + مراجعة مشاريع + شهادة — عضوية سنة'
     : isBundle
       ? `أتمتة n8n + AI Video Master + Vibe Coding — وصول دائم · وفّر $${BUNDLE_SAVINGS_USD}`
-      : 'وصول دائم للكورس — من غير اشتراك ولا تجديد';
-
-  // AI Lab renews; everything else is bought once. The interval on the
-  // product decides the Stripe mode, so there is one place to look when
-  // asking whether something recurs.
-  const recurring = isRecurring(product);
+      : coupon
+        ? `وصول دائم للكورس — كوبون ${coupon.code}: خصم ${coupon.percentOff}% (بدل $${coupon.originalUsd})`
+        : 'وصول دائم للكورس — من غير اشتراك ولا تجديد';
 
   try {
     const session = await stripe.checkout.sessions.create({
@@ -101,7 +116,7 @@ export async function GET(request: NextRequest) {
           quantity: 1,
           price_data: {
             currency: 'usd',
-            unit_amount: product.priceUsd * 100,
+            unit_amount: unitAmountCents,
             ...(recurring
               ? { recurring: { interval: product.interval as 'month' | 'year' } }
               : {}),
@@ -134,6 +149,10 @@ export async function GET(request: NextRequest) {
         service: recurring ? 'ai_lab' : 'course',
         product: product.id,
         ...(userId ? { supabase_user_id: userId } : {}),
+        // Carried so fulfilment can record the redemption — only after
+        // the payment lands, so an abandoned session doesn't burn a
+        // seat on a capped code.
+        ...(coupon ? { coupon_code: coupon.code, coupon_id: coupon.coupon.id } : {}),
       },
       success_url: `${origin}/purchase/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}${

@@ -4,6 +4,7 @@ import { CANONICAL_URL } from '@/lib/constants';
 import { emailLayout, escapeHtml, sendEmail } from '@/lib/email';
 import { productById, isMembership, type PurchasableProduct } from '@/lib/catalog';
 import { grantAiLabMembership, tierForProduct } from '@/lib/ai-lab';
+import { recordCouponRedemption } from '@/lib/course-coupons';
 
 /**
  * Fulfilment for one-off course purchases.
@@ -306,9 +307,17 @@ export async function fulfilCoursePurchaseSession(
     });
   }
 
+  // Burn the coupon only now, with money actually taken. Doing it at
+  // checkout would let an abandoned session eat a seat on a capped code.
+  const couponId = session.metadata?.coupon_id as string | undefined;
+  if (result.firstTime && couponId) {
+    await recordCouponRedemption({ couponId, userId, email });
+  }
+
   console.log(
     `[purchase] session=${session.id} product=${product.id} user=${userId} ` +
-      `granted=${result.granted.join(',') || 'none'} firstTime=${result.firstTime}`
+      `granted=${result.granted.join(',') || 'none'} firstTime=${result.firstTime}` +
+      (couponId ? ` coupon=${session.metadata?.coupon_code}` : '')
   );
 
   return { ...result, userId, product };

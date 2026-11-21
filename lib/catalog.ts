@@ -72,25 +72,15 @@ export type PurchasableProduct = {
 };
 
 /**
- * The standing course price. Individual courses may be put on offer
- * below it — see VIBE_CODING_PRICE_USD — so this is the list price a
- * discount is measured against, not what every course charges.
+ * The standing course price.
+ *
+ * Discounts are NOT applied by editing this, or by giving one course a
+ * lower `priceUsd`. That changes the price for everyone and has to be
+ * undone by hand later. A discount is a COUPON — a code on a link that
+ * prices one checkout — see lib/course-coupons.ts.
  */
 export const COURSE_PRICE_USD = 60;
 export const COURSE_PRICE_EGP = 3_000;
-
-/**
- * Vibe Coding is on offer at $20.
- *
- * `anchorUsd` on the product carries the $60 list price, which is what
- * makes the strikethrough on its course page honest: it is a price the
- * course actually carried, not an invented one.
- *
- * Put it back to COURSE_PRICE_USD / COURSE_PRICE_EGP to end the offer —
- * the discount badge disappears on its own once price and anchor match.
- */
-export const VIBE_CODING_PRICE_USD = 20;
-export const VIBE_CODING_PRICE_EGP = 1_000;
 
 export const BUNDLE_PRICE_USD = 99;
 export const BUNDLE_PRICE_EGP = 5_000;
@@ -129,9 +119,9 @@ export const PAID_COURSES: Record<string, PurchasableProduct> = {
     kind: 'course',
     slugs: ['vibe-coding'],
     titleAr: 'Vibe Coding',
-    priceUsd: VIBE_CODING_PRICE_USD,
-    priceEgp: VIBE_CODING_PRICE_EGP,
-    anchorUsd: COURSE_PRICE_USD,
+    priceUsd: COURSE_PRICE_USD,
+    priceEgp: COURSE_PRICE_EGP,
+    anchorUsd: null,
     interval: null,
     accessMonths: null,
     seatLimit: null,

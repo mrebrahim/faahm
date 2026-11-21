@@ -17,6 +17,7 @@ import {
   isDiscounted,
   discountPct,
 } from '@/lib/catalog';
+import { resolveCouponPricing } from '@/lib/course-coupons';
 import { pickRelated, type RelatedCandidate } from '@/lib/related-courses';
 import { CourseSocialProof } from '@/components/course-social-proof';
 import { RelatedCourses } from '@/components/related-courses';
@@ -64,7 +65,13 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   };
 }
 
-export default async function CourseDetailPage({ params }: { params: { slug: string } }) {
+export default async function CourseDetailPage({
+  params,
+  searchParams,
+}: {
+  params: { slug: string };
+  searchParams: { code?: string };
+}) {
   const supabase = createClient();
   const service = createServiceClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -148,7 +155,22 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
   const courseProduct = productForCourseSlug(course.slug);
   // Drives the strikethrough, the badge and the hero ribbon. Goes away
   // on its own when the catalogue price and anchor match again.
-  const onOffer = !!courseProduct && isDiscounted(courseProduct);
+  // A coupon link (?code=VIBE20) prices THIS visit only. Resolved
+  // server-side — the URL is a hint, never the price.
+  const coupon = courseProduct
+    ? await resolveCouponPricing(courseProduct, searchParams.code, user?.id)
+    : null;
+
+  // Either a catalogue-wide offer, or a coupon this visitor is carrying.
+  const onOffer = !!courseProduct && (isDiscounted(courseProduct) || !!coupon);
+  const shownPrice = coupon?.priceUsd ?? courseProduct?.priceUsd ?? 0;
+  const shownAnchor = coupon?.originalUsd ?? courseProduct?.anchorUsd ?? null;
+  const shownPct = coupon
+    ? coupon.percentOff
+    : courseProduct
+      ? discountPct(courseProduct)
+      : 0;
+  const shownEgp = coupon?.priceEgp ?? courseProduct?.priceEgp ?? 0;
   // For the rest of this page we treat enrollment the same as subscription —
   // both grant full access to *this* course.
   const subscribed = access.subscribed || access.enrolled;
@@ -204,8 +226,12 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
   let ctaHref: string;
   let ctaLabel: string;
   if (!subscribed && courseProduct) {
-    ctaHref = checkoutHrefFor(courseProduct);
-    ctaLabel = `اشتري الكورس بـ $${courseProduct.priceUsd}`;
+    // Carry the coupon through, or the main CTA would quietly charge
+    // full price while the page beside it advertises the discount.
+    ctaHref = `${checkoutHrefFor(courseProduct)}${
+      coupon ? `&code=${encodeURIComponent(coupon.code)}` : ''
+    }`;
+    ctaLabel = `اشتري الكورس بـ $${shownPrice}`;
   } else if (!subscribed) {
     ctaHref = ROUTES.pricing;
     ctaLabel = 'شوف الأسعار';
@@ -253,11 +279,11 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
                   the fold where the decision starts. */}
               {onOffer && !subscribed && courseProduct && (
                 <span className="px-2.5 py-1 rounded-full bg-rose-600 text-white font-bold inline-flex items-center gap-1">
-                  🔥 خصم {discountPct(courseProduct)}%
+                  🔥 خصم {shownPct}%
                   <span dir="ltr" className="opacity-75 line-through font-medium">
-                    ${courseProduct.anchorUsd}
+                    ${shownAnchor}
                   </span>
-                  <span dir="ltr">${courseProduct.priceUsd}</span>
+                  <span dir="ltr">${shownPrice}</span>
                 </span>
               )}
             </div>
@@ -572,9 +598,11 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
                     }`}
                   >
                     <Star className="w-3 h-3 fill-white" />
-                    {onOffer
-                      ? `🔥 خصم ${discountPct(courseProduct)}% — لفترة محدودة`
-                      : 'كورس بريميوم — بيتباع لوحده'}
+                    {coupon
+                      ? `🎟️ كوبون ${coupon.code} — خصم ${shownPct}%`
+                      : onOffer
+                        ? `🔥 خصم ${shownPct}% — لفترة محدودة`
+                        : 'كورس بريميوم — بيتباع لوحده'}
                   </div>
                   <h3 className="font-display text-xl font-bold mb-2">
                     اشتري الكورس ده مرة واحدة
@@ -589,21 +617,21 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
                         className="text-xl text-gray-400 line-through font-medium me-2"
                         dir="ltr"
                       >
-                        ${courseProduct.anchorUsd}
+                        ${shownAnchor}
                       </span>
                     )}
                     <span
                       className="font-display text-4xl font-extrabold text-brand-700"
                       dir="ltr"
                     >
-                      ${courseProduct.priceUsd}
+                      ${shownPrice}
                     </span>
                     <span className="text-sm text-gray-500 ms-2">مرة واحدة</span>
                   </div>
                   {onOffer && (
                     <p className="text-sm font-bold text-emerald-700 mb-3">
-                      وفّر ${(courseProduct.anchorUsd as number) - courseProduct.priceUsd}{' '}
-                      — السعر العادي ${courseProduct.anchorUsd}
+                      وفّر ${(shownAnchor as number) - shownPrice} — السعر العادي $
+                      {shownAnchor}
                     </p>
                   )}
                   <p className="text-sm text-gray-600 mb-4">
@@ -624,8 +652,12 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
                     ))}
                   </ul>
                   <Button asChild className="w-full" size="lg">
-                    <Link href={checkoutHrefFor(courseProduct)}>
-                      اشتري بـ ${courseProduct.priceUsd}
+                    <Link
+                      href={`${checkoutHrefFor(courseProduct)}${
+                        coupon ? `&code=${encodeURIComponent(coupon.code)}` : ''
+                      }`}
+                    >
+                      اشتري بـ ${shownPrice}
                       <ArrowLeft className="w-4 h-4" />
                     </Link>
                   </Button>
@@ -647,7 +679,7 @@ export default async function CourseDetailPage({ params }: { params: { slug: str
                     href={`/offline/egp?product=${courseProduct.id}`}
                     className="mt-2 block text-center text-[11px] text-gray-500 hover:text-brand-700"
                   >
-                    من مصر؟ ادفع بـ InstaPay أو Vodafone Cash ({courseProduct.priceEgp} ج.م)
+                    من مصر؟ ادفع بـ InstaPay أو Vodafone Cash ({shownEgp} ج.م)
                   </Link>
                 </>
               ) : (
