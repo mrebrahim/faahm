@@ -108,7 +108,11 @@ command -v pm2 >/dev/null || { say "Installing pm2"; npm install -g pm2; }
 # under pm2 with EADDRINUSE while the health check below times out
 # against whatever already owns the port — a confusing way to find out
 # the old container is still listening.
-if command -v ss >/dev/null && ss -ltn "sport = :$PORT" 2>/dev/null | grep -q LISTEN; then
+#
+# IN_PLACE=1 skips this check: the port is held by the current pm2 "$APP_NAME"
+# process, which is exactly what we are about to replace (automated deploys
+# from the office run with PORT=3001 IN_PLACE=1).
+if [ "${IN_PLACE:-}" != "1" ] && command -v ss >/dev/null && ss -ltn "sport = :$PORT" 2>/dev/null | grep -q LISTEN; then
   OWNER="$(ss -ltnp "sport = :$PORT" 2>/dev/null | awk 'NR==2{print $NF}')"
   die "Port $PORT is already in use${OWNER:+ by $OWNER}.
     The old container is probably still serving the site — which is fine,
