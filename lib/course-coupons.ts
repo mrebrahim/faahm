@@ -73,12 +73,29 @@ async function appliesToProduct(
  * grant type that belongs in /redeem instead. Null means "full price",
  * never an error page: a bad code must not block a sale.
  */
+/**
+ * Clean a `?code=` value before it is looked up.
+ *
+ * Shared links have been seen arriving as
+ * `?code=VIBE20?code=VIBE20` — a link that already carried the code had
+ * `?code=` appended again by whatever posted it. The whole tail then
+ * lands in one param ("VIBE20?code=VIBE20"), fails the code format
+ * check, and the buyer quietly pays full price. Keep only the first
+ * token, and take the first value when the param is repeated.
+ */
+export function normalizeCouponCode(
+  raw: string | string[] | null | undefined
+): string {
+  const first = Array.isArray(raw) ? raw[0] : raw;
+  return (first ?? '').split(/[?&#\s]/)[0].trim().toUpperCase();
+}
+
 export async function resolveCouponPricing(
   product: PurchasableProduct,
-  rawCode: string | null | undefined,
+  rawCode: string | string[] | null | undefined,
   userId?: string | null
 ): Promise<CouponPricing | null> {
-  const code = (rawCode ?? '').trim().toUpperCase();
+  const code = normalizeCouponCode(rawCode);
   if (!code) return null;
 
   const result = await validateCouponCode(code, userId);
