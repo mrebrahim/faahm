@@ -79,7 +79,7 @@ export function normalizeCouponCode(
   raw: string | string[] | null | undefined
 ): string {
   const first = Array.isArray(raw) ? raw[0] : raw;
-  return (first ?? '').split(/[?&#\s]/)[0].trim().toUpperCase();
+  return (first ?? '').trim().split(/[?&#\s]/)[0].toUpperCase();
 }
 
 /**
