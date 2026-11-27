@@ -11,7 +11,7 @@ import {
 
 export type ClaudeCourseLeadState =
   | { status: 'idle' }
-  | { status: 'ok' }
+  | { status: 'ok'; name?: string }
   | { status: 'error'; message: string };
 
 const schema = z.object({
@@ -93,5 +93,5 @@ export async function submitClaudeCourseLead(
     return { status: 'error', message: 'حصلت مشكلة، جرّب تاني كمان شوية' };
   }
 
-  return { status: 'ok' };
+  return { status: 'ok', name: d.name };
 }

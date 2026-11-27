@@ -28,7 +28,7 @@ function SubmitButton() {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" size="lg" disabled={pending} className="w-full sm:w-auto">
-      {pending ? 'ثانية واحدة…' : 'ابعتلي الكورس ببلاش'}
+      {pending ? 'ثانية واحدة…' : 'ابعتلي الكورس على إيميلي'}
     </Button>
   );
 }
@@ -60,7 +60,8 @@ export function ClaudeCourseLeadForm({
     fired.current = true;
     // generate_lead only after the server confirmed the insert.
     window.gtag?.('event', 'generate_lead', { lead_source: source, page_path: pagePath });
-    router.push(thanksPath);
+    const n = state.name ? `?n=${encodeURIComponent(state.name.split(' ')[0])}` : '';
+    router.push(`${thanksPath}${n}`);
   }, [state, source, pagePath, thanksPath, router]);
 
   return (
