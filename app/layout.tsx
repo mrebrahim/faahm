@@ -3,6 +3,7 @@ import { Cairo, Tajawal } from 'next/font/google';
 import './globals.css';
 import { APP_NAME, APP_TAGLINE, APP_URL } from '@/lib/constants';
 import { Analytics } from '@/components/analytics';
+import { StripeCheckoutClickTracker } from '@/components/stripe-checkout-click-tracker';
 import { WhatsAppButton } from '@/components/whatsapp-button';
 import { ImpersonationBanner } from '@/components/impersonation-banner';
 import { LearnerCountBar } from '@/components/learner-count-bar';
@@ -93,6 +94,7 @@ export default function RootLayout({
         {children}
         <WhatsAppButton />
         <Analytics />
+        <StripeCheckoutClickTracker />
       </body>
     </html>
   );

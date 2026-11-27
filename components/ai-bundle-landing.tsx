@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { MainNav } from '@/components/main-nav';
 import { StickyMobileCTA } from '@/components/sticky-mobile-cta';
 import { LandingTracker } from '@/components/landing-tracker';
+import { ViewContentTracker } from '@/components/view-content-tracker';
 import { LiteYouTube } from '@/components/lite-youtube';
 import { APP_NAME, ROUTES } from '@/lib/constants';
 import {
@@ -92,6 +93,11 @@ export async function AiBundleLanding({
           is a dead anchor on this page and sells the wrong thing. */}
       <StickyMobileCTA href={CHECKOUT_HREF} label={`خد الـ Bundle بـ $${PRICE}`} />
       <LandingTracker />
+      <ViewContentTracker
+        contentName={AI_BUNDLE.titleAr}
+        contentIds={[AI_BUNDLE.id]}
+        value={AI_BUNDLE.priceUsd}
+      />
       <MainNav signedIn={signedIn} isAdmin={isAdmin} />
 
       {/* ═════════════════════════  HERO  ═════════════════════════ */}

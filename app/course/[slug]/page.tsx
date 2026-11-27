@@ -21,6 +21,7 @@ import { resolveCouponPricing } from '@/lib/course-coupons';
 import { pickRelated, type RelatedCandidate } from '@/lib/related-courses';
 import { CourseSocialProof } from '@/components/course-social-proof';
 import { RelatedCourses } from '@/components/related-courses';
+import { ViewContentTracker } from '@/components/view-content-tracker';
 import {
   ArrowLeft,
   BookOpen,
@@ -248,6 +249,11 @@ export default async function CourseDetailPage({
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <ViewContentTracker
+        contentName={course.title_ar}
+        contentIds={[courseProduct?.id ?? course.slug]}
+        value={courseProduct ? shownPrice : undefined}
+      />
       <MainNav signedIn={!!user} isAdmin={isAdmin} />
 
       {/* HERO */}
