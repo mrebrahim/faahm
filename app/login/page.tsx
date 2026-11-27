@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { cookies } from 'next/headers';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,7 +19,11 @@ export default function LoginPage({
     sent?: string;
   };
 }) {
-  const email = searchParams.email || '';
+  // OTP step reads the address from the httpOnly cookie set by sendOtp;
+  // ?email= is still honoured only to prefill the first step.
+  const pendingEmail = cookies().get('otp_email')?.value || '';
+  const email =
+    searchParams.sent === '1' ? pendingEmail : searchParams.email || '';
   const codeStep = !!email && searchParams.sent === '1';
   const redirectTo = searchParams.redirect || '/dashboard';
 

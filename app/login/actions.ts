@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import { createClient, createServiceClient } from '@/lib/supabase/server';
 import { auditLog } from '@/lib/admin-audit';
 import { E164_REGEX } from '@/lib/countries';
@@ -78,6 +79,7 @@ export async function login(formData: FormData) {
     // Best-effort logging; never block the redirect.
   }
 
+  forgetOtpEmail();
   revalidatePath('/', 'layout');
   redirect(redirectTo);
 }
@@ -107,6 +109,27 @@ export async function loginWithGoogle() {
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type OtpOrigin = 'login' | 'signup';
+
+/**
+ * The address waiting for its OTP lives in a short-lived httpOnly cookie,
+ * not in the URL — URLs end up in browser history, Referer headers,
+ * analytics page_location and server logs.
+ */
+const OTP_EMAIL_COOKIE = 'otp_email';
+
+function rememberOtpEmail(email: string) {
+  cookies().set(OTP_EMAIL_COOKIE, email, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: 60 * 15,
+  });
+}
+
+function forgetOtpEmail() {
+  cookies().delete(OTP_EMAIL_COOKIE);
+}
 
 function originBase(from: OtpOrigin): string {
   return from === 'signup' ? '/signup' : '/login';
@@ -193,8 +216,8 @@ export async function sendOtp(formData: FormData) {
     { action: 'auth.otp_sent' }
   );
 
+  rememberOtpEmail(email);
   const params = new URLSearchParams({
-    email,
     sent: '1',
     redirect: redirectTo,
   });
@@ -226,7 +249,7 @@ export async function verifyOtp(formData: FormData) {
   }
   if (!/^[0-9]{4,8}$/.test(token)) {
     redirect(
-      `${base}?email=${encodeURIComponent(email)}&sent=1` +
+      `${base}?sent=1&redirect=${encodeURIComponent(redirectTo)}` +
         `&error=${encodeURIComponent('الكود لازم يكون أرقام بس.')}`
     );
   }
@@ -248,7 +271,7 @@ export async function verifyOtp(formData: FormData) {
       }
     );
     redirect(
-      `${base}?email=${encodeURIComponent(email)}&sent=1` +
+      `${base}?sent=1&redirect=${encodeURIComponent(redirectTo)}` +
         `&error=${encodeURIComponent('الكود غير صحيح أو منتهي. حاول تاني.')}`
     );
   }
