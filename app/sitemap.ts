@@ -33,8 +33,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${CANONICAL_URL}/about`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
     { url: `${CANONICAL_URL}/help`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
     { url: `${CANONICAL_URL}/faq`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
-    { url: `${CANONICAL_URL}/login`, lastModified: now, changeFrequency: 'yearly', priority: 0.4 },
-    { url: `${CANONICAL_URL}/signup`, lastModified: now, changeFrequency: 'yearly', priority: 0.6 },
+    // /login and /signup are noindex (see their metadata) — listing them
+    // here would send Search Console the opposite signal.
     { url: `${CANONICAL_URL}/terms`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${CANONICAL_URL}/privacy`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${CANONICAL_URL}/refund`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
