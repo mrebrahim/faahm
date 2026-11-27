@@ -24,7 +24,6 @@ export default function robots(): MetadataRoute.Robots {
           '/x-mgmt-*',
           '/api/',
           '/auth/',
-          '/_next/',
           // Authenticated / per-user surfaces — no organic value, plus
           // they would all redirect to /login for anonymous crawlers.
           '/dashboard',

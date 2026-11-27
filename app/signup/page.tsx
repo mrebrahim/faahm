@@ -7,6 +7,10 @@ import { APP_NAME, ROUTES } from '@/lib/constants';
 import { sendOtp, verifyOtp } from '../login/actions';
 import { ArrowLeft, ArrowRight, Mail, KeyRound, CheckCircle2 } from 'lucide-react';
 
+// Login/signup carry no organic value; keep them crawlable (not in
+// robots.txt) so Google can see the noindex, but out of the index.
+export const metadata = { robots: { index: false, follow: true } };
+
 export default function SignupPage({
   searchParams,
 }: {
