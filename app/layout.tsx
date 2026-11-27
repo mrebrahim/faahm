@@ -86,7 +86,7 @@ export default function RootLayout({
             product, not in a strip on top of every page. */}
         {/* Only renders while an admin is viewing a student's account. */}
         <ImpersonationBanner />
-        {/* Site-wide '+1,000 طالب' trust strip — first thing every
+        {/* Site-wide '+1,100 طالب' trust strip — first thing every
             visitor reads. Hides itself on checkout / billing / offline
             so it doesn't compete with the payment moment. */}
         <LearnerCountBar />

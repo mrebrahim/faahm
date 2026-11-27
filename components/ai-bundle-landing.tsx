@@ -18,7 +18,6 @@ import {
 import { getPromoState } from '@/lib/promo';
 import {
   ArrowLeft,
-  Star,
   CheckCircle2,
   Sparkles,
   Bot,
@@ -177,9 +176,11 @@ export async function AiBundleLanding({
           </div>
 
           {/* Stats grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto text-center mt-8">
-            <TrustStat icon={Users} value="+1,000" label="طالب انضم" />
-            <TrustStat icon={Star} value="4.9★" label="متوسط التقييم" />
+          {/* Only verified numbers here: +1,100 = accounts in profiles
+              (1,195 on 26/11). No rating tile — we have no real rating
+              source yet, so no stars. */}
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 max-w-2xl mx-auto text-center mt-8">
+            <TrustStat icon={Users} value="+1,100" label="طالب على المنصة" />
             <TrustStat icon={Video} value="+180" label="محاضرة" />
             <TrustStat icon={Gift} value={`$${BONUS_VALUE}`} label="بونصات مجاناً" />
           </div>
@@ -438,7 +439,7 @@ export async function AiBundleLanding({
       <section className="px-4 py-16 sm:py-24 bg-gray-50 border-y border-gray-200">
         <div className="container mx-auto max-w-5xl">
           <div className="text-center mb-10">
-            <h2 className="font-display text-3xl sm:text-5xl font-extrabold mb-3">+1,000 طالب بدأوا رحلتهم</h2>
+            <h2 className="font-display text-3xl sm:text-5xl font-extrabold mb-3">+1,100 طالب بدأوا رحلتهم</h2>
             <p className="text-gray-600 max-w-xl mx-auto">دي حقيقة أرقام حصلت لناس زيّك بالظبط.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

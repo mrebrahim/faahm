@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { GraduationCap, ArrowLeft } from 'lucide-react';
 
 /**
- * Site-wide trust strip — surfaces the real student count (+1,000)
+ * Site-wide trust strip — surfaces the real student count (+1,100 — 1,195 accounts in profiles, 26/11)
  * above every marketing page so the social proof isn't trapped on
  * /pricing alone. Mounted in the root layout, sits above the
  * MainNav (and any page-specific header) so it's the first thing
@@ -26,7 +26,7 @@ import { GraduationCap, ArrowLeft } from 'lucide-react';
 // '/ai-lab' is a landing page with exactly one conversion action; a
 // site-wide strip linking to /pricing is an exit from it.
 const HIDDEN_PREFIXES = ['/checkout', '/billing', '/offline', '/ai-lab'];
-const LEARNERS = 1000;
+const LEARNERS = 1100;
 
 export function LearnerCountBar() {
   // Defer the pathname read until after mount so SSR can always
@@ -63,7 +63,7 @@ export function LearnerCountBar() {
             <span className="font-extrabold text-brand-700">
               {LEARNERS.toLocaleString('en-US')}
             </span>{' '}
-            طالب في فاهم
+            طالب على المنصة
           </span>
         </span>
         <Link
