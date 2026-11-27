@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { MainNav } from '@/components/main-nav';
 import { StickyMobileCTA } from '@/components/sticky-mobile-cta';
 import { LandingTracker } from '@/components/landing-tracker';
-import { PromoCountdown } from '@/components/promo-countdown';
 import { LiteYouTube } from '@/components/lite-youtube';
 import { APP_NAME, ROUTES } from '@/lib/constants';
 import {
@@ -15,7 +14,6 @@ import {
   PAID_COURSES,
   checkoutHrefFor,
 } from '@/lib/catalog';
-import { getPromoState } from '@/lib/promo';
 import {
   ArrowLeft,
   Star,
@@ -27,7 +25,6 @@ import {
   Package,
   ShieldCheck,
   Users,
-  Clock,
   Zap,
   Gift,
   MessageCircle,
@@ -86,10 +83,8 @@ export async function AiBundleLanding({
   signedIn?: boolean;
   isAdmin?: boolean;
 } = {}) {
-  // Only the rolling cycle deadline is used here — the countdown. The
-  // price on this page is fixed in lib/catalog.ts and owes nothing to
-  // the old subscription promo.
-  const { promoEndsAtMs } = getPromoState();
+  // No countdown on this page: the old rolling CYCLE_DAY timer reset every
+  // month, which the launch guide forbids. Price is fixed in lib/catalog.ts.
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-white">
@@ -147,13 +142,6 @@ export async function AiBundleLanding({
               <span className="block text-[11px] text-gray-400 mt-1">
                 وفّر ${BUNDLE_SAVINGS_USD} · وصول دائم · ضمان استرداد ٧ أيام
               </span>
-            </div>
-            <div className="mb-3 py-2 px-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-medium">
-              <div className="inline-flex items-center gap-1.5 flex-wrap justify-center">
-                <Clock className="w-3.5 h-3.5 flex-shrink-0" />
-                العرض ينتهي خلال:{' '}
-                <PromoCountdown deadlineMs={promoEndsAtMs} compact />
-              </div>
             </div>
             <Button asChild size="lg" className="w-full font-bold min-h-[52px] text-base">
               <Link href={CHECKOUT_HREF}>
@@ -494,11 +482,6 @@ export async function AiBundleLanding({
             ٣ مصادر دخل. ٩٠ يوم. <span dir="ltr">${PRICE}</span> فقط.
           </h2>
           <p className="text-lg opacity-95 mb-8">قرارك النهارده هيحدد الـ ٩٠ يوم اللي جاية.</p>
-
-          <div className="max-w-md mx-auto rounded-2xl bg-white/10 backdrop-blur border border-white/30 p-4 mb-6">
-            <div className="text-xs opacity-90 mb-2">العرض ينتهي خلال:</div>
-            <PromoCountdown deadlineMs={promoEndsAtMs} />
-          </div>
 
           <Button asChild size="lg" className="bg-white text-brand-700 hover:bg-gray-100 font-bold min-h-[60px] text-base sm:text-lg w-full sm:w-auto">
             <Link href={CHECKOUT_HREF}>
