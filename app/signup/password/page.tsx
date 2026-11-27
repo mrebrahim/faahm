@@ -7,7 +7,10 @@ import { APP_NAME, ROUTES } from '@/lib/constants';
 import { signup } from '../actions';
 import { ArrowLeft, ArrowRight, CheckCircle2, MailCheck } from 'lucide-react';
 
-export const metadata = { title: 'إنشاء حساب بكلمة السر — فاهم!' };
+export const metadata = {
+  title: 'إنشاء حساب بكلمة السر',
+  robots: { index: false, follow: true },
+};
 
 export default function SignupWithPasswordPage({
   searchParams,

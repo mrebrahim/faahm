@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,6 +7,14 @@ import { APP_NAME, ROUTES } from '@/lib/constants';
 import { sendOtp, verifyOtp } from './actions';
 import { HashAuthHandler } from './hash-auth-handler';
 import { ArrowLeft, ArrowRight, Mail, KeyRound } from 'lucide-react';
+
+// Search Console showed /login and /signup soaking up impressions meant
+// for the home page. noindex (not a robots.txt disallow) so Google can
+// still crawl them and see the tag; follow so links keep passing.
+export const metadata: Metadata = {
+  title: 'تسجيل الدخول',
+  robots: { index: false, follow: true },
+};
 
 export default function LoginPage({
   searchParams,

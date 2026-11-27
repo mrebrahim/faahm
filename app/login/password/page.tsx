@@ -7,7 +7,10 @@ import { login } from '../actions';
 import { HashAuthHandler } from '../hash-auth-handler';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 
-export const metadata = { title: 'دخول بكلمة السر — فاهم!' };
+export const metadata = {
+  title: 'دخول بكلمة السر',
+  robots: { index: false, follow: true },
+};
 
 export default function LoginWithPasswordPage({
   searchParams,
