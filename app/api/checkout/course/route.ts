@@ -12,6 +12,7 @@ import {
 } from '@/lib/catalog';
 import { foundingSeats } from '@/lib/ai-lab';
 import { resolveCouponPricing } from '@/lib/course-coupons';
+import { clientIdFromGaCookie } from '@/lib/purchase-webhook';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -97,6 +98,8 @@ export async function GET(request: NextRequest) {
 
   const unitAmountCents = (coupon?.priceUsd ?? product.priceUsd) * 100;
 
+  const gaClientId = clientIdFromGaCookie(cookies().get('_ga')?.value);
+
   const isBundle = product.id === AI_BUNDLE.id;
   const description = membership
     ? 'مسار ١٢ أسبوع + لايف أسبوعي + مراجعة مشاريع + شهادة — عضوية سنة'
@@ -153,6 +156,9 @@ export async function GET(request: NextRequest) {
         // the payment lands, so an abandoned session doesn't burn a
         // seat on a capped code.
         ...(coupon ? { coupon_code: coupon.code, coupon_id: coupon.coupon.id } : {}),
+        // GA4 client id from the browser's _ga cookie, so the server-side
+        // `purchase` event joins the visitor's own session in GA4.
+        ...(gaClientId ? { ga_client_id: gaClientId } : {}),
       },
       success_url: `${origin}/purchase/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}${

@@ -314,6 +314,22 @@ export async function fulfilCoursePurchaseSession(
     await recordCouponRedemption({ couponId, userId, email });
   }
 
+  // GA4 `purchase` via n8n (the GA4 secret lives there). First pass
+  // only, so a webhook replay doesn't double-count revenue.
+  if (result.firstTime) {
+    const { sendPurchaseToN8n } = await import('@/lib/purchase-webhook');
+    const value = (session.amount_total ?? product.priceUsd * 100) / 100;
+    await sendPurchaseToN8n({
+      transaction_id: session.id,
+      value,
+      currency: (session.currency ?? 'usd').toUpperCase(),
+      client_id: (session.metadata?.ga_client_id as string | undefined) ?? null,
+      user_id: userId,
+      coupon: (session.metadata?.coupon_code as string | undefined) ?? null,
+      items: [{ item_id: product.id, item_name: product.titleAr, price: value, quantity: 1 }],
+    });
+  }
+
   console.log(
     `[purchase] session=${session.id} product=${product.id} user=${userId} ` +
       `granted=${result.granted.join(',') || 'none'} firstTime=${result.firstTime}` +
