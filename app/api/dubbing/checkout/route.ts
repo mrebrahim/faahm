@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { createServiceClient } from '@/lib/supabase/server';
 import { resolveAppUrl } from '@/lib/app-url';
+import { attributionMetadata, ATTRIBUTION_COOKIE } from '@/lib/attribution';
 import {
   DUBBING_USD_PER_MINUTE,
   dubbingTotalUsd,
@@ -116,6 +117,10 @@ export async function POST(req: NextRequest) {
   }
 
   const origin = resolveAppUrl();
+  const attribution = attributionMetadata(
+    req.nextUrl.searchParams,
+    req.cookies.get(ATTRIBUTION_COOKIE)?.value
+  );
 
   try {
     const session = await stripe.checkout.sessions.create({
@@ -146,6 +151,10 @@ export async function POST(req: NextRequest) {
         service: 'dubbing',
         order_id: order.id,
         minutes: String(minutes),
+        ...attribution,
+      },
+      payment_intent_data: {
+        metadata: { service: 'dubbing', order_id: order.id, ...attribution },
       },
       success_url: `${origin}/service-thankyou?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/video-dubbing`,

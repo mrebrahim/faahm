@@ -12,6 +12,7 @@ import {
 } from '@/lib/catalog';
 import { foundingSeats } from '@/lib/ai-lab';
 import { resolveCouponPricing } from '@/lib/course-coupons';
+import { attributionMetadata, ATTRIBUTION_COOKIE } from '@/lib/attribution';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -97,6 +98,15 @@ export async function GET(request: NextRequest) {
 
   const unitAmountCents = (coupon?.priceUsd ?? product.priceUsd) * 100;
 
+  // Which channel sent this buyer — utm_* on the checkout link wins,
+  // else the last touch the middleware stored. Stamped on the session
+  // AND on the charge/subscription so the finance ledger can read the
+  // channel straight off the Stripe transaction.
+  const attribution = attributionMetadata(
+    url.searchParams,
+    cookies().get(ATTRIBUTION_COOKIE)?.value
+  );
+
   const isBundle = product.id === AI_BUNDLE.id;
   const description = membership
     ? 'مسار ١٢ أسبوع + لايف أسبوعي + مراجعة مشاريع + شهادة — عضوية سنة'
@@ -138,10 +148,19 @@ export async function GET(request: NextRequest) {
                 product: product.id,
                 plan: product.interval === 'year' ? 'yearly' : 'monthly',
                 ...(userId ? { supabase_user_id: userId } : {}),
+                ...attribution,
               },
             },
           }
-        : {}),
+        : {
+            payment_intent_data: {
+              metadata: {
+                service: 'course',
+                product: product.id,
+                ...attribution,
+              },
+            },
+          }),
       // The webhook and the success page both read this to work out what
       // to unlock. `supabase_user_id` is only present for a signed-in
       // buyer; a guest is matched by the email Stripe collects.
@@ -153,6 +172,7 @@ export async function GET(request: NextRequest) {
         // the payment lands, so an abandoned session doesn't burn a
         // seat on a capped code.
         ...(coupon ? { coupon_code: coupon.code, coupon_id: coupon.coupon.id } : {}),
+        ...attribution,
       },
       success_url: `${origin}/purchase/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}${
