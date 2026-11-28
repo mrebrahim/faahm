@@ -7,7 +7,7 @@ import { Star, Users, Award } from 'lucide-react';
  *
  *   - Big rating average + a star row + the actual review count
  *   - Real enrollment count for *this course*
- *   - Aggregate brand signal: '+1,000 طالب على فاهم' so the
+ *   - Aggregate brand signal: verified platform count only (no '+1,000') so the
  *     visitor pegs course-level proof to platform-level proof
  *
  * The block intentionally skips the 5-bar distribution other
@@ -19,7 +19,7 @@ export function CourseSocialProof({
   ratingAvg,
   ratingCount,
   enrollments,
-  totalPlatformLearners = 1000,
+  totalPlatformLearners = 306,
 }: {
   ratingAvg: number | null;
   ratingCount: number | null;
@@ -90,11 +90,11 @@ export function CourseSocialProof({
           <div className="flex items-center justify-center sm:justify-start gap-2 mb-1.5">
             <Award className="w-5 h-5 text-amber-500" aria-hidden />
             <span className="font-display text-3xl sm:text-4xl font-extrabold text-foreground tabular-nums">
-              +{totalPlatformLearners.toLocaleString('en-US')}
+              {totalPlatformLearners.toLocaleString('en-US')}
             </span>
           </div>
           <div className="text-xs text-gray-600">
-            طالب انضم لفاهم — أنت مش أول واحد بيبدأ
+            طالب اشتركوا في فاهم — أنت مش أول واحد بيبدأ
           </div>
         </div>
       </div>

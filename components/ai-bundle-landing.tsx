@@ -18,7 +18,6 @@ import {
 import { getPromoState } from '@/lib/promo';
 import {
   ArrowLeft,
-  Star,
   CheckCircle2,
   Sparkles,
   Bot,
@@ -176,10 +175,10 @@ export async function AiBundleLanding({
             </Link>
           </div>
 
-          {/* Stats grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-3xl mx-auto text-center mt-8">
-            <TrustStat icon={Users} value="+1,000" label="طالب انضم" />
-            <TrustStat icon={Star} value="4.9★" label="متوسط التقييم" />
+          {/* Stats grid — verified numbers only: 306 = students who paid
+              on faahm (office data, 28/11). No rating tile — no real source. */}
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 max-w-2xl mx-auto text-center mt-8">
+            <TrustStat icon={Users} value="306" label="طالب اشتركوا" />
             <TrustStat icon={Video} value="+180" label="محاضرة" />
             <TrustStat icon={Gift} value={`$${BONUS_VALUE}`} label="بونصات مجاناً" />
           </div>
@@ -434,23 +433,9 @@ export async function AiBundleLanding({
         </div>
       </section>
 
-      {/* ═════════════════  TESTIMONIALS  ═════════════════ */}
-      <section className="px-4 py-16 sm:py-24 bg-gray-50 border-y border-gray-200">
-        <div className="container mx-auto max-w-5xl">
-          <div className="text-center mb-10">
-            <h2 className="font-display text-3xl sm:text-5xl font-extrabold mb-3">+1,000 طالب بدأوا رحلتهم</h2>
-            <p className="text-gray-600 max-w-xl mx-auto">دي حقيقة أرقام حصلت لناس زيّك بالظبط.</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Testimonial tag="n8n" name="أحمد خالد" city="القاهرة" quote="بديت بـ n8n، بعدين AI Video. دلوقتي عندي ٣ عملاء ثابتين بيدفعوا شهرياً." />
-            <Testimonial tag="AI Video" name="سارة المنصور" city="الرياض" quote="أول فيديو AI عمله وصل مليون مشاهدة. البراند بتاعي كبر ٣ أضعاف في شهرين." />
-            <Testimonial tag="Vibe Coding" name="محمد العمري" city="الكويت" quote="طلعت أول SaaS بتاعي في ٦ أسابيع. دلوقتي بيجيبلي $800/شهر." />
-            <Testimonial tag="Bundle" name="لينا حسن" city="بيروت" quote="دخلي زاد ٣ أضعاف في ٤ شهور. الـ ٣ كورسات مكمّلين بعض." />
-            <Testimonial tag="n8n" name="عمر الرشيد" city="دبي" quote="كنت باخد ساعتين على كل مهمة روتينية. دلوقتي ١٥ دقيقة." />
-            <Testimonial tag="AI Video" name="نور الدين بوعزيز" city="تونس" quote="بعت ٥ فيديوهات لعميل بسعر $2000. عيالي بيبيعوا محتوى AI دلوقتي." />
-          </div>
-        </div>
-      </section>
+      {/* Testimonials removed 28/11 — the names and quotes weren't real.
+          Bring the section back only with real students who agreed in
+          writing to be quoted. */}
 
       {/* ═════════════════  GUARANTEE  ═════════════════ */}
       <section className="px-4 py-16 sm:py-24">
@@ -516,11 +501,6 @@ export async function AiBundleLanding({
             <span>🛡️ ضمان ٧ أيام</span>
           </div>
 
-          <div className="mt-8 p-5 rounded-xl bg-white/10 backdrop-blur border border-white/20 max-w-md mx-auto">
-            <div className="text-amber-300 mb-2">⭐⭐⭐⭐⭐</div>
-            <p className="text-sm italic opacity-95 mb-2">"دخلي زاد ٣ أضعاف في ٤ شهور."</p>
-            <div className="text-xs opacity-80">— لينا حسن, Digital Agency, بيروت</div>
-          </div>
         </div>
       </section>
 
@@ -794,34 +774,6 @@ function ValueRow({ icon, text, value }: { icon: string; text: string; value: nu
   );
 }
 
-function Testimonial({ tag, name, city, quote }: { tag: string; name: string; city: string; quote: string }) {
-  const initial = name.charAt(0);
-  const tagColor = {
-    n8n: 'bg-brand-500/10 text-brand-700',
-    'AI Video': 'bg-emerald-500/10 text-emerald-700',
-    'Vibe Coding': 'bg-indigo-500/10 text-indigo-700',
-    Bundle: 'bg-amber-500/10 text-amber-700',
-  }[tag] || 'bg-gray-100 text-gray-700';
-
-  return (
-    <div className="rounded-2xl bg-white border border-gray-200 p-5 h-full flex flex-col">
-      <div className="flex items-center justify-between mb-3">
-        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${tagColor}`}>{tag}</span>
-        <span className="text-amber-500 text-xs">⭐⭐⭐⭐⭐</span>
-      </div>
-      <p className="text-sm text-gray-700 leading-relaxed flex-1 mb-4">"{quote}"</p>
-      <div className="flex items-center gap-3 pt-3 border-t border-gray-100">
-        <div className="w-9 h-9 rounded-full bg-brand-500 text-white flex items-center justify-center font-bold flex-shrink-0">
-          {initial}
-        </div>
-        <div className="min-w-0">
-          <div className="text-sm font-bold truncate">{name}</div>
-          <div className="text-[11px] text-gray-500 truncate">{city}</div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function FaqItem({ q, a }: { q: string; a: string }) {
   return (
